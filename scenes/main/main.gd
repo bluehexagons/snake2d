@@ -1,18 +1,37 @@
-extends Node2D
+extends Container
 
 const Snake = preload("res://scenes/snake/snake.tscn")
 const Food = preload("res://scenes/food/food.tscn")
 
 const GRID_SIZE = 32
+const GAME_WIDTH = 800
+const GAME_HEIGHT = 600
+const GRID_WIDTH = GAME_WIDTH / GRID_SIZE
+const GRID_HEIGHT = GAME_HEIGHT / GRID_SIZE
+
+var game_world: Node2D
 var snake
 var food
 var tail_segments = []
 var tail_positions = []
 var game_over = false
+var score = 0
+var score_label: Label
 
 func _ready():
+	get_tree().root.size_changed.connect(_on_window_resize)
+	_on_window_resize()
+	
+	game_world = $GameViewport/SubViewport/GameWorld
+	
+	# Create score label with proper positioning
+	score_label = Label.new()
+	score_label.position = Vector2(16, 16)
+	score_label.text = "Score: 0"
+	game_world.add_child(score_label)
+	
 	snake = Snake.instantiate()
-	add_child(snake)
+	game_world.add_child(snake)
 	snake.position = Vector2(5, 5) * GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
@@ -30,11 +49,11 @@ func spawn_food():
 	if food:
 		food.queue_free()
 	food = Food.instantiate()
-	add_child(food)
+	game_world.add_child(food)
 	
 	# Random position within the grid
-	var x = randi_range(0, (1152 / GRID_SIZE) - 1)
-	var y = randi_range(0, (648 / GRID_SIZE) - 1)
+	var x = randi_range(0, GRID_WIDTH - 1)
+	var y = randi_range(0, GRID_HEIGHT - 1)
 	food.position = Vector2(x, y) * GRID_SIZE
 
 func _on_snake_moved(new_position):
@@ -71,6 +90,10 @@ func _on_snake_grew():
 	add_child(segment)
 	tail_segments.append(segment)
 	spawn_food()
+	
+	# Update score
+	score += 10
+	score_label.text = "Score: " + str(score)
 
 func _on_game_over():
 	game_over = true
@@ -79,11 +102,11 @@ func _on_game_over():
 	
 	# Optional: Show game over message
 	var label = Label.new()
-	label.text = "Game Over!\nPress R to restart"
-	label.position = Vector2(576, 324)  # Center of screen
+	label.text = "Game Over!\nFinal Score: " + str(score) + "\nPress R to restart"
+	label.position = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	add_child(label)
+	game_world.add_child(label)
 
 func _process(_delta):
 	if game_over and Input.is_action_just_pressed("retry"):  # R key
@@ -99,3 +122,8 @@ func _on_timer_timeout():
 	if snake.position == food.position:
 		snake.grow()
 		spawn_food()
+
+func _on_window_resize():
+	var window_size = DisplayServer.window_get_size()
+	$GameViewport.custom_minimum_size = Vector2(GAME_WIDTH, GAME_HEIGHT)
+	$GameViewport.size = window_size

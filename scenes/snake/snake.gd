@@ -25,9 +25,9 @@ func _process(_delta):
 func move():
 	var new_position = position + direction * GRID_SIZE
 	
-	# Check wall collision
-	if new_position.x < 0 or new_position.x >= 1152 or \
-	   new_position.y < 0 or new_position.y >= 648:
+	# Check wall collision using viewport bounds
+	if new_position.x < 0 or new_position.x >= 800 or \
+	   new_position.y < 0 or new_position.y >= 600:
 		died.emit()
 		return
 		
