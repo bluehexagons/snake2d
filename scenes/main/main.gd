@@ -1,4 +1,4 @@
-extends Container
+extends Control
 
 const Snake = preload("res://scenes/snake/snake.tscn")
 const Food = preload("res://scenes/food/food.tscn")
@@ -17,6 +17,7 @@ var tail_positions = []
 var game_over = false
 var score = 0
 var score_label: Label
+var camera: Camera2D
 
 func _ready():
 	get_tree().root.size_changed.connect(_on_window_resize)
@@ -24,11 +25,8 @@ func _ready():
 	
 	game_world = $GameViewport/SubViewport/GameWorld
 	
-	# Create score label with proper positioning
-	score_label = Label.new()
-	score_label.position = Vector2(16, 16)
-	score_label.text = "Score: 0"
-	game_world.add_child(score_label)
+	# Remove score label creation since it's now in the scene tree
+	score_label = $UILayer/ScoreLabel
 	
 	snake = Snake.instantiate()
 	game_world.add_child(snake)
@@ -44,6 +42,9 @@ func _ready():
 	timer.wait_time = 0.2
 	timer.timeout.connect(_on_timer_timeout)
 	timer.start()
+	
+	camera = $GameViewport/SubViewport/GameWorld/Camera2D
+	camera.position = snake.position
 
 func spawn_food():
 	if food:
@@ -87,7 +88,7 @@ func _on_snake_grew():
 	else:
 		segment.position = tail_positions[0]
 	
-	add_child(segment)
+	game_world.add_child(segment)  # Changed from add_child to game_world.add_child
 	tail_segments.append(segment)
 	spawn_food()
 	
@@ -97,19 +98,19 @@ func _on_snake_grew():
 
 func _on_game_over():
 	game_over = true
-	# Optional: Add visual feedback
 	snake.modulate = Color.RED
 	
-	# Optional: Show game over message
-	var label = Label.new()
-	label.text = "Game Over!\nFinal Score: " + str(score) + "\nPress R to restart"
-	label.position = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	game_world.add_child(label)
+	# Update game over UI
+	$UILayer/GameOverContainer.visible = true
+	$UILayer/GameOverContainer/GameOverLabel.text = "Game Over!\nFinal Score: " + str(score) + "\nPress R to restart"
 
 func _process(_delta):
-	if game_over and Input.is_action_just_pressed("retry"):  # R key
+	if not game_over:
+		# Update camera position with smooth follow
+		var target = snake.position
+		camera.position = camera.position.lerp(target, 0.005)
+	
+	if game_over and Input.is_action_just_pressed("retry"):
 		get_tree().reload_current_scene()
 
 func _on_timer_timeout():
@@ -124,6 +125,8 @@ func _on_timer_timeout():
 		spawn_food()
 
 func _on_window_resize():
-	var window_size = DisplayServer.window_get_size()
+	var viewport = $GameViewport/SubViewport
+	viewport.size = DisplayServer.window_get_size()
 	$GameViewport.custom_minimum_size = Vector2(GAME_WIDTH, GAME_HEIGHT)
-	$GameViewport.size = window_size
+	$GameViewport.size = viewport.size
+	$GameViewport/SubViewport.size = Vector2i(GAME_WIDTH, GAME_HEIGHT)

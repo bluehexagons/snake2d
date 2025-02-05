@@ -20,7 +20,12 @@ config/icon="res://icon.svg"
 window/size/viewport_width=800
 window/size/viewport_height=600
 window/stretch/mode="viewport"
-window/stretch/aspect="keep_aspect"
+window/stretch/aspect="expand"
+window/vsync/vsync_mode=2
+
+[gui]
+
+common/snap_controls_to_pixels=false
 
 [input]
 
@@ -62,4 +67,7 @@ retry={
 
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="mobile"
+"#Disabletexturefilteringglobally[gui]common/snap_controls_to_pixels"=false
+"#Disabletexturefilteringforcrisppixels[gui]common/snap_controls_to_pixels"=false

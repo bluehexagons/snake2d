@@ -2,25 +2,81 @@
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_tyq8r"]
 
-[node name="Main" type="Container"]
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("1_tyq8r")
 
 [node name="GameViewport" type="SubViewportContainer" parent="."]
-custom_minimum_size = Vector2(800, 600)
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="GameViewport"]
 handle_input_locally = false
+canvas_item_default_texture_filter = 3
 size = Vector2i(800, 600)
 render_target_update_mode = 4
 
 [node name="GameWorld" type="Node2D" parent="GameViewport/SubViewport"]
 
-[node name="Background" type="ColorRect" parent="GameViewport/SubViewport/GameWorld"]
+[node name="PlayArea" type="Node2D" parent="GameViewport/SubViewport/GameWorld"]
+y_sort_enabled = true
+
+[node name="Grid" type="ColorRect" parent="GameViewport/SubViewport/GameWorld/PlayArea"]
 offset_right = 800.0
 offset_bottom = 600.0
-color = Color(0.0784314, 0.0784314, 0.0784314, 1)
+color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[node name="Border" type="Line2D" parent="GameViewport/SubViewport/GameWorld/PlayArea"]
+points = PackedVector2Array(0, 0, 800, 0, 800, 600, 0, 600, 0, 0)
+width = 2.0
+default_color = Color(0.392157, 0.392157, 0.392157, 1)
 
 [node name="Camera2D" type="Camera2D" parent="GameViewport/SubViewport/GameWorld"]
 position = Vector2(400, 300)
+
+[node name="UIBackground" type="CanvasLayer" parent="."]
+layer = 0
+
+[node name="Background" type="ColorRect" parent="UIBackground"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0941176, 0.0941176, 0.0941176, 0.72549)
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="UILayer"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 116.0
+offset_bottom = 42.0
+text = "Score: 0"
+
+[node name="GameOverContainer" type="CenterContainer" parent="UILayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GameOverLabel" type="Label" parent="UILayer/GameOverContainer"]
+layout_mode = 2
+text = "Game Over!
+Final Score: 0
+Press R to restart"
+horizontal_alignment = 1
