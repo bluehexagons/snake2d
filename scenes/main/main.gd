@@ -4,10 +4,10 @@ const Snake = preload("res://scenes/snake/snake.tscn")
 const Food = preload("res://scenes/food/food.tscn")
 
 const GRID_SIZE = 32
-const GAME_WIDTH = 800
-const GAME_HEIGHT = 600
-const GRID_WIDTH = GAME_WIDTH / GRID_SIZE
-const GRID_HEIGHT = GAME_HEIGHT / GRID_SIZE
+const GRID_WIDTH = 24  # 768/32
+const GRID_HEIGHT = 18  # 576/32
+const GAME_WIDTH = GRID_WIDTH * GRID_SIZE
+const GAME_HEIGHT = GRID_HEIGHT * GRID_SIZE
 
 var game_world: Node2D
 var snake
@@ -30,7 +30,7 @@ func _ready():
 	
 	snake = Snake.instantiate()
 	game_world.add_child(snake)
-	snake.position = Vector2(5, 5) * GRID_SIZE
+	snake.position = Vector2(GRID_WIDTH/2, GRID_HEIGHT/2) * GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
 	snake.died.connect(_on_game_over)
@@ -52,9 +52,9 @@ func spawn_food():
 	food = Food.instantiate()
 	game_world.add_child(food)
 	
-	# Random position within the grid
-	var x = randi_range(0, GRID_WIDTH - 1)
-	var y = randi_range(0, GRID_HEIGHT - 1)
+	# Random position within the playable grid
+	var x = randi_range(0, GRID_WIDTH - 2)  # -2 to account for food size
+	var y = randi_range(0, GRID_HEIGHT - 2)
 	food.position = Vector2(x, y) * GRID_SIZE
 
 func _on_snake_moved(new_position):

@@ -24,7 +24,7 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="GameViewport"]
 handle_input_locally = false
-canvas_item_default_texture_filter = 3
+canvas_item_default_texture_filter = 0
 size = Vector2i(800, 600)
 render_target_update_mode = 4
 
@@ -33,18 +33,18 @@ render_target_update_mode = 4
 [node name="PlayArea" type="Node2D" parent="GameViewport/SubViewport/GameWorld"]
 y_sort_enabled = true
 
-[node name="Grid" type="ColorRect" parent="GameViewport/SubViewport/GameWorld/PlayArea"]
-offset_right = 800.0
-offset_bottom = 600.0
+[node name="Background" type="ColorRect" parent="GameViewport/SubViewport/GameWorld/PlayArea"]
+offset_right = 768.0
+offset_bottom = 576.0
 color = Color(0.12549, 0.12549, 0.12549, 1)
 
 [node name="Border" type="Line2D" parent="GameViewport/SubViewport/GameWorld/PlayArea"]
-points = PackedVector2Array(0, 0, 800, 0, 800, 600, 0, 600, 0, 0)
+points = PackedVector2Array(0, 0, 768, 0, 768, 576, 0, 576, 0, 0)
 width = 2.0
 default_color = Color(0.392157, 0.392157, 0.392157, 1)
 
 [node name="Camera2D" type="Camera2D" parent="GameViewport/SubViewport/GameWorld"]
-position = Vector2(400, 300)
+position = Vector2(384, 288)
 
 [node name="UIBackground" type="CanvasLayer" parent="."]
 layer = 0
