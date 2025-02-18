@@ -13,6 +13,16 @@ const BASE_TIMER_WAIT = 0.2
 const MIN_TIMER_WAIT = 0.07  # Maximum speed
 const SPEED_INCREASE_PER_SEGMENT = 0.005  # How much faster per segment
 
+const CAMERA_LOOK_AHEAD = 0.25  # How many grid cells to look ahead
+const CAMERA_SMOOTHING = 0.015  # Smoothing factor
+const CENTER_PULL_WEIGHT = 0.25  # How strongly the camera is pulled to center
+const FOOD_ATTRACTION_WEIGHT = 0.1  # How strongly the camera is pulled to food
+const LOOK_AHEAD_WEIGHT = 0.15  # How strongly the camera follows snake's direction
+const CAMERA_DAMPING = 0.85  # How quickly velocity decays
+const CAMERA_ACCELERATION = 0.01  # How quickly camera responds to changes
+
+var camera_velocity = Vector2.ZERO
+
 var game_world: Node2D
 var snake
 var food
@@ -94,6 +104,7 @@ func _start_game():
 	
 	camera = $GameViewport/SubViewport/GameWorld/Camera2D
 	camera.position = snake.position
+	camera_velocity = Vector2.ZERO  # Reset camera velocity when starting
 
 func _update_game_speed():
 	if game_timer:
@@ -144,6 +155,7 @@ func _cleanup_game():
 	# Reset UI
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
+	camera_velocity = Vector2.ZERO  # Reset camera velocity when cleaning up
 
 func is_position_occupied(pos: Vector2) -> bool:
 	# Check snake head
@@ -285,8 +297,26 @@ func _process(_delta):
 	
 	# Only update game logic when not paused
 	if in_game and not game_over and not paused:
-		var target = snake.position
-		camera.position = camera.position.lerp(target, 0.005)
+		# Calculate various camera target influences
+		var center = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
+		var look_ahead = snake.position + (snake.direction * GRID_SIZE * CAMERA_LOOK_AHEAD)
+		var food_pos = food.position if food else snake.position
+		
+		# Combine all influences with their weights
+		var target = (
+			look_ahead * LOOK_AHEAD_WEIGHT +
+			center * CENTER_PULL_WEIGHT +
+			food_pos * FOOD_ATTRACTION_WEIGHT
+		) / (LOOK_AHEAD_WEIGHT + CENTER_PULL_WEIGHT + FOOD_ATTRACTION_WEIGHT)
+		
+		 # Calculate desired velocity
+		var desired_velocity = (target - camera.position) * CAMERA_ACCELERATION
+		
+		# Update camera velocity with damping
+		camera_velocity = camera_velocity * CAMERA_DAMPING + desired_velocity
+		
+		# Apply velocity to camera position
+		camera.position += camera_velocity
 	
 	if game_over and Input.is_action_just_pressed("retry"):
 		_on_restart_pressed()

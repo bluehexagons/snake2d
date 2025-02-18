@@ -5,7 +5,7 @@ signal grew
 signal died
 
 const GRID_SIZE = 32
-var direction = Vector2.RIGHT
+@export var direction = Vector2.RIGHT  # Made public for camera access
 var next_direction = Vector2.RIGHT  # Buffer the next direction
 var can_move = true
 
