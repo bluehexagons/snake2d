@@ -8,4 +8,4 @@ script = ExtResource("1_8v03p")
 [node name="Head" type="ColorRect" parent="."]
 offset_right = 32.0
 offset_bottom = 32.0
-color = Color(0.0862745, 0.741176, 0.0862745, 1)
+color = Color(0.0509804, 0.521569, 0.0509804, 1)

@@ -9,6 +9,10 @@ const GRID_HEIGHT = 18  # 576/32
 const GAME_WIDTH = GRID_WIDTH * GRID_SIZE
 const GAME_HEIGHT = GRID_HEIGHT * GRID_SIZE
 
+const BASE_TIMER_WAIT = 0.2
+const MIN_TIMER_WAIT = 0.07  # Maximum speed
+const SPEED_INCREASE_PER_SEGMENT = 0.005  # How much faster per segment
+
 var game_world: Node2D
 var snake
 var food
@@ -24,6 +28,7 @@ var in_game = false
 var game_timer: Timer = null
 
 func _ready():
+	set_process_mode(Node.PROCESS_MODE_ALWAYS)  # Allow this node to process while paused
 	get_tree().root.size_changed.connect(_on_window_resize)
 	_on_window_resize()
 	
@@ -72,6 +77,7 @@ func _start_game():
 	# Initialize game elements
 	game_world = $GameViewport/SubViewport/GameWorld
 	snake = Snake.instantiate()
+	snake.process_mode = Node.PROCESS_MODE_INHERIT
 	game_world.add_child(snake)
 	snake.position = Vector2(GRID_WIDTH/2, GRID_HEIGHT/2) * GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
@@ -82,12 +88,21 @@ func _start_game():
 	# Start the game timer
 	game_timer = Timer.new()
 	add_child(game_timer)
-	game_timer.wait_time = 0.2
+	game_timer.wait_time = BASE_TIMER_WAIT
 	game_timer.timeout.connect(_on_timer_timeout)
 	game_timer.start()
 	
 	camera = $GameViewport/SubViewport/GameWorld/Camera2D
 	camera.position = snake.position
+
+func _update_game_speed():
+	if game_timer:
+		var segment_count = tail_segments.size()
+		var new_wait = max(
+			BASE_TIMER_WAIT - (segment_count * SPEED_INCREASE_PER_SEGMENT),
+			MIN_TIMER_WAIT
+		)
+		game_timer.wait_time = new_wait
 
 func _on_scores_pressed():
 	$UILayer/MainMenu/VBoxContainer/Title.text = "HIGH SCORE\n" + str(high_score)
@@ -165,7 +180,25 @@ func _on_snake_moved(new_position):
 func _on_snake_grew():
 	var segment = ColorRect.new()
 	segment.size = Vector2(GRID_SIZE, GRID_SIZE)
-	segment.color = Color(0.0862745, 0.741176, 0.0862745, 1)
+	
+	# Vary the color based on position in tail
+	var base_color = Color(0.0862745, 0.741176, 0.0862745)
+	var segment_count = tail_segments.size()
+	
+	if segment_count == 0:
+		# First segment should be slightly darker than base
+		segment.color = base_color.darkened(0.1)
+	else:
+		# Gradually lighten towards the tail end
+		var progress = float(segment_count) / 20.0  # Max variation at length 20
+		var hue_shift = randf_range(-0.02, 0.02)  # Subtle random hue variation
+		var new_color = base_color.lightened(progress * 0.3)  # Gradual lightening
+		new_color = new_color.from_hsv(
+			fmod(new_color.h + hue_shift, 1.0),  # Shift hue slightly
+			new_color.s,
+			new_color.v
+		)
+		segment.color = new_color
 	
 	# Position the new segment
 	if tail_segments.size() > 0:
@@ -173,9 +206,12 @@ func _on_snake_grew():
 	else:
 		segment.position = tail_positions[0]
 	
-	game_world.add_child(segment)  # Changed from add_child to game_world.add_child
+	game_world.add_child(segment)
 	tail_segments.append(segment)
 	spawn_food()
+	
+	# Update game speed
+	_update_game_speed()
 	
 	# Update score
 	score += 10
@@ -202,9 +238,15 @@ func _on_restart_pressed():
 	_start_game()
 
 func _process(_delta):
-	if in_game and not game_over:
-		if Input.is_action_just_pressed("pause"):
+	# Handle pause input regardless of game state
+	if in_game and not game_over and Input.is_action_just_pressed("pause"):
+		if paused:
+			_on_resume_pressed()
+		else:
 			_toggle_pause()
+	
+	# Only update game logic when not paused
+	if in_game and not game_over and not paused:
 		# Update camera position with smooth follow
 		var target = snake.position
 		camera.position = camera.position.lerp(target, 0.005)
@@ -233,6 +275,14 @@ func _on_window_resize():
 func _toggle_pause():
 	paused = !paused
 	get_tree().paused = paused
+	
+	# Explicitly pause/unpause game elements
+	if game_timer:
+		game_timer.paused = paused
+	if snake:
+		snake.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
+	
+	# Update UI
 	$UIBackground.visible = paused
 	$UILayer/PauseMenu.visible = paused
 
