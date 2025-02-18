@@ -18,16 +18,59 @@ var game_over = false
 var score = 0
 var score_label: Label
 var camera: Camera2D
+var paused = false
+var high_score = 0
+var in_game = false
+var game_timer: Timer = null
 
 func _ready():
 	get_tree().root.size_changed.connect(_on_window_resize)
 	_on_window_resize()
 	
+	# Load high score
+	if FileAccess.file_exists("user://highscore.dat"):
+		var file = FileAccess.open("user://highscore.dat", FileAccess.READ)
+		high_score = file.get_32()
+	
+	# Connect main menu buttons
+	var main_menu = $UILayer/MainMenu
+	main_menu.get_node("VBoxContainer/StartButton").pressed.connect(_on_start_pressed)
+	main_menu.get_node("VBoxContainer/ScoresButton").pressed.connect(_on_scores_pressed)
+	main_menu.get_node("VBoxContainer/QuitButton").pressed.connect(_on_quit_game_pressed)
+	
+	# Connect pause menu buttons
+	var pause_menu = $UILayer/PauseMenu
+	pause_menu.get_node("VBoxContainer/ResumeButton").pressed.connect(_on_resume_pressed)
+	pause_menu.get_node("VBoxContainer/QuitButton").pressed.connect(_on_quit_to_menu_pressed)
+	
+	# Connect game over buttons
+	var game_over_menu = $UILayer/GameOverContainer/VBoxContainer
+	game_over_menu.get_node("RestartButton").pressed.connect(_on_restart_pressed)
+	game_over_menu.get_node("QuitButton").pressed.connect(_on_quit_to_menu_pressed)
+	
+	# Start in menu state
+	get_tree().paused = true
+	$UIBackground.visible = true
+	$UILayer/MainMenu.visible = true
+	$UILayer/ScoreLabel.visible = false
+	$GameViewport/SubViewport/GameWorld.visible = false
+
+func _on_start_pressed():
+	get_tree().paused = false
+	$UIBackground.visible = false
+	$UILayer/MainMenu.visible = false
+	$UILayer/ScoreLabel.visible = true
+	$GameViewport/SubViewport/GameWorld.visible = true
+	_start_game()
+
+func _start_game():
+	in_game = true
+	score = 0
+	score_label = $UILayer/ScoreLabel  # Move this here
+	score_label.text = "Score: 0"
+	
+	# Initialize game elements
 	game_world = $GameViewport/SubViewport/GameWorld
-	
-	# Remove score label creation since it's now in the scene tree
-	score_label = $UILayer/ScoreLabel
-	
 	snake = Snake.instantiate()
 	game_world.add_child(snake)
 	snake.position = Vector2(GRID_WIDTH/2, GRID_HEIGHT/2) * GRID_SIZE
@@ -37,14 +80,56 @@ func _ready():
 	spawn_food()
 	
 	# Start the game timer
-	var timer = Timer.new()
-	add_child(timer)
-	timer.wait_time = 0.2
-	timer.timeout.connect(_on_timer_timeout)
-	timer.start()
+	game_timer = Timer.new()
+	add_child(game_timer)
+	game_timer.wait_time = 0.2
+	game_timer.timeout.connect(_on_timer_timeout)
+	game_timer.start()
 	
 	camera = $GameViewport/SubViewport/GameWorld/Camera2D
 	camera.position = snake.position
+
+func _on_scores_pressed():
+	$UILayer/MainMenu/VBoxContainer/Title.text = "HIGH SCORE\n" + str(high_score)
+
+func _on_quit_game_pressed():
+	get_tree().quit()
+
+func _on_quit_to_menu_pressed():
+	_cleanup_game()
+	get_tree().paused = true
+	$UIBackground.visible = true
+	$UILayer/MainMenu.visible = true
+	$UILayer/PauseMenu.visible = false
+	$UILayer/ScoreLabel.visible = false
+	$GameViewport/SubViewport/GameWorld.visible = false
+
+func _cleanup_game():
+	# Clean up game objects
+	if snake:
+		snake.queue_free()
+		snake = null
+	if food:
+		food.queue_free()
+		food = null
+	for segment in tail_segments:
+		segment.queue_free()
+	tail_segments.clear()
+	tail_positions.clear()
+	
+	# Clean up timer
+	if game_timer:
+		game_timer.stop()
+		game_timer.queue_free()
+		game_timer = null
+	
+	# Reset game state
+	game_over = false
+	in_game = false
+	
+	# Reset UI
+	$UILayer/GameOverContainer.visible = false
+	$UILayer/PauseMenu.visible = false
 
 func spawn_food():
 	if food:
@@ -97,21 +182,35 @@ func _on_snake_grew():
 	score_label.text = "Score: " + str(score)
 
 func _on_game_over():
+	if score > high_score:
+		high_score = score
+		var file = FileAccess.open("user://highscore.dat", FileAccess.WRITE)
+		file.store_32(high_score)
+	
 	game_over = true
 	snake.modulate = Color.RED
 	
-	# Update game over UI
+	# Update game over UI and background
+	$UIBackground.visible = true
 	$UILayer/GameOverContainer.visible = true
-	$UILayer/GameOverContainer/GameOverLabel.text = "Game Over!\nFinal Score: " + str(score) + "\nPress R to restart"
+	$UILayer/GameOverContainer/VBoxContainer/ScoreLabel.text = "Final Score: " + str(score)
+
+func _on_restart_pressed():
+	$UIBackground.visible = false
+	$UILayer/GameOverContainer.visible = false
+	_cleanup_game()
+	_start_game()
 
 func _process(_delta):
-	if not game_over:
+	if in_game and not game_over:
+		if Input.is_action_just_pressed("pause"):
+			_toggle_pause()
 		# Update camera position with smooth follow
 		var target = snake.position
 		camera.position = camera.position.lerp(target, 0.005)
 	
 	if game_over and Input.is_action_just_pressed("retry"):
-		get_tree().reload_current_scene()
+		_on_restart_pressed()
 
 func _on_timer_timeout():
 	if game_over:
@@ -130,3 +229,16 @@ func _on_window_resize():
 	$GameViewport.custom_minimum_size = Vector2(GAME_WIDTH, GAME_HEIGHT)
 	$GameViewport.size = viewport.size
 	$GameViewport/SubViewport.size = Vector2i(GAME_WIDTH, GAME_HEIGHT)
+
+func _toggle_pause():
+	paused = !paused
+	get_tree().paused = paused
+	$UIBackground.visible = paused
+	$UILayer/PauseMenu.visible = paused
+
+func _on_resume_pressed():
+	_toggle_pause()
+
+func _on_quit_pressed():
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/menu/menu.tscn")
