@@ -4,8 +4,8 @@ const Snake = preload("res://scenes/snake/snake.tscn")
 const Food = preload("res://scenes/food/food.tscn")
 
 const GRID_SIZE = 32
-const GRID_WIDTH = 24  # 768/32
-const GRID_HEIGHT = 18  # 576/32
+const GRID_WIDTH = 24
+const GRID_HEIGHT = 18
 const GAME_WIDTH = GRID_WIDTH * GRID_SIZE
 const GAME_HEIGHT = GRID_HEIGHT * GRID_SIZE
 
@@ -28,7 +28,7 @@ var in_game = false
 var game_timer: Timer = null
 
 func _ready():
-	set_process_mode(Node.PROCESS_MODE_ALWAYS)  # Allow this node to process while paused
+	set_process_mode(Node.PROCESS_MODE_ALWAYS)
 	get_tree().root.size_changed.connect(_on_window_resize)
 	_on_window_resize()
 	
@@ -71,7 +71,7 @@ func _on_start_pressed():
 func _start_game():
 	in_game = true
 	score = 0
-	score_label = $UILayer/ScoreLabel  # Move this here
+	score_label = $UILayer/ScoreLabel
 	score_label.text = "Score: 0"
 	
 	# Initialize game elements
@@ -120,7 +120,7 @@ func _on_quit_to_menu_pressed():
 	$GameViewport/SubViewport/GameWorld.visible = false
 
 func _cleanup_game():
-	# Clean up game objects
+	# Reset nodes
 	if snake:
 		snake.queue_free()
 		snake = null
@@ -132,7 +132,6 @@ func _cleanup_game():
 	tail_segments.clear()
 	tail_positions.clear()
 	
-	# Clean up timer
 	if game_timer:
 		game_timer.stop()
 		game_timer.queue_free()
@@ -249,7 +248,21 @@ func _on_game_over():
 		file.store_32(high_score)
 	
 	game_over = true
-	snake.modulate = Color.RED
+	
+	# Change snake head color
+	var head = snake.get_node("Head")
+	if head:
+		head.color = Color(0.8, 0.2, 0.2, 1)  # Deep red
+	
+	# Change tail segment colors to reddish versions of their current colors
+	for segment in tail_segments:
+		var current_color = segment.color
+		segment.color = Color(
+			lerp(current_color.g, 0.8, 0.5),  # Mix with red
+			current_color.r * 0.1,            # Reduce green
+			current_color.b * 0.1,            # Reduce blue
+			current_color.a                   # Keep alpha
+		)
 	
 	# Update game over UI and background
 	$UIBackground.visible = true
@@ -272,7 +285,6 @@ func _process(_delta):
 	
 	# Only update game logic when not paused
 	if in_game and not game_over and not paused:
-		# Update camera position with smooth follow
 		var target = snake.position
 		camera.position = camera.position.lerp(target, 0.005)
 	
@@ -284,7 +296,6 @@ func _on_timer_timeout():
 		return
 	snake.can_move = false
 	snake.move()
-	# Remove food collision check from here - it's handled in _on_snake_moved
 
 func _on_window_resize():
 	var viewport = $GameViewport/SubViewport
