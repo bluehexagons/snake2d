@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://mainscene"]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_tyq8r"]
-[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="2_pause"]
+[ext_resource type="PackedScene" uid="uid://pausemenu" path="res://scenes/ui/pause_menu.tscn" id="2_pause"]
 [ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="3_mainmenu"]
 
 [node name="Main" type="Control"]

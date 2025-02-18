@@ -146,36 +146,65 @@ func _cleanup_game():
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
 
+func is_position_occupied(pos: Vector2) -> bool:
+	# Check snake head
+	if snake and snake.position == pos:
+		return true
+	
+	# Check tail segments
+	for segment in tail_segments:
+		if segment.position == pos:
+			return true
+	
+	return false
+
 func spawn_food():
 	if food:
 		food.queue_free()
+	
+	# Find an unoccupied position
+	var valid_position = false
+	var x = 0
+	var y = 0
+	
+	while not valid_position:
+		x = randi_range(0, GRID_WIDTH - 2)
+		y = randi_range(0, GRID_HEIGHT - 2)
+		var test_pos = Vector2(x, y) * GRID_SIZE
+		valid_position = not is_position_occupied(test_pos)
+	
 	food = Food.instantiate()
 	game_world.add_child(food)
-	
-	# Random position within the playable grid
-	var x = randi_range(0, GRID_WIDTH - 2)  # -2 to account for food size
-	var y = randi_range(0, GRID_HEIGHT - 2)
 	food.position = Vector2(x, y) * GRID_SIZE
 
 func _on_snake_moved(new_position):
 	if game_over:
 		return
-		
-	# Check tail collision
-	for segment in tail_segments:
-		if segment.position == new_position:
-			_on_game_over()
-			return
 	
+	# Store the current position for tail
 	tail_positions.insert(0, new_position)
+	
+	# Check if snake ate food
+	var ate_food = food and (new_position == food.position)
+	if ate_food:
+		snake.grow()
+		# Don't remove the last tail position when growing
+		spawn_food()
+	else:
+		# Only remove last position if we didn't eat food
+		if tail_positions.size() > tail_segments.size() + 1:
+			tail_positions.pop_back()
 	
 	# Move tail
 	for i in tail_segments.size():
 		tail_segments[i].position = tail_positions[i + 1]
 	
-	# Remove excess positions
-	if tail_positions.size() > tail_segments.size() + 1:
-		tail_positions.pop_back()
+	# Check tail collision
+	if not ate_food:  # Don't check collision if we just ate (prevents false positives)
+		for segment in tail_segments:
+			if segment.position == new_position:
+				_on_game_over()
+				return
 
 func _on_snake_grew():
 	var segment = ColorRect.new()
@@ -193,22 +222,18 @@ func _on_snake_grew():
 		var progress = float(segment_count) / 20.0  # Max variation at length 20
 		var hue_shift = randf_range(-0.02, 0.02)  # Subtle random hue variation
 		var new_color = base_color.lightened(progress * 0.3)  # Gradual lightening
-		new_color = new_color.from_hsv(
+		new_color = Color.from_hsv(
 			fmod(new_color.h + hue_shift, 1.0),  # Shift hue slightly
 			new_color.s,
 			new_color.v
 		)
 		segment.color = new_color
 	
-	# Position the new segment
-	if tail_segments.size() > 0:
-		segment.position = tail_positions[-1]
-	else:
-		segment.position = tail_positions[0]
+	# Position the new segment at the food location
+	segment.position = food.position
 	
 	game_world.add_child(segment)
 	tail_segments.append(segment)
-	spawn_food()
 	
 	# Update game speed
 	_update_game_speed()
@@ -259,11 +284,7 @@ func _on_timer_timeout():
 		return
 	snake.can_move = false
 	snake.move()
-	
-	# Check if snake ate food
-	if snake.position == food.position:
-		snake.grow()
-		spawn_food()
+	# Remove food collision check from here - it's handled in _on_snake_moved
 
 func _on_window_resize():
 	var viewport = $GameViewport/SubViewport
