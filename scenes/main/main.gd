@@ -445,6 +445,8 @@ func _process(_delta):
 			_on_resume_pressed()
 		elif not in_game:
 			_on_quit_game_pressed()
+		else:
+			_toggle_pause()
 	
 	# Handle pause input during gameplay
 	if in_game and not game_over and not paused and Input.is_action_just_pressed("pause"):
