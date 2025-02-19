@@ -286,13 +286,16 @@ func _cleanup_game():
 	get_tree().paused = paused
 
 func is_position_occupied(pos: Vector2) -> bool:
+	# Convert position to grid coordinates
+	var grid_pos = pos / GRID_SIZE
+	
 	# Check snake head
-	if snake and snake.position == pos:
+	if snake and (snake.position / GRID_SIZE) == grid_pos:
 		return true
 	
 	# Check tail segments
 	for segment in tail_segments:
-		if segment.position == pos:
+		if (segment.position / GRID_SIZE) == grid_pos:
 			return true
 	
 	return false
