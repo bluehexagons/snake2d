@@ -61,6 +61,10 @@ func _ready():
 	quit_button.pressed.connect(_on_quit_game_pressed)
 	quit_button.button_down.connect(AudioManager.play_click)
 	
+	# Connect sound toggle buttons
+	var main_sound_button = main_menu.get_node("VBoxContainer/SoundButton")
+	main_sound_button.pressed.connect(_on_sound_toggled)
+	
 	# Connect pause menu buttons
 	var pause_menu = $UILayer/PauseMenu
 	var resume_button = pause_menu.get_node("VBoxContainer/ResumeButton")
@@ -71,6 +75,9 @@ func _ready():
 	pause_quit.pressed.connect(_on_quit_to_menu_pressed)
 	pause_quit.button_down.connect(AudioManager.play_click)
 	
+	var pause_sound_button = pause_menu.get_node("VBoxContainer/SoundButton")
+	pause_sound_button.pressed.connect(_on_sound_toggled)
+	
 	# Connect game over buttons
 	var game_over_menu = $UILayer/GameOverContainer/VBoxContainer
 	var restart_button = game_over_menu.get_node("RestartButton")
@@ -80,6 +87,9 @@ func _ready():
 	var gameover_quit = game_over_menu.get_node("QuitButton")
 	gameover_quit.pressed.connect(_on_quit_to_menu_pressed)
 	gameover_quit.button_down.connect(AudioManager.play_click)
+	
+	# Set initial sound button states
+	_update_sound_buttons()
 	
 	# Start in menu state
 	get_tree().paused = true
@@ -378,3 +388,15 @@ func _on_resume_pressed():
 func _on_quit_pressed():
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/menu/menu.tscn")
+
+func _on_sound_toggled():
+	var is_muted = AudioManager.toggle_mute()
+	_update_sound_buttons()
+	# Still play click when unmuting
+	if not is_muted:
+		AudioManager.play_click()
+
+func _update_sound_buttons():
+	var text = "Sound: Off" if AudioManager.is_muted else "Sound: On"
+	$UILayer/MainMenu/VBoxContainer/SoundButton.text = text
+	$UILayer/PauseMenu/VBoxContainer/SoundButton.text = text

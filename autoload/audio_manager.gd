@@ -10,6 +10,7 @@ const BASE_FREQUENCY = 440.0  # A4 note
 const HARMONICS = 8  # Number of harmonics for complex waveforms
 
 var audio_players: Array[AudioStreamPlayer] = []
+var is_muted = false
 
 func _ready():
 	# Create a pool of audio players
@@ -24,25 +25,39 @@ func get_available_player() -> AudioStreamPlayer:
 			return player
 	return audio_players[0]  # Fallback to first player if all busy
 
+func toggle_mute() -> bool:
+	is_muted = !is_muted
+	for player in audio_players:
+		player.volume_db = -999.0 if is_muted else 0.0
+	return is_muted
+
 func play_move():
+	if is_muted:
+		return
 	var player = get_available_player()
 	_generate_tone(player, BASE_FREQUENCY * 1.5, 0.1, -20, Waveform.SINE)
 	player.pitch_scale = randf_range(MIN_PITCH, MAX_PITCH)
 	player.play()
 
 func play_eat():
+	if is_muted:
+		return
 	var player = get_available_player()
 	_generate_tone(player, BASE_FREQUENCY * 2, 0.15, -14, Waveform.SQUARE)
 	player.pitch_scale = 1.0
 	player.play()
 
 func play_die():
+	if is_muted:
+		return
 	var player = get_available_player()
 	_generate_tone(player, BASE_FREQUENCY * 0.5, 0.3, -3, Waveform.SAW)
 	player.pitch_scale = 0.8
 	player.play()
 
 func play_click():
+	if is_muted:
+		return
 	var player = get_available_player()
 	_generate_tone(player, BASE_FREQUENCY * 2.5, 0.05, -12, Waveform.TRIANGLE)
 	player.pitch_scale = 1.2
