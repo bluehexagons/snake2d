@@ -56,7 +56,9 @@ func _ready():
 	if FileAccess.file_exists("user://highscore.dat"):
 		var file = FileAccess.open("user://highscore.dat", FileAccess.READ)
 		while not file.eof_reached():
-			high_scores.append(file.get_32())
+			var val = file.get_32()
+			if val > 0:
+				high_scores.append(val)
 	
 	high_scores.sort_custom(func(a, b): return a > b)  # Sort descending
 	high_score = high_scores[0] if not high_scores.is_empty() else 0
