@@ -437,6 +437,15 @@ func _on_restart_pressed():
 	_start_game()
 
 func _process(_delta):
+	# Check if we need to restore UI focus
+	if (Input.is_action_just_pressed("ui_up") or 
+		Input.is_action_just_pressed("ui_down") or
+		Input.is_action_just_pressed("ui_left") or
+		Input.is_action_just_pressed("ui_right")):
+		var focused = get_viewport().gui_get_focus_owner()
+		if not focused:
+			_update_menu_focus()
+	
 	# Handle back button in menus
 	if Input.is_action_just_pressed("ui_cancel"):
 		if $UILayer/GameOverContainer.visible:
