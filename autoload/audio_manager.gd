@@ -2,7 +2,7 @@ extends Node
 
 enum Waveform {SINE, SQUARE, TRIANGLE, SAW}
 
-const BASE_FREQUENCY = 440.0  # A4 note
+const BASE_FREQUENCY = 420.0  # About an A4 note
 
 # Quality settings for square/saw waves
 const HARMONICS = 8  # Number of harmonics for complex waveforms
