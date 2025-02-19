@@ -133,6 +133,7 @@ func _start_game():
 	camera = $GameViewport/SubViewport/GameWorld/Camera2D
 	camera.position = snake.position
 	camera_velocity = Vector2.ZERO  # Reset camera velocity when starting
+	AudioManager.reset_pitch()
 
 func _update_game_speed():
 	if game_timer:
@@ -184,6 +185,7 @@ func _cleanup_game():
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
 	camera_velocity = Vector2.ZERO  # Reset camera velocity when cleaning up
+	AudioManager.reset_pitch()
 
 func is_position_occupied(pos: Vector2) -> bool:
 	# Check snake head
@@ -287,6 +289,7 @@ func _on_snake_grew():
 
 func _on_game_over():
 	AudioManager.play_die()
+	AudioManager.reset_pitch()
 	
 	if score > high_score:
 		high_score = score

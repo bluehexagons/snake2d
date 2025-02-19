@@ -2,15 +2,20 @@ extends Node
 
 enum Waveform {SINE, SQUARE, TRIANGLE, SAW}
 
-const MIN_PITCH = 0.8
-const MAX_PITCH = 1.2
 const BASE_FREQUENCY = 440.0  # A4 note
 
 # Quality settings for square/saw waves
 const HARMONICS = 8  # Number of harmonics for complex waveforms
 
+const PITCH_ACCELERATION = 0.04  # How quickly pitch responds to movement
+const PITCH_DAMPING = 0.9  # How quickly pitch momentum decays
+const PITCH_RANGE = 0.95  # Maximum pitch deviation from center
+const PITCH_VARIATION = 0.04  # Random variation per note
+
 var audio_players: Array[AudioStreamPlayer] = []
 var is_muted = false
+var current_pitch_momentum = 0.0
+var target_pitch_offset = 0.0
 
 func _ready():
 	# Create a pool of audio players
@@ -34,9 +39,21 @@ func toggle_mute() -> bool:
 func play_move():
 	if is_muted:
 		return
+	
+	# Update pitch momentum
+	target_pitch_offset += PITCH_ACCELERATION
+	target_pitch_offset = clamp(target_pitch_offset, -PITCH_RANGE, PITCH_RANGE)
+	current_pitch_momentum = lerp(current_pitch_momentum, target_pitch_offset, 0.2)
+	target_pitch_offset *= PITCH_DAMPING
+	
+	# Calculate final pitch with momentum and variation
+	var momentum_pitch = 1.0 + current_pitch_momentum
+	var variation = randf_range(-PITCH_VARIATION, PITCH_VARIATION)
+	var final_pitch = momentum_pitch + variation
+	
 	var player = get_available_player()
-	_generate_tone(player, BASE_FREQUENCY * 1.5, 0.1, -20, Waveform.SINE)
-	player.pitch_scale = randf_range(MIN_PITCH, MAX_PITCH)
+	_generate_tone(player, BASE_FREQUENCY * 0.5, 0.07, -20, Waveform.SINE)
+	player.pitch_scale = final_pitch
 	player.play()
 
 func play_eat():
@@ -62,6 +79,10 @@ func play_click():
 	_generate_tone(player, BASE_FREQUENCY * 2.5, 0.05, -12, Waveform.TRIANGLE)
 	player.pitch_scale = 1.2
 	player.play()
+
+func reset_pitch():
+	current_pitch_momentum = 0.0
+	target_pitch_offset = 0.0
 
 func _generate_tone(player: AudioStreamPlayer, frequency: float, duration: float, volume_db: float, waveform: Waveform):
 	var sample_hz = 44100.0
