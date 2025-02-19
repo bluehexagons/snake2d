@@ -15,43 +15,42 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_tyq8r")
 
-[node name="GameViewport" type="SubViewportContainer" parent="."]
-layout_mode = 1
+[node name="GameLayer" type="CanvasLayer" parent="."]
+layer = 0
+follow_viewport_enabled = true
+
+[node name="GameViewport" type="CenterContainer" parent="GameLayer"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-stretch = true
 
-[node name="SubViewport" type="SubViewport" parent="GameViewport"]
-handle_input_locally = false
-canvas_item_default_texture_filter = 0
-size = Vector2i(800, 600)
-render_target_update_mode = 4
-
-[node name="GameWorld" type="Node2D" parent="GameViewport/SubViewport"]
+[node name="GameWorld" type="Node2D" parent="GameLayer/GameViewport"]
+unique_name_in_owner = true
 process_mode = 3
 
-[node name="PlayArea" type="Node2D" parent="GameViewport/SubViewport/GameWorld"]
+[node name="PlayArea" type="Node2D" parent="GameLayer/GameViewport/GameWorld"]
+unique_name_in_owner = true
 y_sort_enabled = true
 
-[node name="Background" type="ColorRect" parent="GameViewport/SubViewport/GameWorld/PlayArea"]
+[node name="Background" type="ColorRect" parent="GameLayer/GameViewport/GameWorld/PlayArea"]
+unique_name_in_owner = true
 offset_right = 768.0
 offset_bottom = 576.0
 color = Color(0.12549, 0.12549, 0.12549, 1)
 
-[node name="Border" type="Line2D" parent="GameViewport/SubViewport/GameWorld/PlayArea"]
+[node name="Border" type="Line2D" parent="GameLayer/GameViewport/GameWorld/PlayArea"]
+unique_name_in_owner = true
 points = PackedVector2Array(0, 0, 768, 0, 768, 576, 0, 576, 0, 0)
 width = 2.0
 default_color = Color(0.392157, 0.392157, 0.392157, 1)
 
-[node name="Camera2D" type="Camera2D" parent="GameViewport/SubViewport/GameWorld"]
+[node name="Camera2D" type="Camera2D" parent="GameLayer/GameViewport/GameWorld"]
+unique_name_in_owner = true
 position = Vector2(384, 288)
 
 [node name="UIBackground" type="CanvasLayer" parent="."]
-layer = 0
-visible = false
 
 [node name="Background" type="ColorRect" parent="UIBackground"]
 anchors_preset = 15
@@ -59,9 +58,11 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 color = Color(0.0941176, 0.0941176, 0.0941176, 0.72549)
 
 [node name="UILayer" type="CanvasLayer" parent="."]
+layer = 2
 
 [node name="MainMenu" parent="UILayer" instance=ExtResource("3_mainmenu")]
 

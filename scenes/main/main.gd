@@ -46,8 +46,6 @@ var is_mobile = false
 
 func _ready():
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
-	get_tree().root.size_changed.connect(_on_window_resize)
-	_on_window_resize()
 	
 	# Check platform
 	is_mobile = DisplayServer.get_name() in ["android", "ios", "web"]
@@ -103,6 +101,9 @@ func _ready():
 	var gameover_quit = game_over_menu.get_node("QuitButton")
 	gameover_quit.pressed.connect(_on_quit_to_menu_pressed)
 	gameover_quit.button_down.connect(AudioManager.play_click)
+
+	score_label = $UILayer/ScoreLabel
+	game_world = %GameWorld
 	
 	# Set initial sound button states
 	_update_sound_buttons()
@@ -112,7 +113,7 @@ func _ready():
 	$UIBackground.visible = true
 	$UILayer/MainMenu.visible = true
 	$UILayer/ScoreLabel.visible = false
-	$GameViewport/SubViewport/GameWorld.visible = false
+	game_world.visible = false  # Using our cached reference instead
 
 	_update_scores_display(false)  # Initialize scores display
 	
@@ -122,6 +123,10 @@ func _ready():
 	
 	# Set initial focus
 	_update_menu_focus()
+
+	get_tree().root.size_changed.connect(_on_window_resize)
+	_on_window_resize()
+	_update_game_area()
 
 func _get_all_buttons() -> Array:
 	var buttons = []
@@ -143,7 +148,7 @@ func _on_start_pressed():
 	$UIBackground.visible = false
 	$UILayer/MainMenu.visible = false
 	$UILayer/ScoreLabel.visible = true
-	$GameViewport/SubViewport/GameWorld.visible = true
+	game_world.visible = true
 	_start_game()
 	_update_menu_focus()
 
@@ -152,11 +157,9 @@ func _start_game():
 
 	in_game = true
 	score = 0
-	score_label = $UILayer/ScoreLabel
 	score_label.text = "Score: 0"
 	
 	# Initialize game elements
-	game_world = $GameViewport/SubViewport/GameWorld
 	snake = Snake.instantiate()
 	snake.process_mode = Node.PROCESS_MODE_INHERIT
 	game_world.add_child(snake)
@@ -173,7 +176,7 @@ func _start_game():
 	game_timer.timeout.connect(_on_timer_timeout)
 	game_timer.start()
 	
-	camera = $GameViewport/SubViewport/GameWorld/Camera2D
+	camera = %Camera2D
 	camera.position = snake.position
 	camera_velocity = Vector2.ZERO
 	AudioManager.reset_pitch()
@@ -243,7 +246,7 @@ func _on_quit_to_menu_pressed():
 	$UILayer/MainMenu.visible = true
 	$UILayer/PauseMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
-	$GameViewport/SubViewport/GameWorld.visible = false
+	game_world.visible = false  # Using our cached reference instead
 	_update_scores_display(false)
 	_update_menu_focus()
 
@@ -500,11 +503,27 @@ func _on_timer_timeout():
 	snake.move()
 
 func _on_window_resize():
-	var viewport = $GameViewport/SubViewport
-	viewport.size = DisplayServer.window_get_size()
-	$GameViewport.custom_minimum_size = Vector2(GAME_WIDTH, GAME_HEIGHT)
-	$GameViewport.size = viewport.size
-	$GameViewport/SubViewport.size = Vector2i(GAME_WIDTH, GAME_HEIGHT)
+	_update_game_area()
+
+func _update_game_area():
+	var window_size = DisplayServer.window_get_size()
+	var play_area = game_world.get_node("PlayArea")
+	var background = play_area.get_node("Background")
+	var border = play_area.get_node("Border")
+	
+	# Center the game world
+	var game_size = Vector2(GAME_WIDTH, GAME_HEIGHT)
+	game_world.position = (Vector2(window_size) - game_size) / 2.0
+	
+	# Update background and border
+	background.size = game_size
+	border.points = [
+		Vector2.ZERO,
+		Vector2(GAME_WIDTH, 0),
+		Vector2(GAME_WIDTH, GAME_HEIGHT),
+		Vector2(0, GAME_HEIGHT),
+		Vector2.ZERO
+	]
 
 func _toggle_pause():
 	paused = !paused
