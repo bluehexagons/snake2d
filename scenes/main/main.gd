@@ -21,6 +21,9 @@ const LOOK_AHEAD_WEIGHT = 0.15  # How strongly the camera follows snake's direct
 const CAMERA_DAMPING = 0.85  # How quickly velocity decays
 const CAMERA_ACCELERATION = 0.01  # How quickly camera responds to changes
 
+const MAX_HIGH_SCORES = 10
+var high_scores: Array[int] = []
+
 var camera_velocity = Vector2.ZERO
 
 var game_world: Node2D
@@ -42,10 +45,14 @@ func _ready():
 	get_tree().root.size_changed.connect(_on_window_resize)
 	_on_window_resize()
 	
-	# Load high score
+	# Load high scores
 	if FileAccess.file_exists("user://highscore.dat"):
 		var file = FileAccess.open("user://highscore.dat", FileAccess.READ)
-		high_score = file.get_32()
+		while not file.eof_reached():
+			high_scores.append(file.get_32())
+	
+	high_scores.sort_custom(func(a, b): return a > b)  # Sort descending
+	high_score = high_scores[0] if not high_scores.is_empty() else 0
 	
 	# Connect main menu buttons
 	var main_menu = $UILayer/MainMenu
@@ -98,6 +105,8 @@ func _ready():
 	$UILayer/ScoreLabel.visible = false
 	$GameViewport/SubViewport/GameWorld.visible = false
 
+	_update_scores_display(false)  # Initialize scores display
+
 func _on_start_pressed():
 	get_tree().paused = false
 	$UIBackground.visible = false
@@ -145,7 +154,35 @@ func _update_game_speed():
 		game_timer.wait_time = new_wait
 
 func _on_scores_pressed():
-	$UILayer/MainMenu/VBoxContainer/Title.text = "HIGH SCORE\n" + str(high_score)
+	_update_scores_display(true)
+
+func _update_scores_display(show_container: bool):
+	var title_label = $UILayer/MainMenu/VBoxContainer/TitleLabel
+	var scores_container = $UILayer/MainMenu/VBoxContainer/ScoresContainer
+	var scores_list = $UILayer/MainMenu/VBoxContainer/ScoresContainer/ScrollContainer/ScoresList
+	
+	# Clear existing score labels
+	for child in scores_list.get_children():
+		child.queue_free()
+	
+	if show_container:
+		title_label.text = "HIGH SCORES"
+		scores_container.visible = true
+		
+		if high_scores.is_empty():
+			var empty_label = Label.new()
+			empty_label.text = "No scores yet!"
+			empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			scores_list.add_child(empty_label)
+		else:
+			for i in high_scores.size():
+				var score_label = Label.new()
+				score_label.text = "%d. %d" % [i + 1, high_scores[i]]
+				score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				scores_list.add_child(score_label)
+	else:
+		title_label.text = "A Simple Snake Game"
+		scores_container.visible = false
 
 func _on_quit_game_pressed():
 	get_tree().quit()
@@ -158,6 +195,7 @@ func _on_quit_to_menu_pressed():
 	$UILayer/PauseMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
 	$GameViewport/SubViewport/GameWorld.visible = false
+	_update_scores_display(false)
 
 func _cleanup_game():
 	# Reset nodes
@@ -291,10 +329,26 @@ func _on_game_over():
 	AudioManager.play_die()
 	AudioManager.reset_pitch()
 	
-	if score > high_score:
-		high_score = score
-		var file = FileAccess.open("user://highscore.dat", FileAccess.WRITE)
-		file.store_32(high_score)
+	# Update high scores
+	var score_inserted = false
+	for i in high_scores.size():
+		if score > high_scores[i]:
+			high_scores.insert(i, score)
+			score_inserted = true
+			break
+	
+	if not score_inserted and high_scores.size() < MAX_HIGH_SCORES:
+		high_scores.append(score)
+	
+	if high_scores.size() > MAX_HIGH_SCORES:
+		high_scores.resize(MAX_HIGH_SCORES)
+	
+	# Save all scores
+	var file = FileAccess.open("user://highscore.dat", FileAccess.WRITE)
+	for score_value in high_scores:
+		file.store_32(score_value)
+	
+	high_score = high_scores[0] if not high_scores.is_empty() else 0
 	
 	game_over = true
 	
