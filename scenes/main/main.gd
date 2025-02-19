@@ -103,7 +103,7 @@ func _ready():
 	gameover_quit.button_down.connect(AudioManager.play_click)
 
 	score_label = $UILayer/ScoreLabel
-	game_world = %GameWorld
+	game_world = $GameLayer/GameViewport/GameWorld
 	
 	# Set initial sound button states
 	_update_sound_buttons()
@@ -176,7 +176,7 @@ func _start_game():
 	game_timer.timeout.connect(_on_timer_timeout)
 	game_timer.start()
 	
-	camera = %Camera2D
+	camera = $GameLayer/GameViewport/GameWorld/Camera2D
 	camera.position = snake.position
 	camera_velocity = Vector2.ZERO
 	AudioManager.reset_pitch()
@@ -507,7 +507,7 @@ func _on_window_resize():
 
 func _update_game_area():
 	var window_size = DisplayServer.window_get_size()
-	var play_area = game_world.get_node("PlayArea")
+	var play_area = $GameLayer/GameViewport/GameWorld/PlayArea
 	var background = play_area.get_node("Background")
 	var border = play_area.get_node("Border")
 	

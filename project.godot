@@ -23,9 +23,9 @@ AudioManager="*res://autoload/audio_manager.gd"
 
 window/size/viewport_width=800
 window/size/viewport_height=600
-window/stretch/mode="viewport"
+window/size/resizable=true
+window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/vsync/vsync_mode=2
 
 [input]
 
@@ -118,7 +118,11 @@ pause={
 
 [rendering]
 
-textures/canvas_textures/default_texture_filter=0
+textures/canvas_textures/default_texture_filter=2
 renderer/rendering_method="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=true
+textures/decals/filter=2
+textures/light_projectors/filter=2
+anti_aliasing/quality/msaa_2d=1
 "#Disabletexturefilteringglobally[gui]common/snap_controls_to_pixels"=false
 "#Disabletexturefilteringforcrisppixels[gui]common/snap_controls_to_pixels"=false
