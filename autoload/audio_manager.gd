@@ -1,8 +1,13 @@
 extends Node
 
+enum Waveform {SINE, SQUARE, TRIANGLE, SAW}
+
 const MIN_PITCH = 0.8
 const MAX_PITCH = 1.2
 const BASE_FREQUENCY = 440.0  # A4 note
+
+# Quality settings for square/saw waves
+const HARMONICS = 8  # Number of harmonics for complex waveforms
 
 var audio_players: Array[AudioStreamPlayer] = []
 
@@ -21,29 +26,29 @@ func get_available_player() -> AudioStreamPlayer:
 
 func play_move():
 	var player = get_available_player()
-	_generate_tone(player, BASE_FREQUENCY * 1.5, 0.1, -12)
+	_generate_tone(player, BASE_FREQUENCY * 1.5, 0.1, -20, Waveform.SINE)
 	player.pitch_scale = randf_range(MIN_PITCH, MAX_PITCH)
 	player.play()
 
 func play_eat():
 	var player = get_available_player()
-	_generate_tone(player, BASE_FREQUENCY * 2, 0.15, -6)
+	_generate_tone(player, BASE_FREQUENCY * 2, 0.15, -14, Waveform.SQUARE)
 	player.pitch_scale = 1.0
 	player.play()
 
 func play_die():
 	var player = get_available_player()
-	_generate_tone(player, BASE_FREQUENCY * 0.5, 0.3, -3)
+	_generate_tone(player, BASE_FREQUENCY * 0.5, 0.3, -3, Waveform.SAW)
 	player.pitch_scale = 0.8
 	player.play()
 
 func play_click():
 	var player = get_available_player()
-	_generate_tone(player, BASE_FREQUENCY * 2.5, 0.05, -12)
+	_generate_tone(player, BASE_FREQUENCY * 2.5, 0.05, -12, Waveform.TRIANGLE)
 	player.pitch_scale = 1.2
 	player.play()
 
-func _generate_tone(player: AudioStreamPlayer, frequency: float, duration: float, volume_db: float):
+func _generate_tone(player: AudioStreamPlayer, frequency: float, duration: float, volume_db: float, waveform: Waveform):
 	var sample_hz = 44100.0
 	var samples = int(duration * sample_hz)
 	
@@ -52,8 +57,35 @@ func _generate_tone(player: AudioStreamPlayer, frequency: float, duration: float
 	
 	for i in samples:
 		var t = float(i) / sample_hz
-		var sample = sin(t * TAU * frequency)
-		# Apply simple envelope
+		var sample = 0.0
+		
+		match waveform:
+			Waveform.SINE:
+				sample = sin(t * TAU * frequency)
+			
+			Waveform.SQUARE:
+				# Additive synthesis for antialiased square wave
+				for h in HARMONICS:
+					var harmonic = h * 2 + 1  # Odd harmonics only
+					sample += sin(t * TAU * frequency * harmonic) / harmonic
+				sample = sample * 4.0 / TAU  # Normalize
+			
+			Waveform.TRIANGLE:
+				# Additive synthesis for triangle wave
+				for h in HARMONICS:
+					var harmonic = h * 2 + 1  # Odd harmonics only
+					var amplitude = pow(-1, h) / (harmonic * harmonic)
+					sample += amplitude * sin(t * TAU * frequency * harmonic)
+				sample = sample * 8.0 / (TAU * TAU)  # Normalize
+			
+			Waveform.SAW:
+				# Additive synthesis for antialiased sawtooth
+				for h in HARMONICS:
+					var harmonic = h + 1
+					sample += sin(t * TAU * frequency * harmonic) / harmonic
+				sample = sample * 2.0 / TAU  # Normalize
+		
+		# Apply ADSR envelope (simple linear decay in this case)
 		var envelope = 1.0 - (float(i) / samples)
 		sample *= envelope
 		
