@@ -40,10 +40,16 @@ var high_score = 0
 var in_game = false
 var game_timer: Timer = null
 
+# Platform detection for mobile UI
+var is_mobile = false
+
 func _ready():
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
 	get_tree().root.size_changed.connect(_on_window_resize)
 	_on_window_resize()
+	
+	# Check platform
+	is_mobile = DisplayServer.get_name() in ["android", "ios", "web"]
 	
 	# Load high scores
 	if FileAccess.file_exists("user://highscore.dat"):
@@ -139,6 +145,8 @@ func _on_start_pressed():
 	_update_menu_focus()
 
 func _start_game():
+	_cleanup_game()
+
 	in_game = true
 	score = 0
 	score_label = $UILayer/ScoreLabel
@@ -166,6 +174,10 @@ func _start_game():
 	camera.position = snake.position
 	camera_velocity = Vector2.ZERO  # Reset camera velocity when starting
 	AudioManager.reset_pitch()
+	
+	get_tree().paused = false  # Ensure everything is unpaused
+	if not is_mobile:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _update_game_speed():
 	if game_timer:
@@ -208,9 +220,20 @@ func _update_scores_display(show_container: bool):
 		scores_container.visible = false
 
 func _on_quit_game_pressed():
-	get_tree().quit()
+	# Ensure mouse is free before showing dialog
+	if not is_mobile:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Quit Game"
+	dialog.dialog_text = "Are you sure you want to quit?"
+	dialog.confirmed.connect(get_tree().quit)
+	add_child(dialog)
+	dialog.popup_centered()
 
 func _on_quit_to_menu_pressed():
+	if not is_mobile:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_cleanup_game()
 	get_tree().paused = true
 	$UIBackground.visible = true
@@ -242,12 +265,19 @@ func _cleanup_game():
 	# Reset game state
 	game_over = false
 	in_game = false
+	paused = false
 	
 	# Reset UI
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
 	camera_velocity = Vector2.ZERO  # Reset camera velocity when cleaning up
 	AudioManager.reset_pitch()
+	
+	# Return to normal mouse mode
+	if not is_mobile:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	
+	get_tree().paused = paused
 
 func is_position_occupied(pos: Vector2) -> bool:
 	# Check snake head
@@ -406,21 +436,16 @@ func _on_restart_pressed():
 func _process(_delta):
 	# Handle back button in menus
 	if Input.is_action_just_pressed("ui_cancel"):
-		if $UILayer/GameOverContainer.visible or $UILayer/PauseMenu.visible:
+		if $UILayer/GameOverContainer.visible:
 			_on_quit_to_menu_pressed()
+		elif $UILayer/PauseMenu.visible:
+			_on_resume_pressed()
 		elif not in_game:
 			_on_quit_game_pressed()
 	
 	# Handle pause input during gameplay
-	if in_game and not game_over and Input.is_action_just_pressed("pause"):
-		if paused:
-			_on_resume_pressed()
-		else:
-			_toggle_pause()
-	
-	# Only allow keyboard retry during game over
-	if game_over and Input.is_action_just_pressed("retry"):
-		_on_restart_pressed()
+	if in_game and not game_over and not paused and Input.is_action_just_pressed("pause"):
+		_toggle_pause()
 	
 	# Only update game logic when not paused
 	if in_game and not game_over and not paused:
@@ -444,9 +469,6 @@ func _process(_delta):
 		
 		# Apply velocity to camera position
 		camera.position += camera_velocity
-	
-	if game_over and Input.is_action_just_pressed("retry"):
-		_on_restart_pressed()
 
 func _on_timer_timeout():
 	if game_over:
@@ -478,10 +500,6 @@ func _toggle_pause():
 
 func _on_resume_pressed():
 	_toggle_pause()
-
-func _on_quit_pressed():
-	get_tree().paused = false
-	get_tree().change_scene_to_file("res://scenes/menu/menu.tscn")
 
 func _on_sound_toggled():
 	var is_muted = AudioManager.toggle_mute()

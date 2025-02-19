@@ -23,7 +23,13 @@ func _process(_delta):
 		
 		# Handle touch/mouse input
 		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-			var mouse_pos = get_viewport().get_mouse_position()
+			var viewport = get_viewport()
+			var mouse_pos = viewport.get_mouse_position()
+			
+			# Convert viewport coordinates properly
+			var screen_size = viewport.get_visible_rect().size
+			var scale = Vector2(viewport.size) / screen_size
+			mouse_pos *= scale
 			
 			# Convert screen position to world position
 			var camera = get_viewport().get_camera_2d()
