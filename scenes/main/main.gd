@@ -49,19 +49,37 @@ func _ready():
 	
 	# Connect main menu buttons
 	var main_menu = $UILayer/MainMenu
-	main_menu.get_node("VBoxContainer/StartButton").pressed.connect(_on_start_pressed)
-	main_menu.get_node("VBoxContainer/ScoresButton").pressed.connect(_on_scores_pressed)
-	main_menu.get_node("VBoxContainer/QuitButton").pressed.connect(_on_quit_game_pressed)
+	var start_button = main_menu.get_node("VBoxContainer/StartButton")
+	start_button.pressed.connect(_on_start_pressed)
+	start_button.button_down.connect(AudioManager.play_click)
+	
+	var scores_button = main_menu.get_node("VBoxContainer/ScoresButton")
+	scores_button.pressed.connect(_on_scores_pressed)
+	scores_button.button_down.connect(AudioManager.play_click)
+	
+	var quit_button = main_menu.get_node("VBoxContainer/QuitButton")
+	quit_button.pressed.connect(_on_quit_game_pressed)
+	quit_button.button_down.connect(AudioManager.play_click)
 	
 	# Connect pause menu buttons
 	var pause_menu = $UILayer/PauseMenu
-	pause_menu.get_node("VBoxContainer/ResumeButton").pressed.connect(_on_resume_pressed)
-	pause_menu.get_node("VBoxContainer/QuitButton").pressed.connect(_on_quit_to_menu_pressed)
+	var resume_button = pause_menu.get_node("VBoxContainer/ResumeButton")
+	resume_button.pressed.connect(_on_resume_pressed)
+	resume_button.button_down.connect(AudioManager.play_click)
+	
+	var pause_quit = pause_menu.get_node("VBoxContainer/QuitButton")
+	pause_quit.pressed.connect(_on_quit_to_menu_pressed)
+	pause_quit.button_down.connect(AudioManager.play_click)
 	
 	# Connect game over buttons
 	var game_over_menu = $UILayer/GameOverContainer/VBoxContainer
-	game_over_menu.get_node("RestartButton").pressed.connect(_on_restart_pressed)
-	game_over_menu.get_node("QuitButton").pressed.connect(_on_quit_to_menu_pressed)
+	var restart_button = game_over_menu.get_node("RestartButton")
+	restart_button.pressed.connect(_on_restart_pressed)
+	restart_button.button_down.connect(AudioManager.play_click)
+	
+	var gameover_quit = game_over_menu.get_node("QuitButton")
+	gameover_quit.pressed.connect(_on_quit_to_menu_pressed)
+	gameover_quit.button_down.connect(AudioManager.play_click)
 	
 	# Start in menu state
 	get_tree().paused = true
@@ -192,6 +210,8 @@ func _on_snake_moved(new_position):
 	if game_over:
 		return
 	
+	AudioManager.play_move()
+	
 	# Store the current position for tail
 	tail_positions.insert(0, new_position)
 	
@@ -218,6 +238,8 @@ func _on_snake_moved(new_position):
 				return
 
 func _on_snake_grew():
+	AudioManager.play_eat()
+	
 	var segment = ColorRect.new()
 	segment.size = Vector2(GRID_SIZE, GRID_SIZE)
 	
@@ -254,6 +276,8 @@ func _on_snake_grew():
 	score_label.text = "Score: " + str(score)
 
 func _on_game_over():
+	AudioManager.play_die()
+	
 	if score > high_score:
 		high_score = score
 		var file = FileAccess.open("user://highscore.dat", FileAccess.WRITE)
