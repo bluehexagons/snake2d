@@ -80,6 +80,14 @@ func play_click():
 	player.pitch_scale = 1.2
 	player.play()
 
+func play_focus():
+	if is_muted:
+		return
+	var player = get_available_player()
+	_generate_tone(player, BASE_FREQUENCY * 2, 0.05, -20, Waveform.TRIANGLE)
+	player.pitch_scale = 1.5
+	player.play()
+
 func reset_pitch():
 	current_pitch_momentum = 0.0
 	target_pitch_offset = 0.0

@@ -14,15 +14,20 @@ func _ready():
 
 func _process(_delta):
 	if can_move:
-		# Only update next_direction if it's a valid turn
-		if Input.is_action_pressed("up") and direction != Vector2.DOWN:
-			next_direction = Vector2.UP
-		if Input.is_action_pressed("down") and direction != Vector2.UP:
-			next_direction = Vector2.DOWN
-		if Input.is_action_pressed("left") and direction != Vector2.RIGHT:
-			next_direction = Vector2.LEFT
-		if Input.is_action_pressed("right") and direction != Vector2.LEFT:
-			next_direction = Vector2.RIGHT
+		var input_x = Input.get_axis("left", "right")
+		var input_y = Input.get_axis("up", "down")
+		
+		# Only update direction if there's significant input
+		if abs(input_x) > 0.5 or abs(input_y) > 0.5:
+			# Choose the strongest input direction
+			if abs(input_x) > abs(input_y):
+				next_direction = Vector2(sign(input_x), 0)
+			else:
+				next_direction = Vector2(0, sign(input_y))
+			
+			# Don't allow reversing
+			if next_direction == -direction:
+				next_direction = direction
 
 func move():
 	# Apply the buffered direction

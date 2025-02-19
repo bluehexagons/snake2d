@@ -106,6 +106,28 @@ func _ready():
 	$GameViewport/SubViewport/GameWorld.visible = false
 
 	_update_scores_display(false)  # Initialize scores display
+	
+	# Connect focus sounds to all buttons
+	for button in _get_all_buttons():
+		button.focus_entered.connect(AudioManager.play_focus)
+	
+	# Set initial focus
+	_update_menu_focus()
+
+func _get_all_buttons() -> Array:
+	var buttons = []
+	buttons.append_array($UILayer/MainMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
+	buttons.append_array($UILayer/PauseMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
+	buttons.append_array($UILayer/GameOverContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
+	return buttons
+
+func _update_menu_focus():
+	if $UILayer/MainMenu.visible:
+		$UILayer/MainMenu/VBoxContainer/StartButton.grab_focus()
+	elif $UILayer/PauseMenu.visible:
+		$UILayer/PauseMenu/VBoxContainer/ResumeButton.grab_focus()
+	elif $UILayer/GameOverContainer.visible:
+		$UILayer/GameOverContainer/VBoxContainer/RestartButton.grab_focus()
 
 func _on_start_pressed():
 	get_tree().paused = false
@@ -114,6 +136,7 @@ func _on_start_pressed():
 	$UILayer/ScoreLabel.visible = true
 	$GameViewport/SubViewport/GameWorld.visible = true
 	_start_game()
+	_update_menu_focus()
 
 func _start_game():
 	in_game = true
@@ -196,6 +219,7 @@ func _on_quit_to_menu_pressed():
 	$UILayer/ScoreLabel.visible = false
 	$GameViewport/SubViewport/GameWorld.visible = false
 	_update_scores_display(false)
+	_update_menu_focus()
 
 func _cleanup_game():
 	# Reset nodes
@@ -371,6 +395,7 @@ func _on_game_over():
 	$UIBackground.visible = true
 	$UILayer/GameOverContainer.visible = true
 	$UILayer/GameOverContainer/VBoxContainer/ScoreLabel.text = "Final Score: " + str(score)
+	_update_menu_focus()
 
 func _on_restart_pressed():
 	$UIBackground.visible = false
@@ -379,12 +404,23 @@ func _on_restart_pressed():
 	_start_game()
 
 func _process(_delta):
-	# Handle pause input regardless of game state
+	# Handle back button in menus
+	if Input.is_action_just_pressed("ui_cancel"):
+		if $UILayer/GameOverContainer.visible or $UILayer/PauseMenu.visible:
+			_on_quit_to_menu_pressed()
+		elif not in_game:
+			_on_quit_game_pressed()
+	
+	# Handle pause input during gameplay
 	if in_game and not game_over and Input.is_action_just_pressed("pause"):
 		if paused:
 			_on_resume_pressed()
 		else:
 			_toggle_pause()
+	
+	# Only allow keyboard retry during game over
+	if game_over and Input.is_action_just_pressed("retry"):
+		_on_restart_pressed()
 	
 	# Only update game logic when not paused
 	if in_game and not game_over and not paused:
@@ -438,6 +474,7 @@ func _toggle_pause():
 	# Update UI
 	$UIBackground.visible = paused
 	$UILayer/PauseMenu.visible = paused
+	_update_menu_focus()
 
 func _on_resume_pressed():
 	_toggle_pause()
