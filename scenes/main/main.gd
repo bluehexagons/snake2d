@@ -79,6 +79,12 @@ func _ready():
 	var main_sound_button = main_menu.get_node("VBoxContainer/SoundButton")
 	main_sound_button.pressed.connect(_on_sound_toggled)
 	
+	# Connect fullscreen toggle button
+	var fullscreen_button = main_menu.get_node("VBoxContainer/FullscreenButton")
+	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
+	fullscreen_button.button_down.connect(AudioManager.play_click)
+	_update_fullscreen_button()
+	
 	# Connect pause menu buttons
 	var pause_menu = $UILayer/PauseMenu
 	var resume_button = pause_menu.get_node("VBoxContainer/ResumeButton")
@@ -557,3 +563,15 @@ func _update_sound_buttons():
 	var text = "Sound: Off" if AudioManager.is_muted else "Sound: On"
 	$UILayer/MainMenu/VBoxContainer/SoundButton.text = text
 	$UILayer/PauseMenu/VBoxContainer/SoundButton.text = text
+
+func _on_fullscreen_toggled():
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	_update_fullscreen_button()
+
+func _update_fullscreen_button():
+	var is_fullscreen = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	var button = $UILayer/MainMenu/VBoxContainer/FullscreenButton
+	button.text = "Fullscreen: " + ("On" if is_fullscreen else "Off")
