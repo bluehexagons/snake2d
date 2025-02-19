@@ -10,16 +10,17 @@ const GAME_WIDTH = GRID_WIDTH * GRID_SIZE
 const GAME_HEIGHT = GRID_HEIGHT * GRID_SIZE
 
 const BASE_TIMER_WAIT = 0.2
-const MIN_TIMER_WAIT = 0.07  # Maximum speed
+const MIN_TIMER_WAIT = 0.05  # Maximum speed
 const SPEED_INCREASE_PER_SEGMENT = 0.005  # How much faster per segment
 
-const CAMERA_LOOK_AHEAD = 0.25  # How many grid cells to look ahead
-const CAMERA_SMOOTHING = 0.015  # Smoothing factor
-const CENTER_PULL_WEIGHT = 0.25  # How strongly the camera is pulled to center
-const FOOD_ATTRACTION_WEIGHT = 0.1  # How strongly the camera is pulled to food
-const LOOK_AHEAD_WEIGHT = 0.15  # How strongly the camera follows snake's direction
-const CAMERA_DAMPING = 0.85  # How quickly velocity decays
-const CAMERA_ACCELERATION = 0.01  # How quickly camera responds to changes
+const CAMERA_LOOK_AHEAD = 1.2
+const CAMERA_SMOOTHING = 0.015
+const CENTER_PULL_WEIGHT = 0.4
+const FOOD_ATTRACTION_WEIGHT = 0.35
+const LOOK_AHEAD_WEIGHT = 0.25
+const SNAKE_CENTER_WEIGHT = 0.2
+const CAMERA_DAMPING = 0.95
+const CAMERA_ACCELERATION = 0.01
 
 const MAX_HIGH_SCORES = 10
 var high_scores: Array[int] = []
@@ -172,10 +173,10 @@ func _start_game():
 	
 	camera = $GameViewport/SubViewport/GameWorld/Camera2D
 	camera.position = snake.position
-	camera_velocity = Vector2.ZERO  # Reset camera velocity when starting
+	camera_velocity = Vector2.ZERO
 	AudioManager.reset_pitch()
 	
-	get_tree().paused = false  # Ensure everything is unpaused
+	get_tree().paused = false
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -270,7 +271,7 @@ func _cleanup_game():
 	# Reset UI
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
-	camera_velocity = Vector2.ZERO  # Reset camera velocity when cleaning up
+	camera_velocity = Vector2.ZERO
 	AudioManager.reset_pitch()
 	
 	# Return to normal mouse mode
@@ -356,11 +357,11 @@ func _on_snake_grew():
 		segment.color = base_color.darkened(0.1)
 	else:
 		# Gradually lighten towards the tail end
-		var progress = float(segment_count) / 20.0  # Max variation at length 20
-		var hue_shift = randf_range(-0.02, 0.02)  # Subtle random hue variation
-		var new_color = base_color.lightened(progress * 0.3)  # Gradual lightening
+		var progress = float(segment_count) / 20.0
+		var hue_shift = randf_range(-0.02, 0.02)
+		var new_color = base_color.lightened(progress * 0.3)
 		new_color = Color.from_hsv(
-			fmod(new_color.h + hue_shift, 1.0),  # Shift hue slightly
+			fmod(new_color.h + hue_shift, 1.0),
 			new_color.s,
 			new_color.v
 		)
@@ -409,16 +410,16 @@ func _on_game_over():
 	# Change snake head color
 	var head = snake.get_node("Head")
 	if head:
-		head.color = Color(0.8, 0.2, 0.2, 1)  # Deep red
+		head.color = Color(0.8, 0.2, 0.2, 1)
 	
 	# Change tail segment colors to reddish versions of their current colors
 	for segment in tail_segments:
 		var current_color = segment.color
 		segment.color = Color(
-			lerp(current_color.g, 0.8, 0.5),  # Mix with red
-			current_color.r * 0.1,            # Reduce green
-			current_color.b * 0.1,            # Reduce blue
-			current_color.a                   # Keep alpha
+			lerp(current_color.g, 0.8, 0.5),
+			current_color.r * 0.1,
+			current_color.b * 0.1,
+			current_color.a
 		)
 	
 	# Update game over UI and background
@@ -453,21 +454,30 @@ func _process(_delta):
 		var center = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
 		var look_ahead = snake.position + (snake.direction * GRID_SIZE * CAMERA_LOOK_AHEAD)
 		var food_pos = food.position if food else snake.position
+		var snake_center = snake.position
 		
-		# Combine all influences with their weights
+		# Calculate weighted center of mass of snake
+		if not tail_segments.is_empty():
+			var sum_pos = snake.position * 2.0
+			var total_weight = 2.0
+			for i in tail_segments.size():
+				var weight = 1.0 / (i + 2.0)
+				sum_pos += tail_segments[i].position * weight
+				total_weight += weight
+			snake_center = sum_pos / total_weight
+		
 		var target = (
 			look_ahead * LOOK_AHEAD_WEIGHT +
 			center * CENTER_PULL_WEIGHT +
-			food_pos * FOOD_ATTRACTION_WEIGHT
-		) / (LOOK_AHEAD_WEIGHT + CENTER_PULL_WEIGHT + FOOD_ATTRACTION_WEIGHT)
+			food_pos * FOOD_ATTRACTION_WEIGHT +
+			snake_center * SNAKE_CENTER_WEIGHT
+		) / (LOOK_AHEAD_WEIGHT + CENTER_PULL_WEIGHT + FOOD_ATTRACTION_WEIGHT + SNAKE_CENTER_WEIGHT)
 		
-		 # Calculate desired velocity
-		var desired_velocity = (target - camera.position) * CAMERA_ACCELERATION
+		var t = CAMERA_ACCELERATION
+		t = t * t * (3.0 - 2.0 * t) 
+		var desired_velocity = (target - camera.position) * t
 		
-		# Update camera velocity with damping
 		camera_velocity = camera_velocity * CAMERA_DAMPING + desired_velocity
-		
-		# Apply velocity to camera position
 		camera.position += camera_velocity
 
 func _on_timer_timeout():
