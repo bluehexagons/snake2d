@@ -1,1 +1,1 @@
-This is a simple Snake clone, a single player arcade game, in Godot 4.3, programmed using GDScript. Remember to use tabs and not spaces. Remember that comments start with a `#` and not `//` in a `.gd` file. Ternary uses the `true_value if condition else false_value` syntax. Do not add comments explaining small changes, but quality comments can be useful for documentation. `.tscn` files shouldn't use comments unless we really need to.
+This is a simple Snake clone, in Godot 4.4, programmed in GDScript.
