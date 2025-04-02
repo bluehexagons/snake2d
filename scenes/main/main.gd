@@ -304,7 +304,8 @@ func _process(_delta) -> void:
 	# Handle pause input during gameplay
 	if in_game and not paused and Input.is_action_just_pressed("pause"):
 		_toggle_pause()
-	
+
+func _physics_process(_delta) -> void:
 	# Only update game logic when not paused
 	if in_game and not paused:
 		# Calculate various camera target influences

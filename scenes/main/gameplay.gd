@@ -24,7 +24,9 @@ var tail_segments: Array[ColorRect] = []
 var tail_positions: Array[Vector2] = []
 var score := 0
 var game_over_state := false
-var game_timer: Timer = null
+
+var time_since_move := 0.0
+var current_move_time := BASE_TIMER_WAIT
 
 # Get a reference to the parent game world
 @onready var game_world: Node2D = get_parent()
@@ -58,16 +60,24 @@ func start_game() -> void:
 	# Spawn initial food
 	spawn_food()
 	
-	# Start the game timer
-	if game_timer:
-		game_timer.queue_free()
-	game_timer = Timer.new()
-	add_child(game_timer)
-	game_timer.wait_time = BASE_TIMER_WAIT
-	game_timer.timeout.connect(_on_timer_timeout)
-	game_timer.start()
+	# Reset movement timing
+	time_since_move = 0.0
+	current_move_time = BASE_TIMER_WAIT
 	
 	AudioManager.reset_pitch()
+
+func _physics_process(delta: float) -> void:
+	if game_over_state or get_tree().paused:
+		return
+		
+	# Accumulate time
+	time_since_move += delta
+	
+	# Move when enough time has passed
+	if time_since_move >= current_move_time:
+		time_since_move -= current_move_time
+		snake.can_move = false
+		snake.move()
 
 func is_position_occupied(pos: Vector2) -> bool:
 	# Convert position to grid coordinates
@@ -105,13 +115,11 @@ func spawn_food() -> void:
 	food_spawned.emit(food.position)
 
 func _update_game_speed() -> void:
-	if game_timer:
-		var segment_count := tail_segments.size()
-		var new_wait: float = max(
-			BASE_TIMER_WAIT - (segment_count * SPEED_INCREASE_PER_SEGMENT),
-			MIN_TIMER_WAIT
-		)
-		game_timer.wait_time = new_wait
+	var segment_count := tail_segments.size()
+	current_move_time = max(
+		BASE_TIMER_WAIT - (segment_count * SPEED_INCREASE_PER_SEGMENT),
+		MIN_TIMER_WAIT
+	)
 
 func _on_snake_moved(new_position) -> void:
 	if game_over_state:
@@ -208,15 +216,7 @@ func _on_snake_died() -> void:
 	# Signal game over with final score
 	game_over.emit(score)
 
-func _on_timer_timeout() -> void:
-	if game_over_state:
-		return
-	snake.can_move = false
-	snake.move()
-
 func set_paused(is_paused: bool) -> void:
-	if game_timer:
-		game_timer.paused = is_paused
 	if snake:
 		snake.process_mode = Node.PROCESS_MODE_DISABLED if is_paused else Node.PROCESS_MODE_INHERIT
 
@@ -232,11 +232,6 @@ func cleanup() -> void:
 	tail_segments.clear()
 	tail_positions.clear()
 	
-	if game_timer:
-		game_timer.stop()
-		game_timer.queue_free()
-		game_timer = null
-		
 	game_over_state = false
 
 func get_snake_position() -> Vector2:
