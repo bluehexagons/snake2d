@@ -1,0 +1,50 @@
+[gd_scene load_steps=2 format=3 uid="uid://optionsmenu"]
+
+[ext_resource type="Script" path="res://scenes/ui/options_menu.gd" id="1_5exto"]
+
+[node name="OptionsMenu" type="CenterContainer"]
+process_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_5exto")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+focus_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "OPTIONS"
+horizontal_alignment = 1
+
+[node name="SoundButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+focus_neighbor_top = NodePath("../BackButton")
+focus_neighbor_bottom = NodePath("../FullscreenButton")
+text = "Sound: On"
+
+[node name="FullscreenButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+focus_neighbor_top = NodePath("../SoundButton")
+focus_neighbor_bottom = NodePath("../BackButton")
+text = "Fullscreen: Off"
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+focus_neighbor_top = NodePath("../FullscreenButton")
+focus_neighbor_bottom = NodePath("../SoundButton")
+text = "Back to Menu"
+
+[node name="ButtonHints" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer/ButtonHints"]
+layout_mode = 2
+text = "[A] Select   [B] Back"
+horizontal_alignment = 1

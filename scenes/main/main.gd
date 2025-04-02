@@ -25,6 +25,7 @@ var camera: Camera2D
 var paused := false
 var high_score := 0
 var in_game := false
+var in_options_menu := false
 
 # Platform detection for mobile UI
 var is_mobile := false
@@ -56,19 +57,17 @@ func _ready():
 	scores_button.pressed.connect(_on_scores_pressed)
 	scores_button.button_down.connect(AudioManager.play_click)
 	
+	var options_button := main_menu.get_node("VBoxContainer/OptionsButton")
+	options_button.pressed.connect(_on_options_pressed)
+	options_button.button_down.connect(AudioManager.play_click)
+	
 	var quit_button := main_menu.get_node("VBoxContainer/QuitButton")
 	quit_button.pressed.connect(_on_quit_game_pressed)
 	quit_button.button_down.connect(AudioManager.play_click)
 	
-	# Connect sound toggle buttons
-	var main_sound_button := main_menu.get_node("VBoxContainer/SoundButton")
-	main_sound_button.pressed.connect(_on_sound_toggled)
-	
-	# Connect fullscreen toggle button
-	var fullscreen_button := main_menu.get_node("VBoxContainer/FullscreenButton")
-	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
-	fullscreen_button.button_down.connect(AudioManager.play_click)
-	_update_fullscreen_button()
+	# Connect options menu signals
+	var options_menu := $UILayer/OptionsMenu
+	options_menu.options_closed.connect(_on_options_back_pressed)
 	
 	# Connect pause menu buttons
 	var pause_menu := $UILayer/PauseMenu
@@ -101,13 +100,11 @@ func _ready():
 	game_manager.score_updated.connect(_on_score_updated)
 	game_manager.game_over.connect(_on_game_over)
 	
-	# Set initial sound button states
-	_update_sound_buttons()
-	
 	# Start in menu state
 	get_tree().paused = true
 	$UIBackground.visible = true
 	$UILayer/MainMenu.visible = true
+	$UILayer/OptionsMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
 	game_world.visible = false  # Using our cached reference instead
 
@@ -127,6 +124,7 @@ func _ready():
 func _get_all_buttons() -> Array:
 	var buttons := []
 	buttons.append_array($UILayer/MainMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
+	buttons.append_array($UILayer/OptionsMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/PauseMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/GameOverContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	return buttons
@@ -134,6 +132,8 @@ func _get_all_buttons() -> Array:
 func _update_menu_focus() -> void:
 	if $UILayer/MainMenu.visible:
 		$UILayer/MainMenu/VBoxContainer/StartButton.grab_focus()
+	elif $UILayer/OptionsMenu.visible:
+		$UILayer/OptionsMenu/VBoxContainer/SoundButton.grab_focus()
 	elif $UILayer/PauseMenu.visible:
 		$UILayer/PauseMenu/VBoxContainer/ResumeButton.grab_focus()
 	elif $UILayer/GameOverContainer.visible:
@@ -143,9 +143,23 @@ func _on_start_pressed() -> void:
 	get_tree().paused = false
 	$UIBackground.visible = false
 	$UILayer/MainMenu.visible = false
+	$UILayer/OptionsMenu.visible = false
 	$UILayer/ScoreLabel.visible = true
 	game_world.visible = true
 	_start_game()
+	_update_menu_focus()
+
+func _on_options_pressed() -> void:
+	$UILayer/MainMenu.visible = false
+	$UILayer/OptionsMenu.visible = true
+	$UILayer/OptionsMenu.update_button_states()
+	in_options_menu = true
+	_update_menu_focus()
+
+func _on_options_back_pressed() -> void:
+	$UILayer/MainMenu.visible = true
+	$UILayer/OptionsMenu.visible = false
+	in_options_menu = false
 	_update_menu_focus()
 
 func _start_game() -> void:
@@ -217,6 +231,7 @@ func _on_quit_to_menu_pressed() -> void:
 	get_tree().paused = true
 	$UIBackground.visible = true
 	$UILayer/MainMenu.visible = true
+	$UILayer/OptionsMenu.visible = false
 	$UILayer/PauseMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
 	game_world.visible = false
@@ -296,6 +311,8 @@ func _process(_delta) -> void:
 			_on_quit_to_menu_pressed()
 		elif $UILayer/PauseMenu.visible:
 			_on_resume_pressed()
+		elif $UILayer/OptionsMenu.visible:
+			_on_options_back_pressed()
 		elif not in_game:
 			_on_quit_game_pressed()
 		else:
@@ -369,25 +386,5 @@ func _on_resume_pressed() -> void:
 	_toggle_pause()
 
 func _on_sound_toggled() -> void:
-	var is_muted := AudioManager.toggle_mute()
-	_update_sound_buttons()
-	# Still play click when unmuting
-	if not is_muted:
-		AudioManager.play_click()
-
-func _update_sound_buttons() -> void:
-	var text := "Sound: Off" if AudioManager.is_muted else "Sound: On"
-	$UILayer/MainMenu/VBoxContainer/SoundButton.text = text
-	$UILayer/PauseMenu/VBoxContainer/SoundButton.text = text
-
-func _on_fullscreen_toggled() -> void:
-	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	_update_fullscreen_button()
-
-func _update_fullscreen_button() -> void:
-	var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-	var button := $UILayer/MainMenu/VBoxContainer/FullscreenButton
-	button.text = "Fullscreen: " + ("On" if is_fullscreen else "Off")
+	AudioManager.toggle_mute()
+	$UILayer/PauseMenu/VBoxContainer/SoundButton.text = "Sound: " + ("Off" if AudioManager.is_muted else "On")
