@@ -3,46 +3,46 @@ extends Control
 const Snake = preload("res://scenes/snake/snake.tscn")
 const Food = preload("res://scenes/food/food.tscn")
 
-const GRID_SIZE = 32
-const GRID_WIDTH = 24
-const GRID_HEIGHT = 18
-const GAME_WIDTH = GRID_WIDTH * GRID_SIZE
-const GAME_HEIGHT = GRID_HEIGHT * GRID_SIZE
+const GRID_SIZE := 32
+const GRID_WIDTH := 24
+const GRID_HEIGHT := 18
+const GAME_WIDTH := GRID_WIDTH * GRID_SIZE
+const GAME_HEIGHT := GRID_HEIGHT * GRID_SIZE
 
-const BASE_TIMER_WAIT = 0.2
-const MIN_TIMER_WAIT = 0.05  # Maximum speed
-const SPEED_INCREASE_PER_SEGMENT = 0.005  # How much faster per segment
+const BASE_TIMER_WAIT := 0.2
+const MIN_TIMER_WAIT := 0.05  # Maximum speed
+const SPEED_INCREASE_PER_SEGMENT := 0.005  # How much faster per segment
 
-const CAMERA_LOOK_AHEAD = 1.2
-const CAMERA_SMOOTHING = 0.015
-const CENTER_PULL_WEIGHT = 0.4
-const FOOD_ATTRACTION_WEIGHT = 0.35
-const LOOK_AHEAD_WEIGHT = 0.25
-const SNAKE_CENTER_WEIGHT = 0.2
-const CAMERA_DAMPING = 0.95
-const CAMERA_ACCELERATION = 0.01
+const CAMERA_LOOK_AHEAD := 1.2
+const CAMERA_SMOOTHING := 0.015
+const CENTER_PULL_WEIGHT := 0.4
+const FOOD_ATTRACTION_WEIGHT := 0.35
+const LOOK_AHEAD_WEIGHT := 0.25
+const SNAKE_CENTER_WEIGHT := 0.2
+const CAMERA_DAMPING := 0.95
+const CAMERA_ACCELERATION := 0.01
 
-const MAX_HIGH_SCORES = 10
+const MAX_HIGH_SCORES := 10
 var high_scores: Array[int] = []
 
-var camera_velocity = Vector2.ZERO
+var camera_velocity := Vector2.ZERO
 
 var game_world: Node2D
-var snake
-var food
-var tail_segments = []
-var tail_positions = []
-var game_over = false
-var score = 0
-var score_label: Label
+var snake: Node2D
+var food: Node2D
+var tail_segments: Array[ColorRect] = []
+var tail_positions: Array[Vector2] = []
+var game_over := false
+var score := 0
+var score_display_label: Label
 var camera: Camera2D
-var paused = false
-var high_score = 0
-var in_game = false
+var paused := false
+var high_score := 0
+var in_game := false
 var game_timer: Timer = null
 
 # Platform detection for mobile UI
-var is_mobile = false
+var is_mobile := false
 
 func _ready():
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
@@ -52,9 +52,9 @@ func _ready():
 	
 	# Load high scores
 	if FileAccess.file_exists("user://highscore.dat"):
-		var file = FileAccess.open("user://highscore.dat", FileAccess.READ)
+		var file := FileAccess.open("user://highscore.dat", FileAccess.READ)
 		while not file.eof_reached():
-			var val = file.get_32()
+			var val := file.get_32()
 			if val > 0:
 				high_scores.append(val)
 	
@@ -62,53 +62,53 @@ func _ready():
 	high_score = high_scores[0] if not high_scores.is_empty() else 0
 	
 	# Connect main menu buttons
-	var main_menu = $UILayer/MainMenu
-	var start_button = main_menu.get_node("VBoxContainer/StartButton")
+	var main_menu := $UILayer/MainMenu
+	var start_button := main_menu.get_node("VBoxContainer/StartButton")
 	start_button.pressed.connect(_on_start_pressed)
 	start_button.button_down.connect(AudioManager.play_click)
 	
-	var scores_button = main_menu.get_node("VBoxContainer/ScoresButton")
+	var scores_button := main_menu.get_node("VBoxContainer/ScoresButton")
 	scores_button.pressed.connect(_on_scores_pressed)
 	scores_button.button_down.connect(AudioManager.play_click)
 	
-	var quit_button = main_menu.get_node("VBoxContainer/QuitButton")
+	var quit_button := main_menu.get_node("VBoxContainer/QuitButton")
 	quit_button.pressed.connect(_on_quit_game_pressed)
 	quit_button.button_down.connect(AudioManager.play_click)
 	
 	# Connect sound toggle buttons
-	var main_sound_button = main_menu.get_node("VBoxContainer/SoundButton")
+	var main_sound_button := main_menu.get_node("VBoxContainer/SoundButton")
 	main_sound_button.pressed.connect(_on_sound_toggled)
 	
 	# Connect fullscreen toggle button
-	var fullscreen_button = main_menu.get_node("VBoxContainer/FullscreenButton")
+	var fullscreen_button := main_menu.get_node("VBoxContainer/FullscreenButton")
 	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
 	fullscreen_button.button_down.connect(AudioManager.play_click)
 	_update_fullscreen_button()
 	
 	# Connect pause menu buttons
-	var pause_menu = $UILayer/PauseMenu
-	var resume_button = pause_menu.get_node("VBoxContainer/ResumeButton")
+	var pause_menu := $UILayer/PauseMenu
+	var resume_button := pause_menu.get_node("VBoxContainer/ResumeButton")
 	resume_button.pressed.connect(_on_resume_pressed)
 	resume_button.button_down.connect(AudioManager.play_click)
 	
-	var pause_quit = pause_menu.get_node("VBoxContainer/QuitButton")
+	var pause_quit := pause_menu.get_node("VBoxContainer/QuitButton")
 	pause_quit.pressed.connect(_on_quit_to_menu_pressed)
 	pause_quit.button_down.connect(AudioManager.play_click)
 	
-	var pause_sound_button = pause_menu.get_node("VBoxContainer/SoundButton")
+	var pause_sound_button := pause_menu.get_node("VBoxContainer/SoundButton")
 	pause_sound_button.pressed.connect(_on_sound_toggled)
 	
 	# Connect game over buttons
-	var game_over_menu = $UILayer/GameOverContainer/VBoxContainer
-	var restart_button = game_over_menu.get_node("RestartButton")
+	var game_over_menu := $UILayer/GameOverContainer/VBoxContainer
+	var restart_button := game_over_menu.get_node("RestartButton")
 	restart_button.pressed.connect(_on_restart_pressed)
 	restart_button.button_down.connect(AudioManager.play_click)
 	
-	var gameover_quit = game_over_menu.get_node("QuitButton")
+	var gameover_quit := game_over_menu.get_node("QuitButton")
 	gameover_quit.pressed.connect(_on_quit_to_menu_pressed)
 	gameover_quit.button_down.connect(AudioManager.play_click)
 
-	score_label = $UILayer/ScoreLabel
+	score_display_label = $UILayer/ScoreLabel
 	game_world = $GameLayer/GameViewport/GameWorld
 	
 	# Set initial sound button states
@@ -135,13 +135,13 @@ func _ready():
 	_update_game_area()
 
 func _get_all_buttons() -> Array:
-	var buttons = []
+	var buttons := []
 	buttons.append_array($UILayer/MainMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/PauseMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/GameOverContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	return buttons
 
-func _update_menu_focus():
+func _update_menu_focus() -> void:
 	if $UILayer/MainMenu.visible:
 		$UILayer/MainMenu/VBoxContainer/StartButton.grab_focus()
 	elif $UILayer/PauseMenu.visible:
@@ -149,7 +149,7 @@ func _update_menu_focus():
 	elif $UILayer/GameOverContainer.visible:
 		$UILayer/GameOverContainer/VBoxContainer/RestartButton.grab_focus()
 
-func _on_start_pressed():
+func _on_start_pressed() -> void:
 	get_tree().paused = false
 	$UIBackground.visible = false
 	$UILayer/MainMenu.visible = false
@@ -158,17 +158,18 @@ func _on_start_pressed():
 	_start_game()
 	_update_menu_focus()
 
-func _start_game():
+func _start_game() -> void:
 	_cleanup_game()
 
 	in_game = true
 	score = 0
-	score_label.text = "Score: 0"
+	score_display_label.text = "Score: 0"
 	
 	# Initialize game elements
 	snake = Snake.instantiate()
 	snake.process_mode = Node.PROCESS_MODE_INHERIT
 	game_world.add_child(snake)
+	@warning_ignore("integer_division")
 	snake.position = Vector2(GRID_WIDTH/2, GRID_HEIGHT/2) * GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
@@ -191,22 +192,22 @@ func _start_game():
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
-func _update_game_speed():
+func _update_game_speed() -> void:
 	if game_timer:
-		var segment_count = tail_segments.size()
-		var new_wait = max(
+		var segment_count := tail_segments.size()
+		var new_wait: float = max(
 			BASE_TIMER_WAIT - (segment_count * SPEED_INCREASE_PER_SEGMENT),
 			MIN_TIMER_WAIT
 		)
 		game_timer.wait_time = new_wait
 
-func _on_scores_pressed():
+func _on_scores_pressed() -> void:
 	_update_scores_display(true)
 
-func _update_scores_display(show_container: bool):
-	var title_label = $UILayer/MainMenu/VBoxContainer/TitleLabel
-	var scores_container = $UILayer/MainMenu/VBoxContainer/ScoresContainer
-	var scores_list = $UILayer/MainMenu/VBoxContainer/ScoresContainer/ScrollContainer/ScoresList
+func _update_scores_display(show_container: bool) -> void:
+	var title_label := $UILayer/MainMenu/VBoxContainer/TitleLabel
+	var scores_container := $UILayer/MainMenu/VBoxContainer/ScoresContainer
+	var scores_list := $UILayer/MainMenu/VBoxContainer/ScoresContainer/ScrollContainer/ScoresList
 	
 	# Clear existing score labels
 	for child in scores_list.get_children():
@@ -217,13 +218,13 @@ func _update_scores_display(show_container: bool):
 		scores_container.visible = true
 		
 		if high_scores.is_empty():
-			var empty_label = Label.new()
+			var empty_label := Label.new()
 			empty_label.text = "No scores yet!"
 			empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			scores_list.add_child(empty_label)
 		else:
 			for i in high_scores.size():
-				var score_label = Label.new()
+				var score_label := Label.new()
 				score_label.text = "%d. %d" % [i + 1, high_scores[i]]
 				score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				scores_list.add_child(score_label)
@@ -231,19 +232,19 @@ func _update_scores_display(show_container: bool):
 		title_label.text = "A Simple Snake Game"
 		scores_container.visible = false
 
-func _on_quit_game_pressed():
+func _on_quit_game_pressed() -> void:
 	# Ensure mouse is free before showing dialog
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	
-	var dialog = ConfirmationDialog.new()
+	var dialog := ConfirmationDialog.new()
 	dialog.title = "Quit Game"
 	dialog.dialog_text = "Are you sure you want to quit?"
 	dialog.confirmed.connect(get_tree().quit)
 	add_child(dialog)
 	dialog.popup_centered()
 
-func _on_quit_to_menu_pressed():
+func _on_quit_to_menu_pressed() -> void:
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_cleanup_game()
@@ -256,7 +257,7 @@ func _on_quit_to_menu_pressed():
 	_update_scores_display(false)
 	_update_menu_focus()
 
-func _cleanup_game():
+func _cleanup_game() -> void:
 	# Reset nodes
 	if snake:
 		snake.queue_free()
@@ -293,7 +294,7 @@ func _cleanup_game():
 
 func is_position_occupied(pos: Vector2) -> bool:
 	# Convert position to grid coordinates
-	var grid_pos = pos / GRID_SIZE
+	var grid_pos := pos / GRID_SIZE
 	
 	# Check snake head
 	if snake and (snake.position / GRID_SIZE) == grid_pos:
@@ -306,26 +307,26 @@ func is_position_occupied(pos: Vector2) -> bool:
 	
 	return false
 
-func spawn_food():
+func spawn_food() -> void:
 	if food:
 		food.queue_free()
 	
 	# Find an unoccupied position
-	var valid_position = false
-	var x = 0
-	var y = 0
+	var valid_position := false
+	var x := 0
+	var y := 0
 	
 	while not valid_position:
 		x = randi_range(0, GRID_WIDTH - 2)
 		y = randi_range(0, GRID_HEIGHT - 2)
-		var test_pos = Vector2(x, y) * GRID_SIZE
+		var test_pos := Vector2(x, y) * GRID_SIZE
 		valid_position = not is_position_occupied(test_pos)
 	
 	food = Food.instantiate()
 	game_world.add_child(food)
 	food.position = Vector2(x, y) * GRID_SIZE
 
-func _on_snake_moved(new_position):
+func _on_snake_moved(new_position) -> void:
 	if game_over:
 		return
 	
@@ -335,7 +336,7 @@ func _on_snake_moved(new_position):
 	tail_positions.insert(0, new_position)
 	
 	# Check if snake ate food
-	var ate_food = food and (new_position == food.position)
+	var ate_food: bool = food and (new_position == food.position)
 	if ate_food:
 		snake.grow()
 		# Don't remove the last tail position when growing
@@ -356,24 +357,24 @@ func _on_snake_moved(new_position):
 				_on_game_over()
 				return
 
-func _on_snake_grew():
+func _on_snake_grew() -> void:
 	AudioManager.play_eat()
 	
-	var segment = ColorRect.new()
+	var segment := ColorRect.new()
 	segment.size = Vector2(GRID_SIZE, GRID_SIZE)
 	
 	# Vary the color based on position in tail
-	var base_color = Color(0.0862745, 0.741176, 0.0862745)
-	var segment_count = tail_segments.size()
+	var base_color := Color(0.0862745, 0.741176, 0.0862745)
+	var segment_count := tail_segments.size()
 	
 	if segment_count == 0:
 		# First segment should be slightly darker than base
 		segment.color = base_color.darkened(0.1)
 	else:
 		# Gradually lighten towards the tail end
-		var progress = float(segment_count) / 20.0
-		var hue_shift = randf_range(-0.02, 0.02)
-		var new_color = base_color.lightened(progress * 0.3)
+		var progress := float(segment_count) / 20.0
+		var hue_shift := randf_range(-0.02, 0.02)
+		var new_color := base_color.lightened(progress * 0.3)
 		new_color = Color.from_hsv(
 			fmod(new_color.h + hue_shift, 1.0),
 			new_color.s,
@@ -392,14 +393,14 @@ func _on_snake_grew():
 	
 	# Update score
 	score += 10
-	score_label.text = "Score: " + str(score)
+	score_display_label.text = "Score: " + str(score)
 
-func _on_game_over():
+func _on_game_over() -> void:
 	AudioManager.play_die()
 	AudioManager.reset_pitch()
 	
 	# Update high scores
-	var score_inserted = false
+	var score_inserted := false
 	for i in high_scores.size():
 		if score > high_scores[i]:
 			high_scores.insert(i, score)
@@ -413,7 +414,7 @@ func _on_game_over():
 		high_scores.resize(MAX_HIGH_SCORES)
 	
 	# Save all scores
-	var file = FileAccess.open("user://highscore.dat", FileAccess.WRITE)
+	var file := FileAccess.open("user://highscore.dat", FileAccess.WRITE)
 	for score_value in high_scores:
 		file.store_32(score_value)
 	
@@ -422,13 +423,13 @@ func _on_game_over():
 	game_over = true
 	
 	# Change snake head color
-	var head = snake.get_node("Head")
+	var head := snake.get_node("Head")
 	if head:
 		head.color = Color(0.8, 0.2, 0.2, 1)
 	
 	# Change tail segment colors to reddish versions of their current colors
 	for segment in tail_segments:
-		var current_color = segment.color
+		var current_color := segment.color
 		segment.color = Color(
 			lerp(current_color.g, 0.8, 0.5),
 			current_color.r * 0.1,
@@ -442,19 +443,19 @@ func _on_game_over():
 	$UILayer/GameOverContainer/VBoxContainer/ScoreLabel.text = "Final Score: " + str(score)
 	_update_menu_focus()
 
-func _on_restart_pressed():
+func _on_restart_pressed() -> void:
 	$UIBackground.visible = false
 	$UILayer/GameOverContainer.visible = false
 	_cleanup_game()
 	_start_game()
 
-func _process(_delta):
+func _process(_delta) -> void:
 	# Check if we need to restore UI focus
 	if (Input.is_action_just_pressed("ui_up") or 
 		Input.is_action_just_pressed("ui_down") or
 		Input.is_action_just_pressed("ui_left") or
 		Input.is_action_just_pressed("ui_right")):
-		var focused = get_viewport().gui_get_focus_owner()
+		var focused := get_viewport().gui_get_focus_owner()
 		if not focused:
 			_update_menu_focus()
 	
@@ -476,52 +477,54 @@ func _process(_delta):
 	# Only update game logic when not paused
 	if in_game and not game_over and not paused:
 		# Calculate various camera target influences
-		var center = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
-		var look_ahead = snake.position + (snake.direction * GRID_SIZE * CAMERA_LOOK_AHEAD)
-		var food_pos = food.position if food else snake.position
-		var snake_center = snake.position
+
+		@warning_ignore("integer_division")
+		var center := Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
+		var look_ahead: Vector2 = snake.position + (snake.direction * GRID_SIZE * CAMERA_LOOK_AHEAD)
+		var food_pos := food.position if food else snake.position
+		var snake_center := snake.position
 		
 		# Calculate weighted center of mass of snake
 		if not tail_segments.is_empty():
-			var sum_pos = snake.position * 2.0
-			var total_weight = 2.0
+			var sum_pos := snake.position * 2.0
+			var total_weight := 2.0
 			for i in tail_segments.size():
-				var weight = 1.0 / (i + 2.0)
+				var weight := 1.0 / (i + 2.0)
 				sum_pos += tail_segments[i].position * weight
 				total_weight += weight
 			snake_center = sum_pos / total_weight
 		
-		var target = (
+		var target := (
 			look_ahead * LOOK_AHEAD_WEIGHT +
 			center * CENTER_PULL_WEIGHT +
 			food_pos * FOOD_ATTRACTION_WEIGHT +
 			snake_center * SNAKE_CENTER_WEIGHT
 		) / (LOOK_AHEAD_WEIGHT + CENTER_PULL_WEIGHT + FOOD_ATTRACTION_WEIGHT + SNAKE_CENTER_WEIGHT)
 		
-		var t = CAMERA_ACCELERATION
+		var t := CAMERA_ACCELERATION
 		t = t * t * (3.0 - 2.0 * t) 
-		var desired_velocity = (target - camera.position) * t
+		var desired_velocity := (target - camera.position) * t
 		
 		camera_velocity = camera_velocity * CAMERA_DAMPING + desired_velocity
 		camera.position += camera_velocity
 
-func _on_timer_timeout():
+func _on_timer_timeout() -> void:
 	if game_over:
 		return
 	snake.can_move = false
 	snake.move()
 
-func _on_window_resize():
+func _on_window_resize() -> void:
 	_update_game_area()
 
-func _update_game_area():
-	var window_size = DisplayServer.window_get_size()
-	var play_area = $GameLayer/GameViewport/GameWorld/PlayArea
-	var background = play_area.get_node("Background")
-	var border = play_area.get_node("Border")
+func _update_game_area() -> void:
+	var window_size := DisplayServer.window_get_size()
+	var play_area := $GameLayer/GameViewport/GameWorld/PlayArea
+	var background := play_area.get_node("Background")
+	var border := play_area.get_node("Border")
 	
 	# Center the game world
-	var game_size = Vector2(GAME_WIDTH, GAME_HEIGHT)
+	var game_size := Vector2(GAME_WIDTH, GAME_HEIGHT)
 	game_world.position = (Vector2(window_size) - game_size) / 2.0
 	
 	# Update background and border
@@ -534,7 +537,7 @@ func _update_game_area():
 		Vector2.ZERO
 	]
 
-func _toggle_pause():
+func _toggle_pause() -> void:
 	paused = !paused
 	get_tree().paused = paused
 	
@@ -549,29 +552,29 @@ func _toggle_pause():
 	$UILayer/PauseMenu.visible = paused
 	_update_menu_focus()
 
-func _on_resume_pressed():
+func _on_resume_pressed() -> void:
 	_toggle_pause()
 
-func _on_sound_toggled():
-	var is_muted = AudioManager.toggle_mute()
+func _on_sound_toggled() -> void:
+	var is_muted := AudioManager.toggle_mute()
 	_update_sound_buttons()
 	# Still play click when unmuting
 	if not is_muted:
 		AudioManager.play_click()
 
-func _update_sound_buttons():
-	var text = "Sound: Off" if AudioManager.is_muted else "Sound: On"
+func _update_sound_buttons() -> void:
+	var text := "Sound: Off" if AudioManager.is_muted else "Sound: On"
 	$UILayer/MainMenu/VBoxContainer/SoundButton.text = text
 	$UILayer/PauseMenu/VBoxContainer/SoundButton.text = text
 
-func _on_fullscreen_toggled():
+func _on_fullscreen_toggled() -> void:
 	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	_update_fullscreen_button()
 
-func _update_fullscreen_button():
-	var is_fullscreen = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-	var button = $UILayer/MainMenu/VBoxContainer/FullscreenButton
+func _update_fullscreen_button() -> void:
+	var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	var button := $UILayer/MainMenu/VBoxContainer/FullscreenButton
 	button.text = "Fullscreen: " + ("On" if is_fullscreen else "Off")
