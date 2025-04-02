@@ -1,24 +1,14 @@
 extends Control
 
-const Snake = preload("res://scenes/snake/snake.tscn")
-const Food = preload("res://scenes/food/food.tscn")
-
-const GRID_SIZE := 32
-const GRID_WIDTH := 24
-const GRID_HEIGHT := 18
-const GAME_WIDTH := GRID_WIDTH * GRID_SIZE
-const GAME_HEIGHT := GRID_HEIGHT * GRID_SIZE
-
-const BASE_TIMER_WAIT := 0.2
-const MIN_TIMER_WAIT := 0.05  # Maximum speed
-const SPEED_INCREASE_PER_SEGMENT := 0.005  # How much faster per segment
+const GAME_WIDTH := Gameplay.GRID_SIZE * Gameplay.GRID_WIDTH
+const GAME_HEIGHT := Gameplay.GRID_SIZE * Gameplay.GRID_HEIGHT
 
 const CAMERA_LOOK_AHEAD := 1.2
 const CAMERA_SMOOTHING := 0.015
 const CENTER_PULL_WEIGHT := 0.4
-const FOOD_ATTRACTION_WEIGHT := 0.35
-const LOOK_AHEAD_WEIGHT := 0.25
-const SNAKE_CENTER_WEIGHT := 0.2
+const FOOD_ATTRACTION_WEIGHT := 0.5
+const LOOK_AHEAD_WEIGHT := 0.55
+const SNAKE_CENTER_WEIGHT := 0.5
 const CAMERA_DAMPING := 0.95
 const CAMERA_ACCELERATION := 0.01
 
@@ -28,18 +18,13 @@ var high_scores: Array[int] = []
 var camera_velocity := Vector2.ZERO
 
 var game_world: Node2D
-var snake: Node2D
-var food: Node2D
-var tail_segments: Array[ColorRect] = []
-var tail_positions: Array[Vector2] = []
-var game_over := false
+var game_manager: Gameplay
 var score := 0
 var score_display_label: Label
 var camera: Camera2D
 var paused := false
 var high_score := 0
 var in_game := false
-var game_timer: Timer = null
 
 # Platform detection for mobile UI
 var is_mobile := false
@@ -110,6 +95,11 @@ func _ready():
 
 	score_display_label = $UILayer/ScoreLabel
 	game_world = $GameLayer/GameViewport/GameWorld
+	game_manager = %GameManager
+	
+	# Connect GameManager signals
+	game_manager.score_updated.connect(_on_score_updated)
+	game_manager.game_over.connect(_on_game_over)
 	
 	# Set initial sound button states
 	_update_sound_buttons()
@@ -165,41 +155,17 @@ func _start_game() -> void:
 	score = 0
 	score_display_label.text = "Score: 0"
 	
-	# Initialize game elements
-	snake = Snake.instantiate()
-	snake.process_mode = Node.PROCESS_MODE_INHERIT
-	game_world.add_child(snake)
-	@warning_ignore("integer_division")
-	snake.position = Vector2(GRID_WIDTH/2, GRID_HEIGHT/2) * GRID_SIZE
-	snake.moved.connect(_on_snake_moved)
-	snake.grew.connect(_on_snake_grew)
-	snake.died.connect(_on_game_over)
-	spawn_food()
-	
-	# Start the game timer
-	game_timer = Timer.new()
-	add_child(game_timer)
-	game_timer.wait_time = BASE_TIMER_WAIT
-	game_timer.timeout.connect(_on_timer_timeout)
-	game_timer.start()
+	# Start game through the GameManager
+	game_manager.start_game()
 	
 	camera = $GameLayer/GameViewport/GameWorld/Camera2D
-	camera.position = snake.position
+	@warning_ignore("integer_division")
+	camera.position = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
 	camera_velocity = Vector2.ZERO
-	AudioManager.reset_pitch()
 	
 	get_tree().paused = false
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-
-func _update_game_speed() -> void:
-	if game_timer:
-		var segment_count := tail_segments.size()
-		var new_wait: float = max(
-			BASE_TIMER_WAIT - (segment_count * SPEED_INCREASE_PER_SEGMENT),
-			MIN_TIMER_WAIT
-		)
-		game_timer.wait_time = new_wait
 
 func _on_scores_pressed() -> void:
 	_update_scores_display(true)
@@ -253,30 +219,15 @@ func _on_quit_to_menu_pressed() -> void:
 	$UILayer/MainMenu.visible = true
 	$UILayer/PauseMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
-	game_world.visible = false  # Using our cached reference instead
+	game_world.visible = false
 	_update_scores_display(false)
 	_update_menu_focus()
 
 func _cleanup_game() -> void:
-	# Reset nodes
-	if snake:
-		snake.queue_free()
-		snake = null
-	if food:
-		food.queue_free()
-		food = null
-	for segment in tail_segments:
-		segment.queue_free()
-	tail_segments.clear()
-	tail_positions.clear()
-	
-	if game_timer:
-		game_timer.stop()
-		game_timer.queue_free()
-		game_timer = null
+	# Let the GameManager clean up game elements
+	game_manager.cleanup()
 	
 	# Reset game state
-	game_over = false
 	in_game = false
 	paused = false
 	
@@ -284,7 +235,6 @@ func _cleanup_game() -> void:
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
 	camera_velocity = Vector2.ZERO
-	AudioManager.reset_pitch()
 	
 	# Return to normal mouse mode
 	if not is_mobile:
@@ -292,123 +242,21 @@ func _cleanup_game() -> void:
 	
 	get_tree().paused = paused
 
-func is_position_occupied(pos: Vector2) -> bool:
-	# Convert position to grid coordinates
-	var grid_pos := pos / GRID_SIZE
-	
-	# Check snake head
-	if snake and (snake.position / GRID_SIZE) == grid_pos:
-		return true
-	
-	# Check tail segments
-	for segment in tail_segments:
-		if (segment.position / GRID_SIZE) == grid_pos:
-			return true
-	
-	return false
-
-func spawn_food() -> void:
-	if food:
-		food.queue_free()
-	
-	# Find an unoccupied position
-	var valid_position := false
-	var x := 0
-	var y := 0
-	
-	while not valid_position:
-		x = randi_range(0, GRID_WIDTH - 2)
-		y = randi_range(0, GRID_HEIGHT - 2)
-		var test_pos := Vector2(x, y) * GRID_SIZE
-		valid_position = not is_position_occupied(test_pos)
-	
-	food = Food.instantiate()
-	game_world.add_child(food)
-	food.position = Vector2(x, y) * GRID_SIZE
-
-func _on_snake_moved(new_position) -> void:
-	if game_over:
-		return
-	
-	AudioManager.play_move()
-	
-	# Store the current position for tail
-	tail_positions.insert(0, new_position)
-	
-	# Check if snake ate food
-	var ate_food: bool = food and (new_position == food.position)
-	if ate_food:
-		snake.grow()
-		# Don't remove the last tail position when growing
-		spawn_food()
-	else:
-		# Only remove last position if we didn't eat food
-		if tail_positions.size() > tail_segments.size() + 1:
-			tail_positions.pop_back()
-	
-	# Move tail
-	for i in tail_segments.size():
-		tail_segments[i].position = tail_positions[i + 1]
-	
-	# Check tail collision
-	if not ate_food:  # Don't check collision if we just ate (prevents false positives)
-		for segment in tail_segments:
-			if segment.position == new_position:
-				_on_game_over()
-				return
-
-func _on_snake_grew() -> void:
-	AudioManager.play_eat()
-	
-	var segment := ColorRect.new()
-	segment.size = Vector2(GRID_SIZE, GRID_SIZE)
-	
-	# Vary the color based on position in tail
-	var base_color := Color(0.0862745, 0.741176, 0.0862745)
-	var segment_count := tail_segments.size()
-	
-	if segment_count == 0:
-		# First segment should be slightly darker than base
-		segment.color = base_color.darkened(0.1)
-	else:
-		# Gradually lighten towards the tail end
-		var progress := float(segment_count) / 20.0
-		var hue_shift := randf_range(-0.02, 0.02)
-		var new_color := base_color.lightened(progress * 0.3)
-		new_color = Color.from_hsv(
-			fmod(new_color.h + hue_shift, 1.0),
-			new_color.s,
-			new_color.v
-		)
-		segment.color = new_color
-	
-	# Position the new segment at the food location
-	segment.position = food.position
-	
-	game_world.add_child(segment)
-	tail_segments.append(segment)
-	
-	# Update game speed
-	_update_game_speed()
-	
-	# Update score
-	score += 10
+func _on_score_updated(new_score: int) -> void:
+	score = new_score
 	score_display_label.text = "Score: " + str(score)
 
-func _on_game_over() -> void:
-	AudioManager.play_die()
-	AudioManager.reset_pitch()
-	
+func _on_game_over(final_score: int) -> void:
 	# Update high scores
 	var score_inserted := false
 	for i in high_scores.size():
-		if score > high_scores[i]:
-			high_scores.insert(i, score)
+		if final_score > high_scores[i]:
+			high_scores.insert(i, final_score)
 			score_inserted = true
 			break
 	
 	if not score_inserted and high_scores.size() < MAX_HIGH_SCORES:
-		high_scores.append(score)
+		high_scores.append(final_score)
 	
 	if high_scores.size() > MAX_HIGH_SCORES:
 		high_scores.resize(MAX_HIGH_SCORES)
@@ -420,27 +268,10 @@ func _on_game_over() -> void:
 	
 	high_score = high_scores[0] if not high_scores.is_empty() else 0
 	
-	game_over = true
-	
-	# Change snake head color
-	var head := snake.get_node("Head")
-	if head:
-		head.color = Color(0.8, 0.2, 0.2, 1)
-	
-	# Change tail segment colors to reddish versions of their current colors
-	for segment in tail_segments:
-		var current_color := segment.color
-		segment.color = Color(
-			lerp(current_color.g, 0.8, 0.5),
-			current_color.r * 0.1,
-			current_color.b * 0.1,
-			current_color.a
-		)
-	
 	# Update game over UI and background
 	$UIBackground.visible = true
 	$UILayer/GameOverContainer.visible = true
-	$UILayer/GameOverContainer/VBoxContainer/ScoreLabel.text = "Final Score: " + str(score)
+	$UILayer/GameOverContainer/VBoxContainer/ScoreLabel.text = "Final Score: " + str(final_score)
 	_update_menu_focus()
 
 func _on_restart_pressed() -> void:
@@ -471,28 +302,18 @@ func _process(_delta) -> void:
 			_toggle_pause()
 	
 	# Handle pause input during gameplay
-	if in_game and not game_over and not paused and Input.is_action_just_pressed("pause"):
+	if in_game and not paused and Input.is_action_just_pressed("pause"):
 		_toggle_pause()
 	
 	# Only update game logic when not paused
-	if in_game and not game_over and not paused:
+	if in_game and not paused:
 		# Calculate various camera target influences
-
 		@warning_ignore("integer_division")
 		var center := Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
-		var look_ahead: Vector2 = snake.position + (snake.direction * GRID_SIZE * CAMERA_LOOK_AHEAD)
-		var food_pos := food.position if food else snake.position
-		var snake_center := snake.position
-		
-		# Calculate weighted center of mass of snake
-		if not tail_segments.is_empty():
-			var sum_pos := snake.position * 2.0
-			var total_weight := 2.0
-			for i in tail_segments.size():
-				var weight := 1.0 / (i + 2.0)
-				sum_pos += tail_segments[i].position * weight
-				total_weight += weight
-			snake_center = sum_pos / total_weight
+		var snake_position := game_manager.get_snake_position()
+		var look_ahead: Vector2 = snake_position + (game_manager.get_snake_direction() * 32 * CAMERA_LOOK_AHEAD)
+		var food_pos := game_manager.get_food_position()
+		var snake_center := game_manager.get_weighted_snake_center()
 		
 		var target := (
 			look_ahead * LOOK_AHEAD_WEIGHT +
@@ -507,12 +328,6 @@ func _process(_delta) -> void:
 		
 		camera_velocity = camera_velocity * CAMERA_DAMPING + desired_velocity
 		camera.position += camera_velocity
-
-func _on_timer_timeout() -> void:
-	if game_over:
-		return
-	snake.can_move = false
-	snake.move()
 
 func _on_window_resize() -> void:
 	_update_game_area()
@@ -541,11 +356,8 @@ func _toggle_pause() -> void:
 	paused = !paused
 	get_tree().paused = paused
 	
-	# Explicitly pause/unpause game elements
-	if game_timer:
-		game_timer.paused = paused
-	if snake:
-		snake.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
+	# Explicitly pause/unpause game elements through GameManager
+	game_manager.set_paused(paused)
 	
 	# Update UI
 	$UIBackground.visible = paused

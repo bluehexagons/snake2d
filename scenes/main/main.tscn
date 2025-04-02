@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://mainscene"]
+[gd_scene load_steps=5 format=3 uid="uid://mainscene"]
 
 [ext_resource type="Script" uid="uid://dpirjktyb5x33" path="res://scenes/main/main.gd" id="1_tyq8r"]
 [ext_resource type="PackedScene" uid="uid://pausemenu" path="res://scenes/ui/pause_menu.tscn" id="2_pause"]
 [ext_resource type="PackedScene" uid="uid://mainmenu" path="res://scenes/ui/main_menu.tscn" id="3_mainmenu"]
+[ext_resource type="Script" uid="uid://cwxedntvwg1wx" path="res://scenes/main/gameplay.gd" id="4_5upsq"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -30,6 +31,10 @@ grow_vertical = 2
 [node name="GameWorld" type="Node2D" parent="GameLayer/GameViewport"]
 unique_name_in_owner = true
 process_mode = 3
+
+[node name="GameManager" type="Node2D" parent="GameLayer/GameViewport/GameWorld"]
+unique_name_in_owner = true
+script = ExtResource("4_5upsq")
 
 [node name="PlayArea" type="Node2D" parent="GameLayer/GameViewport/GameWorld"]
 unique_name_in_owner = true
