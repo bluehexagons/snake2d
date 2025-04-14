@@ -1,0 +1,72 @@
+[gd_scene load_steps=3 format=3 uid="uid://bj6w0rdbd1g4b"]
+
+[ext_resource type="Script" uid="uid://ckpcnsqsf6mel" path="res://scenes/ui/credits_screen.gd" id="1_credits"]
+[ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="2_theme"]
+
+[node name="CreditsScreen" type="CenterContainer"]
+process_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_credits")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 32
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+focus_mode = 2
+theme_override_constants/separation = 24
+
+[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "ABOUT & CREDITS"
+horizontal_alignment = 1
+
+[node name="CreditsRichText" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(300, 200)
+layout_mode = 2
+theme_override_colors/default_color = Color(0.85098, 0.847059, 0.843137, 1)
+bbcode_enabled = true
+text = "[center]A Simple Snake Game
+
+© 2025
+
+Built with [color=#7affc3]Godot Engine 4.4[/color]
+
+[color=#4dc94d]Programming:[/color]
+bluehexagons
+
+Version: 1.1[/center]"
+fit_content = true
+
+[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath(".")
+focus_neighbor_bottom = NodePath(".")
+focus_next = NodePath(".")
+focus_previous = NodePath(".")
+text = "Back to Menu"
+
+[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints"]
+layout_mode = 2
+theme_type_variation = &"HintLabel"
+text = "[A] Select   [B] Back"
+horizontal_alignment = 1

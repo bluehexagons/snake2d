@@ -26,6 +26,7 @@ var camera: Camera2D
 var paused := false
 var in_game := false
 var in_options_menu := false
+var in_credits_menu := false
 
 # Platform detection for mobile UI
 var is_mobile := false
@@ -47,7 +48,6 @@ func _ready():
 	
 	high_scores.sort_custom(func(a, b): return a > b)  # Sort descending
 	
-	# Connect main menu buttons
 	var main_menu := $UILayer/MainMenu
 	var start_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/StartButton")
 	start_button.pressed.connect(_on_start_pressed)
@@ -61,19 +61,23 @@ func _ready():
 	options_button.pressed.connect(_on_options_pressed)
 	options_button.button_down.connect(AudioManager.play_click)
 	
+	var credits_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/CreditsButton")
+	credits_button.pressed.connect(_on_credits_pressed)
+	credits_button.button_down.connect(AudioManager.play_click)
+	
 	var quit_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/QuitButton")
 	quit_button.pressed.connect(_on_quit_game_pressed)
 	quit_button.button_down.connect(AudioManager.play_click)
 	
-	# Connect options menu signals
 	var options_menu := $UILayer/OptionsMenu
 	options_menu.options_closed.connect(_on_options_back_pressed)
 	
-	# Connect high scores menu signals
+	var credits_screen := $UILayer/CreditsScreen
+	credits_screen.credits_screen_closed.connect(_on_credits_back_pressed)
+	
 	var high_scores_menu := $UILayer/HighScoresMenu
 	high_scores_menu.high_scores_closed.connect(_on_high_scores_back_pressed)
 	
-	# Connect pause menu buttons
 	var pause_menu := $UILayer/PauseMenu
 	var resume_button := pause_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/ResumeButton")
 	resume_button.pressed.connect(_on_resume_pressed)
@@ -86,7 +90,6 @@ func _ready():
 	var pause_sound_button := pause_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/SoundButton")
 	pause_sound_button.pressed.connect(_on_sound_toggled)
 	
-	# Connect game over buttons
 	var game_over_menu := $UILayer/GameOverContainer/VBoxContainer
 	var restart_button := game_over_menu.get_node("RestartButton")
 	restart_button.pressed.connect(_on_restart_pressed)
@@ -100,11 +103,9 @@ func _ready():
 	game_world = $GameLayer/GameViewport/GameWorld
 	game_manager = %GameManager
 	
-	# Connect GameManager signals
 	game_manager.score_updated.connect(_on_score_updated)
 	game_manager.game_over.connect(_on_game_over)
 	
-	# Start in menu state
 	get_tree().paused = true
 	$UIBackground.visible = true
 	$UILayer/MainMenu.visible = true
@@ -112,11 +113,9 @@ func _ready():
 	$UILayer/ScoreLabel.visible = false
 	game_world.visible = false
 
-	# Connect focus sounds to all buttons
 	for button in _get_all_buttons():
 		button.focus_entered.connect(AudioManager.play_focus)
 	
-	# Set initial focus
 	_update_menu_focus()
 
 	get_tree().root.size_changed.connect(_on_window_resize)
@@ -142,6 +141,8 @@ func _update_menu_focus() -> void:
 		$UILayer/GameOverContainer/VBoxContainer/RestartButton.grab_focus()
 	elif $UILayer/HighScoresMenu.visible:
 		$UILayer/HighScoresMenu/PanelContainer/MarginContainer/VBoxContainer/BackButton.grab_focus()
+	elif $UILayer/CreditsScreen.visible:
+		$UILayer/CreditsScreen/PanelContainer/MarginContainer/VBoxContainer/BackButton.grab_focus()
 
 
 func _on_start_pressed() -> void:
@@ -165,6 +166,18 @@ func _on_options_back_pressed() -> void:
 	$UILayer/MainMenu.visible = true
 	$UILayer/OptionsMenu.visible = false
 	in_options_menu = false
+	_update_menu_focus()
+
+func _on_credits_pressed() -> void:
+	$UILayer/MainMenu.visible = false
+	$UILayer/CreditsScreen.visible = true
+	in_credits_menu = true
+	_update_menu_focus()
+
+func _on_credits_back_pressed() -> void:
+	$UILayer/MainMenu.visible = true
+	$UILayer/CreditsScreen.visible = false
+	in_credits_menu = false
 	_update_menu_focus()
 
 func _start_game() -> void:
@@ -386,6 +399,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif in_options_menu:
 			_on_options_back_pressed()
+			get_viewport().set_input_as_handled()
+		elif in_credits_menu:
+			_on_credits_back_pressed()
 			get_viewport().set_input_as_handled()
 		elif in_game:
 			_toggle_pause()

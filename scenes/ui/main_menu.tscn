@@ -172,7 +172,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ScoresButton")
-focus_neighbor_bottom = NodePath("../QuitButton")
+focus_neighbor_bottom = NodePath("../CreditsButton")
 theme_override_colors/font_hover_color = Color(0.305882, 0.8, 0.305882, 1)
 theme_override_colors/font_color = Color(0.85098, 0.847059, 0.843137, 1)
 theme_override_colors/font_focus_color = Color(0.305882, 0.8, 0.305882, 1)
@@ -184,11 +184,28 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Options"
 
-[node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="CreditsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 focus_neighbor_top = NodePath("../OptionsButton")
+focus_neighbor_bottom = NodePath("../QuitButton")
+theme_override_colors/font_hover_color = Color(0.305882, 0.8, 0.305882, 1)
+theme_override_colors/font_color = Color(0.85098, 0.847059, 0.843137, 1)
+theme_override_colors/font_focus_color = Color(0.305882, 0.8, 0.305882, 1)
+theme_override_colors/font_pressed_color = Color(0.443137, 1, 0.764706, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_focus")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Credits"
+
+[node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath("../CreditsButton")
 focus_neighbor_bottom = NodePath("../StartButton")
 theme_override_colors/font_hover_color = Color(0.85098, 0.321569, 0.321569, 1)
 theme_override_colors/font_color = Color(0.85098, 0.847059, 0.843137, 1)
