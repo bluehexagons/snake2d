@@ -1,12 +1,15 @@
-[gd_scene load_steps=8 format=3 uid="uid://mainscene"]
+[gd_scene load_steps=11 format=3 uid="uid://mainscene"]
 
 [ext_resource type="Script" uid="uid://dpirjktyb5x33" path="res://scenes/main/main.gd" id="1_tyq8r"]
 [ext_resource type="PackedScene" uid="uid://pausemenu" path="res://scenes/ui/pause_menu.tscn" id="2_pause"]
 [ext_resource type="PackedScene" uid="uid://mainmenu" path="res://scenes/ui/main_menu.tscn" id="3_mainmenu"]
+[ext_resource type="Script" uid="uid://chq4tfwa24d1q" path="res://scenes/main/snake_camera.gd" id="3_yyfjg"]
 [ext_resource type="Script" uid="uid://cwxedntvwg1wx" path="res://scenes/main/gameplay.gd" id="4_5upsq"]
 [ext_resource type="PackedScene" uid="uid://optionsmenu" path="res://scenes/ui/options_menu.tscn" id="5_options"]
 [ext_resource type="PackedScene" uid="uid://bmg65xy5c6ubo" path="res://scenes/ui/high_scores_menu.tscn" id="6_highscores"]
 [ext_resource type="PackedScene" uid="uid://bj6w0rdbd1g4b" path="res://scenes/ui/credits_screen.tscn" id="7_creditsscreen"]
+[ext_resource type="Script" uid="uid://dk17ktytlbvya" path="res://scenes/ui/ui_state_manager.gd" id="9_b1x3f"]
+[ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="10_theme"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -52,12 +55,13 @@ color = Color(0.12549, 0.12549, 0.12549, 1)
 [node name="Border" type="Line2D" parent="GameLayer/GameViewport/GameWorld/PlayArea"]
 unique_name_in_owner = true
 points = PackedVector2Array(0, 0, 768, 0, 768, 576, 0, 576, 0, 0)
-width = 2.0
+width = 6.0
 default_color = Color(0.443137, 1, 0.764706, 1)
 
 [node name="Camera2D" type="Camera2D" parent="GameLayer/GameViewport/GameWorld"]
 unique_name_in_owner = true
 position = Vector2(384, 288)
+script = ExtResource("3_yyfjg")
 
 [node name="UIBackground" type="CanvasLayer" parent="."]
 
@@ -95,32 +99,67 @@ offset_bottom = 42.0
 text = "Score: 0"
 
 [node name="GameOverContainer" type="CenterContainer" parent="UILayer"]
+process_mode = 3
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("10_theme")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UILayer/GameOverContainer"]
+[node name="PanelContainer" type="PanelContainer" parent="UILayer/GameOverContainer"]
 layout_mode = 2
-theme_override_constants/separation = 16
 
-[node name="GameOverLabel" type="Label" parent="UILayer/GameOverContainer/VBoxContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="UILayer/GameOverContainer/PanelContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 32
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UILayer/GameOverContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+focus_mode = 2
+theme_override_constants/separation = 24
+
+[node name="GameOverLabel" type="Label" parent="UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
 text = "GAME OVER"
 horizontal_alignment = 1
 
-[node name="ScoreLabel" type="Label" parent="UILayer/GameOverContainer/VBoxContainer"]
+[node name="ScoreLabel" type="Label" parent="UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Final Score: 0"
 horizontal_alignment = 1
 
-[node name="RestartButton" type="Button" parent="UILayer/GameOverContainer/VBoxContainer"]
+[node name="RestartButton" type="Button" parent="UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
+focus_neighbor_top = NodePath("../QuitButton")
+focus_neighbor_bottom = NodePath("../QuitButton")
 text = "Play Again"
 
-[node name="QuitButton" type="Button" parent="UILayer/GameOverContainer/VBoxContainer"]
+[node name="QuitButton" type="Button" parent="UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
+focus_neighbor_top = NodePath("../RestartButton")
+focus_neighbor_bottom = NodePath("../RestartButton")
+theme_type_variation = &"QuitButton"
 text = "Quit to Menu"
+
+[node name="ButtonHints" type="HBoxContainer" parent="UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonHints"]
+layout_mode = 2
+theme_type_variation = &"HintLabel"
+text = "[A] Select   [B] Back"
+horizontal_alignment = 1
+
+[node name="UIStateManager" type="Node" parent="."]
+script = ExtResource("9_b1x3f")

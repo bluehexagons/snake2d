@@ -1,39 +1,50 @@
 extends Control
-
-const GAME_WIDTH := Gameplay.GRID_SIZE * Gameplay.GRID_WIDTH
-const GAME_HEIGHT := Gameplay.GRID_SIZE * Gameplay.GRID_HEIGHT
-
-const CAMERA_LOOK_AHEAD := 1.2
-const CAMERA_SMOOTHING := 0.015
-const CENTER_PULL_WEIGHT := 0.4
-const FOOD_ATTRACTION_WEIGHT := 0.5
-const LOOK_AHEAD_WEIGHT := 0.55
-const SNAKE_CENTER_WEIGHT := 0.5
-const CAMERA_DAMPING := 0.95
-const CAMERA_ACCELERATION := 0.01
-
-const MAX_HIGH_SCORES := 100
+var GAME_WIDTH: int
+var GAME_HEIGHT: int
 var high_scores: Array[int] = []
-
-var camera_velocity := Vector2.ZERO
-var camera_target := Vector2.ZERO
 
 var game_world: Node2D
 var game_manager: Gameplay
 var score := 0
 var score_display_label: Label
-var camera: Camera2D
+var snake_camera: Camera2D
 var paused := false
 var in_game := false
 var in_options_menu := false
 var in_credits_menu := false
 
-# Platform detection for mobile UI
 var is_mobile := false
 var in_high_scores_menu := false
 
+var ui_state_manager: Node
+
 func _ready():
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
+
+	# Initialize game dimensions from Config
+	GAME_WIDTH = Config.get_game_width()
+	GAME_HEIGHT = Config.get_game_height()
+	
+	ui_state_manager = $UIStateManager
+	ui_state_manager.register_ui_element(ui_state_manager.UIState.MAIN_MENU, $UILayer/MainMenu)
+	ui_state_manager.register_ui_element(ui_state_manager.UIState.OPTIONS_MENU, $UILayer/OptionsMenu)
+	ui_state_manager.register_ui_element(ui_state_manager.UIState.CREDITS_SCREEN, $UILayer/CreditsScreen)
+	ui_state_manager.register_ui_element(ui_state_manager.UIState.HIGH_SCORES, $UILayer/HighScoresMenu)
+	ui_state_manager.register_ui_element(ui_state_manager.UIState.PAUSED, $UILayer/PauseMenu)
+	ui_state_manager.register_ui_element(ui_state_manager.UIState.GAME_OVER, $UILayer/GameOverContainer)
+	
+	ui_state_manager.register_focus_target(ui_state_manager.UIState.MAIN_MENU, 
+		$UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer/StartButton)
+	ui_state_manager.register_focus_target(ui_state_manager.UIState.OPTIONS_MENU, 
+		$UILayer/OptionsMenu/PanelContainer/MarginContainer/VBoxContainer/SoundButton)
+	ui_state_manager.register_focus_target(ui_state_manager.UIState.CREDITS_SCREEN, 
+		$UILayer/CreditsScreen/PanelContainer/MarginContainer/VBoxContainer/BackButton)
+	ui_state_manager.register_focus_target(ui_state_manager.UIState.HIGH_SCORES, 
+		$UILayer/HighScoresMenu/PanelContainer/MarginContainer/VBoxContainer/BackButton)
+	ui_state_manager.register_focus_target(ui_state_manager.UIState.PAUSED, 
+		$UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer/ResumeButton)
+	ui_state_manager.register_focus_target(ui_state_manager.UIState.GAME_OVER, 
+		$UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer/RestartButton)
 	
 	# Check platform
 	is_mobile = DisplayServer.get_name() in ["android", "ios", "web"]
@@ -87,10 +98,7 @@ func _ready():
 	pause_quit.pressed.connect(_on_quit_to_menu_pressed)
 	pause_quit.button_down.connect(AudioManager.play_click)
 	
-	var pause_sound_button := pause_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/SoundButton")
-	pause_sound_button.pressed.connect(_on_sound_toggled)
-	
-	var game_over_menu := $UILayer/GameOverContainer/VBoxContainer
+	var game_over_menu := $UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer
 	var restart_button := game_over_menu.get_node("RestartButton")
 	restart_button.pressed.connect(_on_restart_pressed)
 	restart_button.button_down.connect(AudioManager.play_click)
@@ -127,25 +135,17 @@ func _get_all_buttons() -> Array:
 	buttons.append_array($UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/OptionsMenu/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
-	buttons.append_array($UILayer/GameOverContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
+	buttons.append_array($UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	return buttons
 
 func _update_menu_focus() -> void:
-	if $UILayer/MainMenu.visible:
-		$UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer/StartButton.grab_focus()
-	elif $UILayer/OptionsMenu.visible:
-		$UILayer/OptionsMenu/PanelContainer/MarginContainer/VBoxContainer/SoundButton.grab_focus()
-	elif $UILayer/PauseMenu.visible:
-		$UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer/ResumeButton.grab_focus()
-	elif $UILayer/GameOverContainer.visible:
-		$UILayer/GameOverContainer/VBoxContainer/RestartButton.grab_focus()
-	elif $UILayer/HighScoresMenu.visible:
-		$UILayer/HighScoresMenu/PanelContainer/MarginContainer/VBoxContainer/BackButton.grab_focus()
-	elif $UILayer/CreditsScreen.visible:
-		$UILayer/CreditsScreen/PanelContainer/MarginContainer/VBoxContainer/BackButton.grab_focus()
-
+	var current_state = ui_state_manager.current_state
+	if current_state in ui_state_manager.focus_targets:
+		ui_state_manager.focus_targets[current_state].grab_focus()
 
 func _on_start_pressed() -> void:
+	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
+	
 	get_tree().paused = false
 	$UIBackground.visible = false
 	$UILayer/MainMenu.visible = false
@@ -156,29 +156,16 @@ func _on_start_pressed() -> void:
 	_update_menu_focus()
 
 func _on_options_pressed() -> void:
-	$UILayer/MainMenu.visible = false
-	$UILayer/OptionsMenu.visible = true
-	$UILayer/OptionsMenu.update_button_states()
-	in_options_menu = true
-	_update_menu_focus()
+	ui_state_manager.change_state(ui_state_manager.UIState.OPTIONS_MENU)
 
 func _on_options_back_pressed() -> void:
-	$UILayer/MainMenu.visible = true
-	$UILayer/OptionsMenu.visible = false
-	in_options_menu = false
-	_update_menu_focus()
+	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
 
 func _on_credits_pressed() -> void:
-	$UILayer/MainMenu.visible = false
-	$UILayer/CreditsScreen.visible = true
-	in_credits_menu = true
-	_update_menu_focus()
+	ui_state_manager.change_state(ui_state_manager.UIState.CREDITS_SCREEN)
 
 func _on_credits_back_pressed() -> void:
-	$UILayer/MainMenu.visible = true
-	$UILayer/CreditsScreen.visible = false
-	in_credits_menu = false
-	_update_menu_focus()
+	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
 
 func _start_game() -> void:
 	_cleanup_game()
@@ -186,16 +173,14 @@ func _start_game() -> void:
 	in_game = true
 	score = 0
 	score_display_label.text = "Score: 0"
-	
-	# Start game through the GameManager
+
 	game_manager.start_game()
 	
-	camera = $GameLayer/GameViewport/GameWorld/Camera2D
-	@warning_ignore("integer_division")
-	var initial_pos = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
-	camera.position = initial_pos
-	camera_target = initial_pos
-	camera_velocity = Vector2.ZERO
+	# Initialize the snake camera
+	snake_camera = $GameLayer/GameViewport/GameWorld/Camera2D
+	snake_camera.game_manager = game_manager
+	
+	snake_camera.reset_camera()
 	
 	get_tree().paused = false
 	if not is_mobile:
@@ -203,18 +188,13 @@ func _start_game() -> void:
 
 func _on_scores_pressed() -> void:
 	AudioManager.play_click()
-	$UILayer/MainMenu.visible = false
+	
+	ui_state_manager.change_state(ui_state_manager.UIState.HIGH_SCORES)
 	var high_scores_menu = $UILayer/HighScoresMenu
-	high_scores_menu.visible = true
 	high_scores_menu.update_scores(high_scores)
-	in_high_scores_menu = true
-	_update_menu_focus()
 
 func _on_high_scores_back_pressed() -> void:
-	$UILayer/HighScoresMenu.visible = false
-	$UILayer/MainMenu.visible = true
-	in_high_scores_menu = false
-	_update_menu_focus()
+	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
 
 func reset_high_scores() -> void:
 	high_scores.clear()
@@ -237,18 +217,16 @@ func _on_quit_game_pressed() -> void:
 func _on_quit_to_menu_pressed() -> void:
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	
 	_cleanup_game()
 	get_tree().paused = true
-	$UIBackground.visible = true
-	$UILayer/MainMenu.visible = true
-	$UILayer/OptionsMenu.visible = false
-	$UILayer/PauseMenu.visible = false
-	$UILayer/ScoreLabel.visible = false
+	
+	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
+	
 	game_world.visible = false
 	_update_menu_focus()
 
 func _cleanup_game() -> void:
-	# Let the GameManager clean up game elements
 	game_manager.cleanup()
 	
 	# Reset game state
@@ -258,7 +236,10 @@ func _cleanup_game() -> void:
 	# Reset UI
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
-	camera_velocity = Vector2.ZERO
+	
+	# Reset camera if it exists
+	if snake_camera:
+		snake_camera.reset_camera()
 	
 	# Return to normal mouse mode
 	if not is_mobile:
@@ -279,30 +260,29 @@ func _on_game_over(final_score: int) -> void:
 			score_inserted = true
 			break
 	
-	if not score_inserted and high_scores.size() < MAX_HIGH_SCORES:
+	if not score_inserted and high_scores.size() < Config.MAX_HIGH_SCORES:
 		high_scores.append(final_score)
 	
-	if high_scores.size() > MAX_HIGH_SCORES:
-		high_scores.resize(MAX_HIGH_SCORES)
+	if high_scores.size() > Config.MAX_HIGH_SCORES:
+		high_scores.resize(Config.MAX_HIGH_SCORES)
 	
 	# Save all scores
 	var file := FileAccess.open("user://highscore.dat", FileAccess.WRITE)
 	for score_value in high_scores:
 		file.store_32(score_value)
 	
-	# Update game over UI and background
-	$UIBackground.visible = true
-	$UILayer/GameOverContainer.visible = true
-	$UILayer/GameOverContainer/VBoxContainer/ScoreLabel.text = "Final Score: " + str(final_score)
+	ui_state_manager.change_state(ui_state_manager.UIState.GAME_OVER)
+	
+	$UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreLabel.text = "Final Score: " + str(final_score)
 	_update_menu_focus()
 
 func _on_restart_pressed() -> void:
-	$UIBackground.visible = false
-	$UILayer/GameOverContainer.visible = false
+	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
+	
 	_cleanup_game()
 	_start_game()
 
-func _process(delta) -> void:
+func _process(_delta) -> void:
 	# Check if we need to restore UI focus
 	if (Input.is_action_just_pressed("up") or 
 		Input.is_action_just_pressed("down") or
@@ -316,35 +296,6 @@ func _process(delta) -> void:
 	if in_game and Input.is_action_just_pressed("pause"):
 		_toggle_pause()
 	
-	if in_game and not paused and camera and camera_target != Vector2.ZERO:
-		var weight := clampf(1.0 - pow(0.001, delta), 0.0, 0.95)
-		camera.position = camera.position.lerp(camera_target, weight)
-
-func _physics_process(_delta) -> void:
-	# Only update game logic when not paused
-	if in_game and not paused:
-		# Calculate various camera target influences
-		@warning_ignore("integer_division")
-		var center := Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
-		var snake_position := game_manager.get_snake_position()
-		var look_ahead: Vector2 = snake_position + (game_manager.get_snake_direction() * 32 * CAMERA_LOOK_AHEAD)
-		var food_pos := game_manager.get_food_position()
-		var snake_center := game_manager.get_weighted_snake_center()
-		
-		var target := (
-			look_ahead * LOOK_AHEAD_WEIGHT +
-			center * CENTER_PULL_WEIGHT +
-			food_pos * FOOD_ATTRACTION_WEIGHT +
-			snake_center * SNAKE_CENTER_WEIGHT
-		) / (LOOK_AHEAD_WEIGHT + CENTER_PULL_WEIGHT + FOOD_ATTRACTION_WEIGHT + SNAKE_CENTER_WEIGHT)
-		
-		var t := CAMERA_ACCELERATION
-		t = t * t * (3.0 - 2.0 * t) 
-		var desired_velocity := (target - camera_target) * t
-		
-		camera_velocity = camera_velocity * CAMERA_DAMPING + desired_velocity
-		camera_target += camera_velocity
-
 func _on_window_resize() -> void:
 	_update_game_area()
 
@@ -373,35 +324,16 @@ func _set_paused(paused_state: bool) -> void:
 		return
 
 	paused = paused_state
-
-	get_tree().paused = paused
 	game_manager.set_paused(paused)
-	
-	$UIBackground.visible = paused
-	$UILayer/PauseMenu.visible = paused
+	ui_state_manager.set_paused(paused_state)
 	_update_menu_focus()
 
 func _toggle_pause() -> void:
 	_set_paused(not paused)
 
 func _on_resume_pressed() -> void:
-	_toggle_pause()
+	_set_paused(false)
 
 func _on_sound_toggled() -> void:
 	AudioManager.toggle_mute()
 	$UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer/SoundButton.text = "Sound: " + ("Off" if AudioManager.is_muted else "On")
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		if in_high_scores_menu:
-			_on_high_scores_back_pressed()
-			get_viewport().set_input_as_handled()
-		elif in_options_menu:
-			_on_options_back_pressed()
-			get_viewport().set_input_as_handled()
-		elif in_credits_menu:
-			_on_credits_back_pressed()
-			get_viewport().set_input_as_handled()
-		elif in_game:
-			_toggle_pause()
-			get_viewport().set_input_as_handled()

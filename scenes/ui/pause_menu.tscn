@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://pausemenu"]
 
-[ext_resource type="Theme" path="res://themes/snake_ui_theme.tres" id="1_theme"]
+[ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="1_theme"]
 
 [node name="PauseMenu" type="CenterContainer"]
 process_mode = 3
@@ -36,22 +36,14 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 focus_neighbor_top = NodePath("../QuitButton")
-focus_neighbor_bottom = NodePath("../SoundButton")
-text = "Resume"
-
-[node name="SoundButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
-layout_mode = 2
-focus_neighbor_top = NodePath("../ResumeButton")
 focus_neighbor_bottom = NodePath("../QuitButton")
-text = "Sound: On"
+text = "Resume"
 
 [node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-focus_neighbor_top = NodePath("../SoundButton")
+focus_neighbor_top = NodePath("../ResumeButton")
 focus_neighbor_bottom = NodePath("../ResumeButton")
 theme_type_variation = &"QuitButton"
 text = "Quit to Menu"
