@@ -12,7 +12,7 @@ const SNAKE_CENTER_WEIGHT := 0.5
 const CAMERA_DAMPING := 0.95
 const CAMERA_ACCELERATION := 0.01
 
-const MAX_HIGH_SCORES := 10
+const MAX_HIGH_SCORES := 100
 var high_scores: Array[int] = []
 
 var camera_velocity := Vector2.ZERO
@@ -48,19 +48,19 @@ func _ready():
 	
 	# Connect main menu buttons
 	var main_menu := $UILayer/MainMenu
-	var start_button := main_menu.get_node("VBoxContainer/StartButton")
+	var start_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/StartButton")
 	start_button.pressed.connect(_on_start_pressed)
 	start_button.button_down.connect(AudioManager.play_click)
 	
-	var scores_button := main_menu.get_node("VBoxContainer/ScoresButton")
+	var scores_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/ScoresButton")
 	scores_button.pressed.connect(_on_scores_pressed)
 	scores_button.button_down.connect(AudioManager.play_click)
 	
-	var options_button := main_menu.get_node("VBoxContainer/OptionsButton")
+	var options_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/OptionsButton")
 	options_button.pressed.connect(_on_options_pressed)
 	options_button.button_down.connect(AudioManager.play_click)
 	
-	var quit_button := main_menu.get_node("VBoxContainer/QuitButton")
+	var quit_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/QuitButton")
 	quit_button.pressed.connect(_on_quit_game_pressed)
 	quit_button.button_down.connect(AudioManager.play_click)
 	
@@ -109,7 +109,7 @@ func _ready():
 	$UILayer/MainMenu.visible = true
 	$UILayer/OptionsMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
-	game_world.visible = false  # Using our cached reference instead
+	game_world.visible = false
 
 	# Connect focus sounds to all buttons
 	for button in _get_all_buttons():
@@ -124,7 +124,7 @@ func _ready():
 
 func _get_all_buttons() -> Array:
 	var buttons := []
-	buttons.append_array($UILayer/MainMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
+	buttons.append_array($UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/OptionsMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/PauseMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/GameOverContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
@@ -132,7 +132,7 @@ func _get_all_buttons() -> Array:
 
 func _update_menu_focus() -> void:
 	if $UILayer/MainMenu.visible:
-		$UILayer/MainMenu/VBoxContainer/StartButton.grab_focus()
+		$UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer/StartButton.grab_focus()
 	elif $UILayer/OptionsMenu.visible:
 		$UILayer/OptionsMenu/VBoxContainer/SoundButton.grab_focus()
 	elif $UILayer/PauseMenu.visible:

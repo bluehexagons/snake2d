@@ -52,7 +52,7 @@ color = Color(0.12549, 0.12549, 0.12549, 1)
 unique_name_in_owner = true
 points = PackedVector2Array(0, 0, 768, 0, 768, 576, 0, 576, 0, 0)
 width = 2.0
-default_color = Color(0.392157, 0.392157, 0.392157, 1)
+default_color = Color(0.443137, 1, 0.764706, 1)
 
 [node name="Camera2D" type="Camera2D" parent="GameLayer/GameViewport/GameWorld"]
 unique_name_in_owner = true
@@ -67,7 +67,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.0941176, 0.0941176, 0.0941176, 0.72549)
+color = Color(0.0768358, 0.0768358, 0.0768358, 0.862745)
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 2
