@@ -3,7 +3,7 @@ extends CenterContainer
 signal high_scores_closed
 
 @onready var scores_list: VBoxContainer = %ScoresList
-@onready var back_button: Button = $VBoxContainer/BackButton
+@onready var back_button: Button = %BackButton
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)

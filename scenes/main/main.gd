@@ -74,15 +74,15 @@ func _ready():
 	
 	# Connect pause menu buttons
 	var pause_menu := $UILayer/PauseMenu
-	var resume_button := pause_menu.get_node("VBoxContainer/ResumeButton")
+	var resume_button := pause_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/ResumeButton")
 	resume_button.pressed.connect(_on_resume_pressed)
 	resume_button.button_down.connect(AudioManager.play_click)
 	
-	var pause_quit := pause_menu.get_node("VBoxContainer/QuitButton")
+	var pause_quit := pause_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/QuitButton")
 	pause_quit.pressed.connect(_on_quit_to_menu_pressed)
 	pause_quit.button_down.connect(AudioManager.play_click)
 	
-	var pause_sound_button := pause_menu.get_node("VBoxContainer/SoundButton")
+	var pause_sound_button := pause_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/SoundButton")
 	pause_sound_button.pressed.connect(_on_sound_toggled)
 	
 	# Connect game over buttons
@@ -125,8 +125,8 @@ func _ready():
 func _get_all_buttons() -> Array:
 	var buttons := []
 	buttons.append_array($UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
-	buttons.append_array($UILayer/OptionsMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
-	buttons.append_array($UILayer/PauseMenu/VBoxContainer.get_children().filter(func(n): return n is Button))
+	buttons.append_array($UILayer/OptionsMenu/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
+	buttons.append_array($UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	buttons.append_array($UILayer/GameOverContainer/VBoxContainer.get_children().filter(func(n): return n is Button))
 	return buttons
 
@@ -134,13 +134,13 @@ func _update_menu_focus() -> void:
 	if $UILayer/MainMenu.visible:
 		$UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer/StartButton.grab_focus()
 	elif $UILayer/OptionsMenu.visible:
-		$UILayer/OptionsMenu/VBoxContainer/SoundButton.grab_focus()
+		$UILayer/OptionsMenu/PanelContainer/MarginContainer/VBoxContainer/SoundButton.grab_focus()
 	elif $UILayer/PauseMenu.visible:
-		$UILayer/PauseMenu/VBoxContainer/ResumeButton.grab_focus()
+		$UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer/ResumeButton.grab_focus()
 	elif $UILayer/GameOverContainer.visible:
 		$UILayer/GameOverContainer/VBoxContainer/RestartButton.grab_focus()
 	elif $UILayer/HighScoresMenu.visible:
-		$UILayer/HighScoresMenu/VBoxContainer/BackButton.grab_focus()
+		$UILayer/HighScoresMenu/PanelContainer/MarginContainer/VBoxContainer/BackButton.grab_focus()
 
 
 func _on_start_pressed() -> void:
@@ -350,11 +350,8 @@ func _set_paused(paused_state: bool) -> void:
 	paused = paused_state
 
 	get_tree().paused = paused
-	
-	# Explicitly pause/unpause game elements through GameManager
 	game_manager.set_paused(paused)
 	
-	# Update UI
 	$UIBackground.visible = paused
 	$UILayer/PauseMenu.visible = paused
 	_update_menu_focus()
@@ -367,7 +364,7 @@ func _on_resume_pressed() -> void:
 
 func _on_sound_toggled() -> void:
 	AudioManager.toggle_mute()
-	$UILayer/PauseMenu/VBoxContainer/SoundButton.text = "Sound: " + ("Off" if AudioManager.is_muted else "On")
+	$UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer/SoundButton.text = "Sound: " + ("Off" if AudioManager.is_muted else "On")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

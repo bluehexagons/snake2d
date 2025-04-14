@@ -10,9 +10,9 @@ var back_button: Button
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	# Get button references
-	sound_button = $VBoxContainer/SoundButton
-	fullscreen_button = $VBoxContainer/FullscreenButton
-	back_button = $VBoxContainer/BackButton
+	sound_button = %SoundButton
+	fullscreen_button = %FullscreenButton
+	back_button = %BackButton
 	
 	# Connect signals
 	sound_button.pressed.connect(_on_sound_toggled)
