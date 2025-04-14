@@ -14,7 +14,7 @@ func _ready() -> void:
 	back_button.button_down.connect(AudioManager.play_click)
 	back_button.focus_entered.connect(AudioManager.play_focus)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if not self.visible:
 		return
 

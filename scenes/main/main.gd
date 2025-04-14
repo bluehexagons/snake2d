@@ -213,7 +213,6 @@ func _on_scores_pressed() -> void:
 func _on_high_scores_back_pressed() -> void:
 	$UILayer/HighScoresMenu.visible = false
 	$UILayer/MainMenu.visible = true
-	$UILayer/MainMenu.grab_focus()
 	in_high_scores_menu = false
 	_update_menu_focus()
 
