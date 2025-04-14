@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://pausemenu" path="res://scenes/ui/pause_menu.tscn" id="2_pause"]
 [ext_resource type="PackedScene" uid="uid://mainmenu" path="res://scenes/ui/main_menu.tscn" id="3_mainmenu"]
 [ext_resource type="Script" uid="uid://cwxedntvwg1wx" path="res://scenes/main/gameplay.gd" id="4_5upsq"]
-[ext_resource type="PackedScene" path="res://scenes/ui/options_menu.tscn" id="5_options"]
+[ext_resource type="PackedScene" uid="uid://optionsmenu" path="res://scenes/ui/options_menu.tscn" id="5_options"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
