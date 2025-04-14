@@ -13,13 +13,13 @@ const SPEED_INCREMENT := 0.5     # How much speed increases with each food item
 const MAX_SPEED := 20.0          # Maximum snake movement speed
 
 # Camera settings
-const CAMERA_LOOK_AHEAD := 1.2
-const CAMERA_SMOOTHING := 0.015
+const CAMERA_LOOK_AHEAD := 3.0
+const CAMERA_SMOOTHING := 0.115
 const CENTER_PULL_WEIGHT := 0.4
 const FOOD_ATTRACTION_WEIGHT := 0.5
 const LOOK_AHEAD_WEIGHT := 0.66
 const SNAKE_CENTER_WEIGHT := 0.3
-const CAMERA_DAMPING := 0.97
+const CAMERA_DAMPING := 0.9
 const CAMERA_ACCELERATION := 0.02
 
 # Audio settings
