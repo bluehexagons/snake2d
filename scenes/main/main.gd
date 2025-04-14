@@ -140,7 +140,7 @@ func _update_menu_focus() -> void:
 	elif $UILayer/GameOverContainer.visible:
 		$UILayer/GameOverContainer/VBoxContainer/RestartButton.grab_focus()
 	elif $UILayer/HighScoresMenu.visible:
-		$UILayer/HighScoresMenu.grab_focus()
+		$UILayer/HighScoresMenu/VBoxContainer/BackButton.grab_focus()
 
 
 func _on_start_pressed() -> void:
