@@ -42,7 +42,7 @@ func play_move() -> void:
 	
 	# Update pitch momentum
 	target_pitch_offset += PITCH_ACCELERATION
-	target_pitch_offset = clamp(target_pitch_offset, -PITCH_RANGE, PITCH_RANGE)
+	target_pitch_offset = clampf(target_pitch_offset, -PITCH_RANGE, PITCH_RANGE)
 	current_pitch_momentum = lerp(current_pitch_momentum, target_pitch_offset, 0.2)
 	target_pitch_offset *= PITCH_DAMPING
 	

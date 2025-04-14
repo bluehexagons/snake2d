@@ -16,6 +16,7 @@ const MAX_HIGH_SCORES := 100
 var high_scores: Array[int] = []
 
 var camera_velocity := Vector2.ZERO
+var camera_target := Vector2.ZERO
 
 var game_world: Node2D
 var game_manager: Gameplay
@@ -178,7 +179,9 @@ func _start_game() -> void:
 	
 	camera = $GameLayer/GameViewport/GameWorld/Camera2D
 	@warning_ignore("integer_division")
-	camera.position = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
+	var initial_pos = Vector2(GAME_WIDTH/2, GAME_HEIGHT/2)
+	camera.position = initial_pos
+	camera_target = initial_pos
 	camera_velocity = Vector2.ZERO
 	
 	get_tree().paused = false
@@ -281,7 +284,7 @@ func _on_restart_pressed() -> void:
 	_cleanup_game()
 	_start_game()
 
-func _process(_delta) -> void:
+func _process(delta) -> void:
 	# Check if we need to restore UI focus
 	if (Input.is_action_just_pressed("ui_up") or 
 		Input.is_action_just_pressed("ui_down") or
@@ -294,6 +297,10 @@ func _process(_delta) -> void:
 	# Handle pause input during gameplay
 	if in_game and not paused and Input.is_action_just_pressed("pause"):
 		_toggle_pause()
+	
+	if in_game and not paused and camera and camera_target != Vector2.ZERO:
+		var weight := clampf(1.0 - pow(0.001, delta), 0.0, 0.95)
+		camera.position = camera.position.lerp(camera_target, weight)
 
 func _physics_process(_delta) -> void:
 	# Only update game logic when not paused
@@ -315,10 +322,10 @@ func _physics_process(_delta) -> void:
 		
 		var t := CAMERA_ACCELERATION
 		t = t * t * (3.0 - 2.0 * t) 
-		var desired_velocity := (target - camera.position) * t
+		var desired_velocity := (target - camera_target) * t
 		
 		camera_velocity = camera_velocity * CAMERA_DAMPING + desired_velocity
-		camera.position += camera_velocity
+		camera_target += camera_velocity
 
 func _on_window_resize() -> void:
 	_update_game_area()
