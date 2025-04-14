@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://rb77n1ia3qv4"]
+[gd_scene load_steps=4 format=3 uid="uid://rb77n1ia3qv4"]
 
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="1_theme"]
 
@@ -8,6 +8,9 @@ corner_radius_top_left = 90
 corner_radius_top_right = 90
 corner_radius_bottom_right = 90
 corner_radius_bottom_left = 90
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6ytnn"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
 
 [node name="ControlsTutorial" type="CenterContainer"]
 process_mode = 3
@@ -40,57 +43,10 @@ theme_type_variation = &"TitleLabel"
 text = "PRESS TO START"
 horizontal_alignment = 1
 
-[node name="ControlsHBox" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Panel" type="Panel" parent="PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
-alignment = 1
-
-[node name="ControlsGrid" type="GridContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox"]
-layout_mode = 2
-columns = 3
-
-[node name="Empty1" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-
-[node name="UpButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-disabled = true
-text = "↑"
-
-[node name="Empty2" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-
-[node name="LeftButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-disabled = true
-text = "←"
-
-[node name="Empty3" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-
-[node name="RightButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-disabled = true
-text = "→"
-
-[node name="Empty4" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-
-[node name="DownButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-disabled = true
-text = "↓"
-
-[node name="Empty5" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/ControlsHBox/ControlsGrid"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_6ytnn")
 
 [node name="HintLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
