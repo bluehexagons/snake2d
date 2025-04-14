@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://mainscene"]
+[gd_scene load_steps=7 format=3 uid="uid://mainscene"]
 
 [ext_resource type="Script" uid="uid://dpirjktyb5x33" path="res://scenes/main/main.gd" id="1_tyq8r"]
 [ext_resource type="PackedScene" uid="uid://pausemenu" path="res://scenes/ui/pause_menu.tscn" id="2_pause"]
 [ext_resource type="PackedScene" uid="uid://mainmenu" path="res://scenes/ui/main_menu.tscn" id="3_mainmenu"]
 [ext_resource type="Script" uid="uid://cwxedntvwg1wx" path="res://scenes/main/gameplay.gd" id="4_5upsq"]
 [ext_resource type="PackedScene" uid="uid://optionsmenu" path="res://scenes/ui/options_menu.tscn" id="5_options"]
+[ext_resource type="PackedScene" uid="uid://bmg65xy5c6ubo" path="res://scenes/ui/high_scores_menu.tscn" id="6_highscores"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -74,6 +75,9 @@ layer = 2
 [node name="MainMenu" parent="UILayer" instance=ExtResource("3_mainmenu")]
 
 [node name="OptionsMenu" parent="UILayer" instance=ExtResource("5_options")]
+visible = false
+
+[node name="HighScoresMenu" parent="UILayer" instance=ExtResource("6_highscores")]
 visible = false
 
 [node name="PauseMenu" parent="UILayer" instance=ExtResource("2_pause")]

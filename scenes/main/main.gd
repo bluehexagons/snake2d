@@ -23,12 +23,12 @@ var score := 0
 var score_display_label: Label
 var camera: Camera2D
 var paused := false
-var high_score := 0
 var in_game := false
 var in_options_menu := false
 
 # Platform detection for mobile UI
 var is_mobile := false
+var in_high_scores_menu := false
 
 func _ready():
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
@@ -45,7 +45,6 @@ func _ready():
 				high_scores.append(val)
 	
 	high_scores.sort_custom(func(a, b): return a > b)  # Sort descending
-	high_score = high_scores[0] if not high_scores.is_empty() else 0
 	
 	# Connect main menu buttons
 	var main_menu := $UILayer/MainMenu
@@ -68,6 +67,10 @@ func _ready():
 	# Connect options menu signals
 	var options_menu := $UILayer/OptionsMenu
 	options_menu.options_closed.connect(_on_options_back_pressed)
+	
+	# Connect high scores menu signals
+	var high_scores_menu := $UILayer/HighScoresMenu
+	high_scores_menu.high_scores_closed.connect(_on_high_scores_back_pressed)
 	
 	# Connect pause menu buttons
 	var pause_menu := $UILayer/PauseMenu
@@ -108,8 +111,6 @@ func _ready():
 	$UILayer/ScoreLabel.visible = false
 	game_world.visible = false  # Using our cached reference instead
 
-	_update_scores_display(false)  # Initialize scores display
-	
 	# Connect focus sounds to all buttons
 	for button in _get_all_buttons():
 		button.focus_entered.connect(AudioManager.play_focus)
@@ -138,6 +139,9 @@ func _update_menu_focus() -> void:
 		$UILayer/PauseMenu/VBoxContainer/ResumeButton.grab_focus()
 	elif $UILayer/GameOverContainer.visible:
 		$UILayer/GameOverContainer/VBoxContainer/RestartButton.grab_focus()
+	elif $UILayer/HighScoresMenu.visible:
+		$UILayer/HighScoresMenu.grab_focus()
+
 
 func _on_start_pressed() -> void:
 	get_tree().paused = false
@@ -182,35 +186,20 @@ func _start_game() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _on_scores_pressed() -> void:
-	_update_scores_display(true)
+	AudioManager.play_click()
+	$UILayer/MainMenu.visible = false
+	var high_scores_menu = $UILayer/HighScoresMenu
+	high_scores_menu.visible = true
+	high_scores_menu.update_scores(high_scores)
+	in_high_scores_menu = true
+	_update_menu_focus()
 
-func _update_scores_display(show_container: bool) -> void:
-	var title_label := $UILayer/MainMenu/VBoxContainer/TitleLabel
-	var scores_container := $UILayer/MainMenu/VBoxContainer/ScoresContainer
-	var scores_list := $UILayer/MainMenu/VBoxContainer/ScoresContainer/ScrollContainer/ScoresList
-	
-	# Clear existing score labels
-	for child in scores_list.get_children():
-		child.queue_free()
-	
-	if show_container:
-		title_label.text = "HIGH SCORES"
-		scores_container.visible = true
-		
-		if high_scores.is_empty():
-			var empty_label := Label.new()
-			empty_label.text = "No scores yet!"
-			empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			scores_list.add_child(empty_label)
-		else:
-			for i in high_scores.size():
-				var score_label := Label.new()
-				score_label.text = "%d. %d" % [i + 1, high_scores[i]]
-				score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				scores_list.add_child(score_label)
-	else:
-		title_label.text = "A Simple Snake Game"
-		scores_container.visible = false
+func _on_high_scores_back_pressed() -> void:
+	$UILayer/HighScoresMenu.visible = false
+	$UILayer/MainMenu.visible = true
+	$UILayer/MainMenu.grab_focus()
+	in_high_scores_menu = false
+	_update_menu_focus()
 
 func _on_quit_game_pressed() -> void:
 	# Ensure mouse is free before showing dialog
@@ -235,7 +224,6 @@ func _on_quit_to_menu_pressed() -> void:
 	$UILayer/PauseMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
 	game_world.visible = false
-	_update_scores_display(false)
 	_update_menu_focus()
 
 func _cleanup_game() -> void:
@@ -281,8 +269,6 @@ func _on_game_over(final_score: int) -> void:
 	for score_value in high_scores:
 		file.store_32(score_value)
 	
-	high_score = high_scores[0] if not high_scores.is_empty() else 0
-	
 	# Update game over UI and background
 	$UIBackground.visible = true
 	$UILayer/GameOverContainer.visible = true
@@ -304,19 +290,6 @@ func _process(_delta) -> void:
 		var focused := get_viewport().gui_get_focus_owner()
 		if not focused:
 			_update_menu_focus()
-	
-	# Handle back button in menus
-	if Input.is_action_just_pressed("ui_cancel"):
-		if $UILayer/GameOverContainer.visible:
-			_on_quit_to_menu_pressed()
-		elif $UILayer/PauseMenu.visible:
-			_on_resume_pressed()
-		elif $UILayer/OptionsMenu.visible:
-			_on_options_back_pressed()
-		elif not in_game:
-			_on_quit_game_pressed()
-		else:
-			_toggle_pause()
 	
 	# Handle pause input during gameplay
 	if in_game and not paused and Input.is_action_just_pressed("pause"):
@@ -370,8 +343,12 @@ func _update_game_area() -> void:
 		Vector2.ZERO
 	]
 
-func _toggle_pause() -> void:
-	paused = !paused
+func _set_paused(paused_state: bool) -> void:
+	if paused_state == paused:
+		return
+
+	paused = paused_state
+
 	get_tree().paused = paused
 	
 	# Explicitly pause/unpause game elements through GameManager
@@ -382,9 +359,24 @@ func _toggle_pause() -> void:
 	$UILayer/PauseMenu.visible = paused
 	_update_menu_focus()
 
+func _toggle_pause() -> void:
+	_set_paused(not paused)
+
 func _on_resume_pressed() -> void:
 	_toggle_pause()
 
 func _on_sound_toggled() -> void:
 	AudioManager.toggle_mute()
 	$UILayer/PauseMenu/VBoxContainer/SoundButton.text = "Sound: " + ("Off" if AudioManager.is_muted else "On")
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if in_high_scores_menu:
+			_on_high_scores_back_pressed()
+			get_viewport().set_input_as_handled()
+		elif in_options_menu:
+			_on_options_back_pressed()
+			get_viewport().set_input_as_handled()
+		elif in_game and not paused:
+			_set_paused(true)
+			get_viewport().set_input_as_handled()
