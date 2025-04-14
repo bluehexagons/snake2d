@@ -5,6 +5,8 @@ signal options_closed
 # Reference to AudioManager for sound handling
 var sound_button: Button
 var fullscreen_button: Button
+var reset_settings_button: Button
+var reset_scores_button: Button
 var back_button: Button
 
 # Called when the node enters the scene tree for the first time.
@@ -12,6 +14,8 @@ func _ready():
 	# Get button references
 	sound_button = %SoundButton
 	fullscreen_button = %FullscreenButton
+	reset_settings_button = %ResetSettingsButton
+	reset_scores_button = %ResetScoresButton
 	back_button = %BackButton
 	
 	# Connect signals
@@ -20,6 +24,12 @@ func _ready():
 	
 	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
 	fullscreen_button.button_down.connect(AudioManager.play_click)
+	
+	reset_settings_button.pressed.connect(_on_reset_settings_pressed)
+	reset_settings_button.button_down.connect(AudioManager.play_click)
+	
+	reset_scores_button.pressed.connect(_on_reset_scores_pressed)
+	reset_scores_button.button_down.connect(AudioManager.play_click)
 	
 	back_button.pressed.connect(_on_back_pressed)
 	back_button.button_down.connect(AudioManager.play_click)
@@ -40,6 +50,28 @@ func _on_fullscreen_toggled() -> void:
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	update_fullscreen_button()
+	AudioManager.save_settings()
+
+func _on_reset_settings_pressed() -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Reset Settings"
+	dialog.dialog_text = "Are you sure you want to reset all settings?"
+	dialog.confirmed.connect(func():
+		AudioManager.reset_settings()
+		update_button_states()
+	)
+	add_child(dialog)
+	dialog.popup_centered()
+
+func _on_reset_scores_pressed() -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Reset High Scores"
+	dialog.dialog_text = "Are you sure you want to reset all high scores?"
+	dialog.confirmed.connect(func():
+		get_node("/root/Main").reset_high_scores()
+	)
+	add_child(dialog)
+	dialog.popup_centered()
 
 func _on_back_pressed() -> void:
 	options_closed.emit()

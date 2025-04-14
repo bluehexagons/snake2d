@@ -204,6 +204,12 @@ func _on_high_scores_back_pressed() -> void:
 	in_high_scores_menu = false
 	_update_menu_focus()
 
+func reset_high_scores() -> void:
+	high_scores.clear()
+	
+	var file := FileAccess.open("user://highscore.dat", FileAccess.WRITE)
+	file.close()
+
 func _on_quit_game_pressed() -> void:
 	# Ensure mouse is free before showing dialog
 	if not is_mobile:
@@ -295,7 +301,7 @@ func _process(delta) -> void:
 			_update_menu_focus()
 	
 	# Handle pause input during gameplay
-	if in_game and not paused and Input.is_action_just_pressed("pause"):
+	if in_game and Input.is_action_just_pressed("pause"):
 		_toggle_pause()
 	
 	if in_game and not paused and camera and camera_target != Vector2.ZERO:
@@ -381,6 +387,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif in_options_menu:
 			_on_options_back_pressed()
 			get_viewport().set_input_as_handled()
-		elif in_game and not paused:
-			_set_paused(true)
+		elif in_game:
+			_toggle_pause()
 			get_viewport().set_input_as_handled()

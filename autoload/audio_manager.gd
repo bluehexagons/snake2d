@@ -3,6 +3,7 @@ extends Node
 enum Waveform {SINE, SQUARE, TRIANGLE, SAW}
 
 const BASE_FREQUENCY := 420.0  # About an A4 note
+const SETTINGS_FILE := "user://settings.dat"
 
 # Quality settings for square/saw waves
 const HARMONICS := 8  # Number of harmonics for complex waveforms
@@ -23,6 +24,43 @@ func _ready() -> void:
 		var player := AudioStreamPlayer.new()
 		add_child(player)
 		audio_players.append(player)
+		
+	# Load settings
+	load_settings()
+
+func _update_players() -> void:
+	for player in audio_players:
+		player.volume_db = -999.0 if is_muted else 0.0
+
+# Settings functions
+func save_settings() -> void:
+	var file := FileAccess.open(SETTINGS_FILE, FileAccess.WRITE)
+	if file:
+		# Save sound setting
+		file.store_8(1 if is_muted else 0)
+		# Save fullscreen setting
+		file.store_8(1 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0)
+		
+func load_settings() -> void:
+	if FileAccess.file_exists(SETTINGS_FILE):
+		var file := FileAccess.open(SETTINGS_FILE, FileAccess.READ)
+		if file:
+			# Load sound setting
+			var muted := file.get_8() == 1
+			is_muted = muted
+			_update_players()
+			
+			# Load fullscreen setting
+			var fullscreen := file.get_8() == 1
+			DisplayServer.window_set_mode(
+				DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+			)
+
+func reset_settings() -> void:
+	is_muted = false
+	_update_players()
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	save_settings()
 
 func get_available_player() -> AudioStreamPlayer:
 	for player in audio_players:
@@ -32,8 +70,9 @@ func get_available_player() -> AudioStreamPlayer:
 
 func toggle_mute() -> bool:
 	is_muted = !is_muted
-	for player in audio_players:
-		player.volume_db = -999.0 if is_muted else 0.0
+	_update_players()
+	save_settings()
+	
 	return is_muted
 
 func play_move() -> void:

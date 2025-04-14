@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://optionsmenu"]
 
-[ext_resource type="Script" path="res://scenes/ui/options_menu.gd" id="1_5exto"]
+[ext_resource type="Script" uid="uid://bpu7027233q5e" path="res://scenes/ui/options_menu.gd" id="1_5exto"]
 [ext_resource type="Theme" path="res://themes/snake_ui_theme.tres" id="2_theme"]
 
 [node name="OptionsMenu" type="CenterContainer"]
@@ -46,14 +46,30 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 focus_neighbor_top = NodePath("../SoundButton")
-focus_neighbor_bottom = NodePath("../BackButton")
+focus_neighbor_bottom = NodePath("../ResetSettingsButton")
 text = "Fullscreen: Off"
+
+[node name="ResetSettingsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath("../FullscreenButton")
+focus_neighbor_bottom = NodePath("../ResetScoresButton")
+text = "Reset Settings"
+
+[node name="ResetScoresButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath("../ResetSettingsButton")
+focus_neighbor_bottom = NodePath("../BackButton")
+text = "Reset High Scores"
 
 [node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-focus_neighbor_top = NodePath("../FullscreenButton")
+focus_neighbor_top = NodePath("../ResetScoresButton")
 focus_neighbor_bottom = NodePath("../SoundButton")
 text = "Back to Menu"
 
