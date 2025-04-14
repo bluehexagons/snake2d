@@ -211,3 +211,11 @@ theme_override_colors/font_color = Color(0.752941, 0.752941, 0.752941, 0.752941)
 theme_override_font_sizes/font_size = 14
 text = "[A] Select   [B] Back"
 horizontal_alignment = 1
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0.752941, 0.752941, 0.752941, 0.752941)
+theme_override_font_sizes/font_size = 14
+text = "v1.1"
+horizontal_alignment = 2
