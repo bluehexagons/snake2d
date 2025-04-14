@@ -3,7 +3,7 @@ extends Node
 
 # Game grid settings
 const GRID_SIZE := 32       # Size of each grid cell in pixels
-const GRID_WIDTH := 24      # Number of grid cells horizontally
+const GRID_WIDTH := 23      # Number of grid cells horizontally
 const GRID_HEIGHT := 18     # Number of grid cells vertically
 
 # Game settings

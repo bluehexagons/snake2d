@@ -3,19 +3,20 @@ extends Node2D
 signal moved(new_position)
 signal grew
 signal died
+signal first_move
 
-const GRID_SIZE := 32
 @export var direction := Vector2.RIGHT  # Made public for camera access
 var next_direction := Vector2.RIGHT  # Buffer the next direction
 var can_move := true
 var last_touch_pos := Vector2.ZERO
 var using_touch := false
+var waiting_for_input := true  # New state to track if we're waiting for first movement
 
 func _ready() -> void:
 	# Enable touch/mouse emulation
 	Input.emulate_touch_from_mouse = true
 	Input.emulate_mouse_from_touch = true
-	position = position.snapped(Vector2(GRID_SIZE, GRID_SIZE))
+	position = position.snapped(Vector2(Config.GRID_SIZE, Config.GRID_SIZE))
 
 func _process(_delta) -> void:
 	if can_move:
@@ -55,17 +56,25 @@ func _process(_delta) -> void:
 				touch_dir = Vector2(0, sign(input_y))
 		
 		# Apply movement if we have input and it's not reversing
-		if touch_dir != Vector2.ZERO and touch_dir != -direction:
+		if touch_dir != Vector2.ZERO and (touch_dir != -direction or waiting_for_input):
 			next_direction = touch_dir
+			
+			# If we were waiting for input, emit the first_move signal
+			if waiting_for_input:
+				waiting_for_input = false
+				first_move.emit()
 
 func move() -> void:
+	if waiting_for_input:
+		can_move = true
+		moved.emit(position)
+		return
+
 	# Apply the buffered direction
 	direction = next_direction
-	var new_position := position + direction * GRID_SIZE
+	var new_position := position + direction * Config.GRID_SIZE
 	
-	# Check wall collision using tilemap bounds
-	if new_position.x < 0 or new_position.x >= 768 or \
-	   new_position.y < 0 or new_position.y >= 576:
+	if new_position.x < 0 or new_position.x >= Config.GRID_WIDTH * Config.GRID_SIZE or new_position.y < 0 or new_position.y >= Config.GRID_HEIGHT * Config.GRID_SIZE:
 		died.emit()
 		return
 		

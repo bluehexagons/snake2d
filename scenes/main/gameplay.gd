@@ -9,10 +9,7 @@ signal snake_grew(position)
 
 const Snake = preload("res://scenes/snake/snake.tscn")
 const Food = preload("res://scenes/food/food.tscn")
-
-const GRID_SIZE := 32
-const GRID_WIDTH := 24
-const GRID_HEIGHT := 18
+const ControlsTutorial = preload("res://scenes/main/controls_tutorial.tscn")
 
 const BASE_TIMER_WAIT := 0.2
 const MIN_TIMER_WAIT := 0.05  # Maximum speed
@@ -46,16 +43,20 @@ func start_game() -> void:
 	tail_segments.clear()
 	tail_positions.clear()
 	
+	# Create controls tutorial if it doesn't exist
+	_create_controls_tutorial()
+	
 	# Initialize snake
 	if snake:
 		snake.queue_free()
 	snake = Snake.instantiate()
 	game_world.add_child(snake)
 	@warning_ignore("integer_division")
-	snake.position = Vector2(GRID_WIDTH/2, GRID_HEIGHT/2) * GRID_SIZE
+	snake.position = Vector2(Config.GRID_WIDTH/2, Config.GRID_HEIGHT/2) * Config.GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
 	snake.died.connect(_on_snake_died)
+	snake.first_move.connect(_on_snake_first_move)
 	
 	# Spawn initial food
 	spawn_food()
@@ -81,15 +82,15 @@ func _physics_process(delta: float) -> void:
 
 func is_position_occupied(pos: Vector2) -> bool:
 	# Convert position to grid coordinates
-	var grid_pos := pos / GRID_SIZE
+	var grid_pos := pos / Config.GRID_SIZE
 	
 	# Check snake head
-	if snake and (snake.position / GRID_SIZE) == grid_pos:
+	if snake and (snake.position / Config.GRID_SIZE) == grid_pos:
 		return true
 	
 	# Check tail segments
 	for segment in tail_segments:
-		if (segment.position / GRID_SIZE) == grid_pos:
+		if (segment.position / Config.GRID_SIZE) == grid_pos:
 			return true
 	
 	return false
@@ -104,14 +105,14 @@ func spawn_food() -> void:
 	var y := 0
 	
 	while not valid_position:
-		x = randi_range(0, GRID_WIDTH - 2)
-		y = randi_range(0, GRID_HEIGHT - 2)
-		var test_pos := Vector2(x, y) * GRID_SIZE
+		x = randi_range(0, Config.GRID_WIDTH - 2)
+		y = randi_range(0, Config.GRID_HEIGHT - 2)
+		var test_pos := Vector2(x, y) * Config.GRID_SIZE
 		valid_position = not is_position_occupied(test_pos)
 	
 	food = Food.instantiate()
 	game_world.add_child(food)
-	food.position = Vector2(x, y) * GRID_SIZE
+	food.position = Vector2(x, y) * Config.GRID_SIZE
 	food_spawned.emit(food.position)
 
 func _update_game_speed() -> void:
@@ -157,7 +158,7 @@ func _on_snake_grew() -> void:
 	AudioManager.play_eat()
 	
 	var segment := ColorRect.new()
-	segment.size = Vector2(GRID_SIZE, GRID_SIZE)
+	segment.size = Vector2(Config.GRID_SIZE, Config.GRID_SIZE)
 	
 	# Vary the color based on position in tail
 	var base_color := Color(0.0862745, 0.741176, 0.0862745)
@@ -243,6 +244,11 @@ func get_food_position() -> Vector2:
 func get_snake_direction() -> Vector2:
 	return snake.direction if snake else Vector2.RIGHT
 	
+func _on_snake_first_move() -> void:
+	# Hide the control tutorial when the snake starts moving
+	if get_parent().has_node("ControlsTutorial"):
+		get_parent().get_node("ControlsTutorial").queue_free()
+
 func get_weighted_snake_center() -> Vector2:
 	if snake and not tail_segments.is_empty():
 		var sum_pos := snake.position * 2.0
@@ -253,3 +259,18 @@ func get_weighted_snake_center() -> Vector2:
 			total_weight += weight
 		return sum_pos / total_weight
 	return snake.position if snake else Vector2.ZERO
+
+func _create_controls_tutorial() -> void:
+	if get_parent().has_node("ControlsTutorial"):
+		get_parent().get_node("ControlsTutorial").queue_free()
+
+	var tutorial := ControlsTutorial.instantiate()
+	tutorial.name = "ControlsTutorial"
+
+	# Add as a direct child of GameWorld
+	get_parent().add_child(tutorial)
+
+	# Position in the center of the game area
+	@warning_ignore("integer_division")
+	tutorial.position = Vector2(Config.GRID_WIDTH * Config.GRID_SIZE / 2.0, Config.GRID_HEIGHT * Config.GRID_SIZE / 2.0)
+	tutorial.position -= tutorial.size / 2
