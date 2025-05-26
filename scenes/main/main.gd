@@ -8,13 +8,8 @@ var game_manager: Gameplay
 var score := 0
 var score_display_label: Label
 var snake_camera: Camera2D
-var paused := false
 var in_game := false
-var in_options_menu := false
-var in_credits_menu := false
-
 var is_mobile := false
-var in_high_scores_menu := false
 
 var ui_state_manager: Node
 
@@ -25,6 +20,9 @@ func _ready():
 	GAME_HEIGHT = Config.get_game_height()
 	
 	ui_state_manager = $UIStateManager
+	ui_state_manager.state_changed.connect(_on_ui_state_changed)
+	ui_state_manager.pause_state_changed.connect(_on_pause_state_changed)
+	
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.MAIN_MENU, $UILayer/MainMenu)
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.OPTIONS_MENU, $UILayer/OptionsMenu)
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.CREDITS_SCREEN, $UILayer/CreditsScreen)
@@ -142,15 +140,7 @@ func _update_menu_focus() -> void:
 
 func _on_start_pressed() -> void:
 	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
-	
-	get_tree().paused = false
-	$UILayer/Background.visible = false
-	$UILayer/MainMenu.visible = false
-	$UILayer/OptionsMenu.visible = false
-	$UILayer/ScoreLabel.visible = true
-	game_world.visible = true
 	_start_game()
-	_update_menu_focus()
 
 func _on_options_pressed() -> void:
 	ui_state_manager.change_state(ui_state_manager.UIState.OPTIONS_MENU)
@@ -214,29 +204,19 @@ func _on_quit_to_menu_pressed() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	
 	_cleanup_game()
-	get_tree().paused = true
-	
 	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
-	
-	game_world.visible = false
-	_update_menu_focus()
 
 func _cleanup_game() -> void:
 	game_manager.cleanup()
 	
 	in_game = false
-	paused = false
 	
-	$UILayer/GameOverContainer.visible = false
-	$UILayer/PauseMenu.visible = false
-	
+	# Let the UI state manager handle visibility
 	if snake_camera:
 		snake_camera.reset_camera()
 	
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	
-	get_tree().paused = paused
 
 func _on_score_updated(new_score: int) -> void:
 	score = new_score
@@ -266,9 +246,8 @@ func _on_game_over(final_score: int) -> void:
 	_update_menu_focus()
 
 func _on_restart_pressed() -> void:
-	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
-	
 	_cleanup_game()
+	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
 	_start_game()
 
 func _process(_delta) -> void:
@@ -280,7 +259,7 @@ func _process(_delta) -> void:
 		if focused is not Button:
 			_update_menu_focus()
 	
-	if in_game and Input.is_action_just_pressed("pause"):
+	if ui_state_manager.current_state == ui_state_manager.UIState.GAMEPLAY and Input.is_action_just_pressed("pause"):
 		_toggle_pause()
 	
 func _on_window_resize() -> void:
@@ -296,21 +275,38 @@ func _update_game_area() -> void:
 	
 	background.size = game_size
 
-func _set_paused(paused_state: bool) -> void:
-	if paused_state == paused:
-		return
-
-	paused = paused_state
-	game_manager.set_paused(paused)
-	ui_state_manager.set_paused(paused_state)
-	_update_menu_focus()
-
 func _toggle_pause() -> void:
-	_set_paused(not paused)
+	var is_currently_paused = ui_state_manager.current_state == ui_state_manager.UIState.PAUSED
+	ui_state_manager.set_paused(not is_currently_paused)
 
 func _on_resume_pressed() -> void:
-	_set_paused(false)
+	ui_state_manager.set_paused(false)
 
 func _on_sound_toggled() -> void:
 	AudioManager.toggle_mute()
 	$UILayer/PauseMenu/PanelContainer/MarginContainer/VBoxContainer/SoundButton.text = "Sound: " + ("Off" if AudioManager.is_muted else "On")
+
+func _on_ui_state_changed(old_state, new_state) -> void:
+	match new_state:
+		ui_state_manager.UIState.GAMEPLAY:
+			$UILayer/Background.visible = false
+			$UILayer/ScoreLabel.visible = true
+			game_world.visible = true
+		ui_state_manager.UIState.MAIN_MENU:
+			$UILayer/Background.visible = false
+			$UILayer/ScoreLabel.visible = false
+			game_world.visible = false
+			get_tree().paused = true
+		ui_state_manager.UIState.PAUSED:
+			$UILayer/Background.visible = true
+		ui_state_manager.UIState.GAME_OVER:
+			in_game = false
+		_:
+			if old_state == ui_state_manager.UIState.GAMEPLAY:
+				$UILayer/Background.visible = true
+	
+	_update_menu_focus()
+
+func _on_pause_state_changed(is_paused: bool) -> void:
+	if game_manager:
+		game_manager.set_paused(is_paused)

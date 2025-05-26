@@ -1,6 +1,7 @@
 extends Node
 
 signal state_changed(old_state, new_state)
+signal pause_state_changed(is_paused)
 
 enum UIState {
 	MAIN_MENU,
@@ -17,6 +18,11 @@ var previous_state: UIState = UIState.MAIN_MENU
 
 var ui_elements := {}
 var focus_targets := {}
+
+var main_node: Node
+
+func _ready() -> void:
+	main_node = get_parent()
 
 func register_ui_element(state: UIState, node: Node) -> void:
 	ui_elements[state] = node
@@ -56,10 +62,17 @@ func set_paused(paused_state: bool) -> void:
 
 	get_tree().paused = paused_state
 	
+	if main_node and main_node.has_method("get") and main_node.game_manager:
+		main_node.game_manager.set_paused(paused_state)
+	
 	if paused_state:
-		change_state(UIState.PAUSED)
+		if current_state == UIState.GAMEPLAY:
+			change_state(UIState.PAUSED)
 	else:
-		change_state(UIState.GAMEPLAY)
+		if current_state == UIState.PAUSED:
+			change_state(UIState.GAMEPLAY)
+	
+	pause_state_changed.emit(paused_state)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
@@ -77,6 +90,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 
 		if current_state == UIState.GAME_OVER:
+			if main_node and main_node.has_method("_cleanup_game"):
+				main_node._cleanup_game()
+			get_tree().paused = true
 			change_state(UIState.MAIN_MENU)
 			get_viewport().set_input_as_handled()
 			return
