@@ -112,7 +112,7 @@ func _ready():
 	game_manager.game_over.connect(_on_game_over)
 	
 	get_tree().paused = true
-	$UIBackground.visible = true
+	$UILayer/Background.visible = false
 	$UILayer/MainMenu.visible = true
 	$UILayer/OptionsMenu.visible = false
 	$UILayer/ScoreLabel.visible = false
@@ -144,7 +144,7 @@ func _on_start_pressed() -> void:
 	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
 	
 	get_tree().paused = false
-	$UIBackground.visible = false
+	$UILayer/Background.visible = false
 	$UILayer/MainMenu.visible = false
 	$UILayer/OptionsMenu.visible = false
 	$UILayer/ScoreLabel.visible = true
@@ -290,19 +290,11 @@ func _update_game_area() -> void:
 	var window_size := DisplayServer.window_get_size()
 	var play_area := $GameLayer/GameViewport/GameWorld/PlayArea
 	var background := play_area.get_node("Background")
-	var border := play_area.get_node("Border")
 	
 	var game_size := Vector2(GAME_WIDTH, GAME_HEIGHT)
 	game_world.position = (Vector2(window_size) - game_size) / 2.0
 	
 	background.size = game_size
-	border.points = [
-		Vector2.ZERO,
-		Vector2(GAME_WIDTH, 0),
-		Vector2(GAME_WIDTH, GAME_HEIGHT),
-		Vector2(0, GAME_HEIGHT),
-		Vector2.ZERO
-	]
 
 func _set_paused(paused_state: bool) -> void:
 	if paused_state == paused:

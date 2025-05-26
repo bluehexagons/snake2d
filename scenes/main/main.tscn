@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://mainscene"]
+[gd_scene load_steps=12 format=3 uid="uid://mainscene"]
 
 [ext_resource type="Script" uid="uid://dpirjktyb5x33" path="res://scenes/main/main.gd" id="1_tyq8r"]
 [ext_resource type="PackedScene" uid="uid://pausemenu" path="res://scenes/ui/pause_menu.tscn" id="2_pause"]
@@ -10,6 +10,22 @@
 [ext_resource type="PackedScene" uid="uid://bj6w0rdbd1g4b" path="res://scenes/ui/credits_screen.tscn" id="7_creditsscreen"]
 [ext_resource type="Script" uid="uid://dk17ktytlbvya" path="res://scenes/ui/ui_state_manager.gd" id="9_b1x3f"]
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="10_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a8run"]
+bg_color = Color(0.12549, 0.12549, 0.12549, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.443137, 1, 0.764706, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+expand_margin_left = 6.0
+expand_margin_top = 6.0
+expand_margin_right = 6.0
+expand_margin_bottom = 6.0
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -47,26 +63,23 @@ script = ExtResource("4_5upsq")
 unique_name_in_owner = true
 y_sort_enabled = true
 
-[node name="Background" type="ColorRect" parent="GameLayer/GameViewport/GameWorld/PlayArea"]
+[node name="Background" type="Panel" parent="GameLayer/GameViewport/GameWorld/PlayArea"]
 unique_name_in_owner = true
 offset_right = 768.0
 offset_bottom = 576.0
-color = Color(0.12549, 0.12549, 0.12549, 1)
-
-[node name="Border" type="Line2D" parent="GameLayer/GameViewport/GameWorld/PlayArea"]
-unique_name_in_owner = true
-points = PackedVector2Array(0, 0, 768, 0, 768, 576, 0, 576, 0, 0)
-width = 6.0
-default_color = Color(0.443137, 1, 0.764706, 1)
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_a8run")
 
 [node name="Camera2D" type="Camera2D" parent="GameLayer/GameViewport/GameWorld"]
 unique_name_in_owner = true
 position = Vector2(384, 288)
 script = ExtResource("3_yyfjg")
 
-[node name="UIBackground" type="CanvasLayer" parent="."]
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 2
 
-[node name="Background" type="ColorRect" parent="UIBackground"]
+[node name="Background" type="ColorRect" parent="UILayer"]
+visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -74,9 +87,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0.0768358, 0.0768358, 0.0768358, 0.862745)
-
-[node name="UILayer" type="CanvasLayer" parent="."]
-layer = 2
 
 [node name="MainMenu" parent="UILayer" instance=ExtResource("3_mainmenu")]
 
