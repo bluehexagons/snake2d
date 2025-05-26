@@ -1,6 +1,4 @@
 extends Node
-# UI State Manager handles transitions between different UI screens
-# Makes it easier to manage complex UI navigation flows and screen states
 
 signal state_changed(old_state, new_state)
 
@@ -20,15 +18,12 @@ var previous_state: UIState = UIState.MAIN_MENU
 var ui_elements := {}
 var focus_targets := {}
 
-# Register a UI element with the state manager
 func register_ui_element(state: UIState, node: Node) -> void:
 	ui_elements[state] = node
 
-# Register the focus target for a specific state
 func register_focus_target(state: UIState, button: Button) -> void:
 	focus_targets[state] = button
 
-# Change to a specified UI state
 func change_state(new_state: UIState) -> void:
 	if new_state == current_state:
 		return
@@ -36,27 +31,21 @@ func change_state(new_state: UIState) -> void:
 	previous_state = current_state
 	current_state = new_state
 	
-	# Hide all UI elements
 	for state in ui_elements:
 		if ui_elements[state] != null:
 			ui_elements[state].visible = false
 	
-	# Show the current UI element
 	if ui_elements.has(current_state) and ui_elements[current_state] != null:
 		ui_elements[current_state].visible = true
 	
-	# Set focus on the appropriate button
 	if focus_targets.has(current_state) and focus_targets[current_state] != null:
 		focus_targets[current_state].grab_focus()
 	
-	# Emit signal for any listeners
 	state_changed.emit(previous_state, current_state)
 
-# Go back to the previous state
 func go_back() -> void:
 	change_state(previous_state)
 
-# Get a text representation of the current state (useful for debugging)
 func get_state_name() -> String:
 	return UIState.keys()[current_state]
 
@@ -92,6 +81,5 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-		# For other states, go back to previous state
 		get_viewport().set_input_as_handled()
 		go_back()

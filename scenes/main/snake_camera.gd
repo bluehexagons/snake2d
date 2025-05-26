@@ -1,23 +1,21 @@
 extends Camera2D
-var velocity := Vector2.ZERO      # Current camera velocity
-var target := Vector2.ZERO        # Current camera target position
+
+var velocity := Vector2.ZERO
+var target := Vector2.ZERO
 var game_width := 0
 var game_height := 0
-
-var game_manager: Gameplay = null           # Reference to the GameManager/Gameplay
+var game_manager: Gameplay = null
 
 func _ready() -> void:
 	game_width = Config.get_game_width()
 	game_height = Config.get_game_height()
 
-	# Initialize target position at center
 	@warning_ignore("integer_division")
 	target = Vector2(game_width/2, game_height/2)
 	position = target
 	velocity = Vector2.ZERO
 
 func _process(delta: float) -> void:
-	# Smooth camera movement when not paused
 	if not get_tree().paused:
 		var weight := clampf(1.0 - pow(0.001, delta), 0.0, 0.95)
 		position = position.lerp(target, weight)
@@ -33,7 +31,6 @@ func _physics_process(_delta: float) -> void:
 	var food_pos := game_manager.get_food_position()
 	var snake_center := game_manager.get_weighted_snake_center()
 	
-	# Calculate weighted target position
 	var new_target := (
 		look_ahead * Config.LOOK_AHEAD_WEIGHT +
 		center * Config.CENTER_PULL_WEIGHT +
@@ -41,12 +38,10 @@ func _physics_process(_delta: float) -> void:
 		snake_center * Config.SNAKE_CENTER_WEIGHT
 	) / (Config.LOOK_AHEAD_WEIGHT + Config.CENTER_PULL_WEIGHT + Config.FOOD_ATTRACTION_WEIGHT + Config.SNAKE_CENTER_WEIGHT)
 	
-	# Apply smoothing with acceleration curve
 	var t := Config.CAMERA_ACCELERATION
-	t = t * t * (3.0 - 2.0 * t) # Smoothstep for acceleration
+	t = t * t * (3.0 - 2.0 * t)
 	var desired_velocity := (new_target - target) * t
 	
-	# Update velocity and position with damping
 	velocity = velocity * Config.CAMERA_DAMPING + desired_velocity
 	target += velocity
 

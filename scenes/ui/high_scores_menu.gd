@@ -6,7 +6,6 @@ signal high_scores_closed
 @onready var back_button: Button = %BackButton
 @onready var scroll_container: ScrollContainer = $PanelContainer/MarginContainer/VBoxContainer/ScoresContainer/ScrollContainer
 
-# Scroll speed for keyboard/gamepad navigation
 const SCROLL_SPEED: float = 6.66
 
 func _ready() -> void:
@@ -18,10 +17,8 @@ func _process(_delta: float) -> void:
 	if not self.visible:
 		return
 
-	# Handle input for scrolling
 	var scroll_input: float = Input.get_axis("ui_up", "ui_down")
 	if scroll_input != 0:
-		# Scroll the container based on input direction
 		scroll_container.scroll_vertical += int(scroll_input * SCROLL_SPEED)
 
 func update_scores(scores: Array[int]) -> void:

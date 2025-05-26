@@ -2,23 +2,19 @@ extends CenterContainer
 
 signal options_closed
 
-# Reference to AudioManager for sound handling
 var sound_button: Button
 var fullscreen_button: Button
 var reset_settings_button: Button
 var reset_scores_button: Button
 var back_button: Button
 
-# Called when the node enters the scene tree for the first time.
 func _ready():
-	# Get button references
 	sound_button = %SoundButton
 	fullscreen_button = %FullscreenButton
 	reset_settings_button = %ResetSettingsButton
 	reset_scores_button = %ResetScoresButton
 	back_button = %BackButton
 	
-	# Connect signals
 	sound_button.pressed.connect(_on_sound_toggled)
 	sound_button.button_down.connect(AudioManager.play_click)
 	
@@ -34,13 +30,11 @@ func _ready():
 	back_button.pressed.connect(_on_back_pressed)
 	back_button.button_down.connect(AudioManager.play_click)
 	
-	# Initial update of button states
 	update_button_states()
 
 func _on_sound_toggled() -> void:
 	var is_muted := AudioManager.toggle_mute()
 	update_sound_button()
-	# Still play click when unmuting
 	if not is_muted:
 		AudioManager.play_click()
 

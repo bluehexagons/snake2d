@@ -21,7 +21,6 @@ var ui_state_manager: Node
 func _ready():
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
 
-	# Initialize game dimensions from Config
 	GAME_WIDTH = Config.get_game_width()
 	GAME_HEIGHT = Config.get_game_height()
 	
@@ -46,10 +45,8 @@ func _ready():
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.GAME_OVER, 
 		$UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer/RestartButton)
 	
-	# Check platform
 	is_mobile = DisplayServer.get_name() in ["android", "ios", "web"]
 	
-	# Load high scores
 	if FileAccess.file_exists("user://highscore.dat"):
 		var file := FileAccess.open("user://highscore.dat", FileAccess.READ)
 		while not file.eof_reached():
@@ -57,7 +54,7 @@ func _ready():
 			if val > 0:
 				high_scores.append(val)
 	
-	high_scores.sort_custom(func(a, b): return a > b)  # Sort descending
+	high_scores.sort_custom(func(a, b): return a > b)
 	
 	var main_menu := $UILayer/MainMenu
 	var start_button := main_menu.get_node("PanelContainer/MarginContainer/VBoxContainer/StartButton")
@@ -176,7 +173,6 @@ func _start_game() -> void:
 
 	game_manager.start_game()
 	
-	# Initialize the snake camera
 	snake_camera = $GameLayer/GameViewport/GameWorld/Camera2D
 	snake_camera.game_manager = game_manager
 	
@@ -203,7 +199,6 @@ func reset_high_scores() -> void:
 	file.close()
 
 func _on_quit_game_pressed() -> void:
-	# Ensure mouse is free before showing dialog
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	
@@ -229,19 +224,15 @@ func _on_quit_to_menu_pressed() -> void:
 func _cleanup_game() -> void:
 	game_manager.cleanup()
 	
-	# Reset game state
 	in_game = false
 	paused = false
 	
-	# Reset UI
 	$UILayer/GameOverContainer.visible = false
 	$UILayer/PauseMenu.visible = false
 	
-	# Reset camera if it exists
 	if snake_camera:
 		snake_camera.reset_camera()
 	
-	# Return to normal mouse mode
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	
@@ -252,7 +243,6 @@ func _on_score_updated(new_score: int) -> void:
 	score_display_label.text = "Score: " + str(score)
 
 func _on_game_over(final_score: int) -> void:
-	# Update high scores
 	var score_inserted := false
 	for i in high_scores.size():
 		if final_score > high_scores[i]:
@@ -266,7 +256,6 @@ func _on_game_over(final_score: int) -> void:
 	if high_scores.size() > Config.MAX_HIGH_SCORES:
 		high_scores.resize(Config.MAX_HIGH_SCORES)
 	
-	# Save all scores
 	var file := FileAccess.open("user://highscore.dat", FileAccess.WRITE)
 	for score_value in high_scores:
 		file.store_32(score_value)
@@ -283,7 +272,6 @@ func _on_restart_pressed() -> void:
 	_start_game()
 
 func _process(_delta) -> void:
-	# Check if we need to restore UI focus
 	if (Input.is_action_just_pressed("up") or 
 		Input.is_action_just_pressed("down") or
 		Input.is_action_just_pressed("left") or
@@ -292,7 +280,6 @@ func _process(_delta) -> void:
 		if focused is not Button:
 			_update_menu_focus()
 	
-	# Handle pause input during gameplay
 	if in_game and Input.is_action_just_pressed("pause"):
 		_toggle_pause()
 	
@@ -305,11 +292,9 @@ func _update_game_area() -> void:
 	var background := play_area.get_node("Background")
 	var border := play_area.get_node("Border")
 	
-	# Center the game world
 	var game_size := Vector2(GAME_WIDTH, GAME_HEIGHT)
 	game_world.position = (Vector2(window_size) - game_size) / 2.0
 	
-	# Update background and border
 	background.size = game_size
 	border.points = [
 		Vector2.ZERO,
