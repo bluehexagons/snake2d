@@ -20,6 +20,7 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme = ExtResource("10_theme")
 script = ExtResource("1_tyq8r")
 
 [node name="GameLayer" type="CanvasLayer" parent="."]

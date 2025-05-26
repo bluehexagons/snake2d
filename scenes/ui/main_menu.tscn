@@ -1,4 +1,6 @@
-[gd_scene load_steps=9 format=3 uid="uid://mainmenu"]
+[gd_scene load_steps=10 format=3 uid="uid://mainmenu"]
+
+[ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="1_sl1te"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg2hj"]
 bg_color = Color(0.1462, 0.17, 0.1462, 0.92549)
@@ -105,6 +107,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("1_sl1te")
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
 layout_mode = 2
