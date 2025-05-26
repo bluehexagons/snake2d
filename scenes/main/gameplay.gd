@@ -52,6 +52,8 @@ func start_game() -> void:
 	snake.grew.connect(_on_snake_grew)
 	snake.died.connect(_on_snake_died)
 	snake.first_move.connect(_on_snake_first_move)
+
+	tail_positions.insert(0, snake.position)
 	
 	spawn_food()
 	
