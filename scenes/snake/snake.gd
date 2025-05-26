@@ -67,7 +67,6 @@ func _process(_delta) -> void:
 func move() -> void:
 	if waiting_for_input:
 		can_move = true
-		moved.emit(position)
 		return
 
 	# Apply the buffered direction
