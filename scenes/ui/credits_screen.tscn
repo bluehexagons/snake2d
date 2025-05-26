@@ -31,7 +31,7 @@ theme_override_constants/separation = 24
 [node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
-text = "ABOUT & CREDITS"
+text = "CREDITS"
 horizontal_alignment = 1
 
 [node name="CreditsRichText" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer"]
@@ -45,8 +45,12 @@ text = "[center]A Simple Snake Game
 
 Built with [color=#7affc3]Godot Engine 4.4[/color]
 
-[color=#4dc94d]Programming:[/color]
+[color=#4dc94d]Programming, etc:[/color]
 bluehexagons
+
+Licenses:
+Averia Sans Libre
+- OFL, Dan Sayers
 
 Version: 1.1[/center]"
 fit_content = true
