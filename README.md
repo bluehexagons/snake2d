@@ -37,6 +37,6 @@ A Simple Snake Game is a simple snake game in which you simply snake.
 
 Created by bluehexagons in a few days as a learning project for Copilot-assisted Godot game development and release.
 
-### MIT License
+### Open Source
 
 Feel free to use this code as a learning resource or base for your own projects.
