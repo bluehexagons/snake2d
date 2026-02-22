@@ -1,6 +1,8 @@
+class_name OptionsMenu
 extends CenterContainer
 
 signal options_closed
+signal reset_scores_requested
 
 var sound_button: Button
 var fullscreen_button: Button
@@ -8,7 +10,7 @@ var reset_settings_button: Button
 var reset_scores_button: Button
 var back_button: Button
 
-func _ready():
+func _ready() -> void:
 	sound_button = %SoundButton
 	fullscreen_button = %FullscreenButton
 	reset_settings_button = %ResetSettingsButton
@@ -47,25 +49,21 @@ func _on_fullscreen_toggled() -> void:
 	AudioManager.save_settings()
 
 func _on_reset_settings_pressed() -> void:
-	var dialog := ConfirmationDialog.new()
-	dialog.title = "Reset Settings"
-	dialog.dialog_text = "Are you sure you want to reset all settings?"
-	dialog.confirmed.connect(func():
+	_show_confirmation_dialog(
+		"Reset Settings",
+		"Are you sure you want to reset all settings?",
+		func() -> void:
 		AudioManager.reset_settings()
 		update_button_states()
 	)
-	add_child(dialog)
-	dialog.popup_centered()
 
 func _on_reset_scores_pressed() -> void:
-	var dialog := ConfirmationDialog.new()
-	dialog.title = "Reset High Scores"
-	dialog.dialog_text = "Are you sure you want to reset all high scores?"
-	dialog.confirmed.connect(func():
-		get_node("/root/Main").reset_high_scores()
+	_show_confirmation_dialog(
+		"Reset High Scores",
+		"Are you sure you want to reset all high scores?",
+		func() -> void:
+		reset_scores_requested.emit()
 	)
-	add_child(dialog)
-	dialog.popup_centered()
 
 func _on_back_pressed() -> void:
 	options_closed.emit()
@@ -75,8 +73,16 @@ func update_button_states() -> void:
 	update_fullscreen_button()
 
 func update_sound_button() -> void:
-	sound_button.text = "Sound: " + ("Off" if AudioManager.is_muted else "On")
+	sound_button.text = str("Sound: ", "Off" if AudioManager.is_muted else "On")
 
 func update_fullscreen_button() -> void:
 	var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-	fullscreen_button.text = "Fullscreen: " + ("On" if is_fullscreen else "Off")
+	fullscreen_button.text = str("Fullscreen: ", "On" if is_fullscreen else "Off")
+
+func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = title
+	dialog.dialog_text = text
+	dialog.confirmed.connect(on_confirm)
+	add_child(dialog)
+	dialog.popup_centered()

@@ -1,3 +1,4 @@
+class_name HighScoresMenu
 extends CenterContainer
 
 signal high_scores_closed

@@ -1,7 +1,8 @@
+class_name UIStateManager
 extends Node
 
-signal state_changed(old_state, new_state)
-signal pause_state_changed(is_paused)
+signal state_changed(old_state: UIState, new_state: UIState)
+signal pause_state_changed(is_paused: bool)
 
 enum UIState {
 	MAIN_MENU,
@@ -16,8 +17,8 @@ enum UIState {
 var current_state: UIState = UIState.MAIN_MENU
 var previous_state: UIState = UIState.MAIN_MENU
 
-var ui_elements := {}
-var focus_targets := {}
+var ui_elements: Dictionary[UIState, Node] = {}
+var focus_targets: Dictionary[UIState, Button] = {}
 
 var main_node: Node
 
@@ -62,8 +63,10 @@ func set_paused(paused_state: bool) -> void:
 
 	get_tree().paused = paused_state
 	
-	if main_node and main_node.has_method("get") and main_node.game_manager:
-		main_node.game_manager.set_paused(paused_state)
+	if main_node:
+		var game_manager = main_node.get("game_manager")
+		if game_manager and game_manager.has_method("set_paused"):
+			game_manager.set_paused(paused_state)
 	
 	if paused_state:
 		if current_state == UIState.GAMEPLAY:

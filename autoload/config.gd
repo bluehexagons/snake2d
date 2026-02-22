@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 
 const GRID_SIZE := 32
 const GRID_WIDTH := 23
@@ -24,8 +24,8 @@ const AUDIO_HARMONICS := 8
 const HIGHSCORE_FILE := "user://highscore.dat"
 const SETTINGS_FILE := "user://settings.dat"
 
-func get_game_width() -> int:
+static func get_game_width() -> int:
 	return GRID_SIZE * GRID_WIDTH
 
-func get_game_height() -> int:
+static func get_game_height() -> int:
 	return GRID_SIZE * GRID_HEIGHT

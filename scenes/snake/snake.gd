@@ -1,21 +1,22 @@
 extends Node2D
 
-signal moved(new_position)
+const ConfigData = preload("res://autoload/config.gd")
+
+signal moved(new_position: Vector2)
 signal grew
 signal died
 signal first_move
 
 @export var direction := Vector2.RIGHT
-var next_direction := Vector2.RIGHT
+var next_direction: Vector2 = Vector2.RIGHT
 var can_move := true
-var last_touch_pos := Vector2.ZERO
 var using_touch := false
 var waiting_for_input := true
 
 func _ready() -> void:
 	Input.emulate_touch_from_mouse = true
 	Input.emulate_mouse_from_touch = true
-	position = position.snapped(Vector2(Config.GRID_SIZE, Config.GRID_SIZE))
+	position = position.snapped(Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE))
 
 func _process(_delta) -> void:
 	if can_move:
@@ -39,14 +40,13 @@ func _process(_delta) -> void:
 			else:
 				touch_dir = Vector2(0, sign(to_mouse.y))
 		
-		var input_x := Input.get_axis("left", "right")
-		var input_y := Input.get_axis("up", "down")
-		
-		if abs(input_x) > 0.5 or abs(input_y) > 0.5:
-			if abs(input_x) > abs(input_y):
-				touch_dir = Vector2(sign(input_x), 0)
+		var input_vector := Input.get_vector("left", "right", "up", "down")
+
+		if input_vector != Vector2.ZERO:
+			if abs(input_vector.x) > abs(input_vector.y):
+				touch_dir = Vector2(sign(input_vector.x), 0)
 			else:
-				touch_dir = Vector2(0, sign(input_y))
+				touch_dir = Vector2(0, sign(input_vector.y))
 		
 		if touch_dir != Vector2.ZERO and (touch_dir != -direction or waiting_for_input):
 			next_direction = touch_dir
@@ -61,9 +61,9 @@ func move() -> void:
 		return
 
 	direction = next_direction
-	var new_position := position + direction * Config.GRID_SIZE
+	var new_position := position + direction * ConfigData.GRID_SIZE
 	
-	if new_position.x < 0 or new_position.x >= Config.GRID_WIDTH * Config.GRID_SIZE or new_position.y < 0 or new_position.y >= Config.GRID_HEIGHT * Config.GRID_SIZE:
+	if new_position.x < 0 or new_position.x >= ConfigData.GRID_WIDTH * ConfigData.GRID_SIZE or new_position.y < 0 or new_position.y >= ConfigData.GRID_HEIGHT * ConfigData.GRID_SIZE:
 		died.emit()
 		return
 		

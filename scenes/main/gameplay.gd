@@ -1,11 +1,13 @@
 class_name Gameplay
 extends Node2D
 
-signal score_updated(new_score)
-signal game_over(final_score)
-signal food_spawned(position)
-signal snake_moved(position)
-signal snake_grew(position)
+const ConfigData = preload("res://autoload/config.gd")
+
+signal score_updated(new_score: int)
+signal game_over(final_score: int)
+signal food_spawned(position: Vector2)
+signal snake_moved(position: Vector2)
+signal snake_grew(position: Vector2)
 
 const Snake = preload("res://scenes/snake/snake.tscn")
 const Food = preload("res://scenes/food/food.tscn")
@@ -47,7 +49,7 @@ func start_game() -> void:
 	snake = Snake.instantiate()
 	game_world.add_child(snake)
 	@warning_ignore("integer_division")
-	snake.position = Vector2(Config.GRID_WIDTH/2, Config.GRID_HEIGHT/2) * Config.GRID_SIZE
+	snake.position = Vector2(ConfigData.GRID_WIDTH / 2, ConfigData.GRID_HEIGHT / 2) * ConfigData.GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
 	snake.died.connect(_on_snake_died)
@@ -74,13 +76,13 @@ func _physics_process(delta: float) -> void:
 		snake.move()
 
 func is_position_occupied(pos: Vector2) -> bool:
-	var grid_pos := pos / Config.GRID_SIZE
+	var grid_pos := pos / ConfigData.GRID_SIZE
 	
-	if snake and (snake.position / Config.GRID_SIZE) == grid_pos:
+	if snake and (snake.position / ConfigData.GRID_SIZE) == grid_pos:
 		return true
 	
 	for segment in tail_segments:
-		if (segment.position / Config.GRID_SIZE) == grid_pos:
+		if (segment.position / ConfigData.GRID_SIZE) == grid_pos:
 			return true
 	
 	return false
@@ -94,14 +96,14 @@ func spawn_food() -> void:
 	var y := 0
 	
 	while not valid_position:
-		x = randi_range(0, Config.GRID_WIDTH - 2)
-		y = randi_range(0, Config.GRID_HEIGHT - 2)
-		var test_pos := Vector2(x, y) * Config.GRID_SIZE
+		x = randi_range(0, ConfigData.GRID_WIDTH - 1)
+		y = randi_range(0, ConfigData.GRID_HEIGHT - 1)
+		var test_pos := Vector2(x, y) * ConfigData.GRID_SIZE
 		valid_position = not is_position_occupied(test_pos)
 	
 	food = Food.instantiate()
 	game_world.add_child(food)
-	food.position = Vector2(x, y) * Config.GRID_SIZE
+	food.position = Vector2(x, y) * ConfigData.GRID_SIZE
 	food_spawned.emit(food.position)
 
 func _update_game_speed() -> void:
@@ -111,7 +113,7 @@ func _update_game_speed() -> void:
 		MIN_TIMER_WAIT
 	)
 
-func _on_snake_moved(new_position) -> void:
+func _on_snake_moved(new_position: Vector2) -> void:
 	if game_over_state:
 		return
 	
@@ -141,7 +143,7 @@ func _on_snake_grew() -> void:
 	AudioManager.play_eat()
 	
 	var segment := ColorRect.new()
-	segment.size = Vector2(Config.GRID_SIZE, Config.GRID_SIZE)
+	segment.size = Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE)
 	
 	var base_color := Color(0.0862745, 0.741176, 0.0862745)
 	var segment_count := tail_segments.size()
@@ -243,5 +245,5 @@ func _create_controls_tutorial() -> void:
 	get_parent().add_child(tutorial)
 
 	@warning_ignore("integer_division")
-	tutorial.position = Vector2(Config.GRID_WIDTH * Config.GRID_SIZE / 2.0, Config.GRID_HEIGHT * Config.GRID_SIZE / 2.0)
+	tutorial.position = Vector2(ConfigData.GRID_WIDTH * ConfigData.GRID_SIZE / 2.0, ConfigData.GRID_HEIGHT * ConfigData.GRID_SIZE / 2.0)
 	tutorial.position -= tutorial.size / 2
