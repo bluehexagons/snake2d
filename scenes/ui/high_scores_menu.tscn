@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://bmg65xy5c6ubo"]
+[gd_scene format=3 uid="uid://bmg65xy5c6ubo"]
 
 [ext_resource type="Script" uid="uid://ux4byctytxd7" path="res://scenes/ui/high_scores_menu.gd" id="1_abcde"]
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="2_theme"]
 
-[node name="HighScoresMenu" type="CenterContainer"]
+[node name="HighScoresMenu" type="CenterContainer" unique_id=1238808554]
 process_mode = 2
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,52 +13,52 @@ grow_vertical = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_abcde")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=334061255]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=992076047]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 32
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=71785743]
 layout_mode = 2
 focus_mode = 2
 
-[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=748515834]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
 text = "HIGH SCORES"
 horizontal_alignment = 1
 
-[node name="ScoresContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ScoresContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=463625250]
 custom_minimum_size = Vector2(300, 200)
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScoresContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScoresContainer" unique_id=991681394]
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="ScoresList" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScoresContainer/ScrollContainer"]
+[node name="ScoresList" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScoresContainer/ScrollContainer" unique_id=1908229226]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=2057911513]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ScoresContainer")
 text = "Back to Menu"
 
-[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=965546426]
 layout_mode = 2
 alignment = 1
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints"]
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=1306496987]
 layout_mode = 2
 theme_type_variation = &"HintLabel"
 text = "[A] Select   [B] Back"

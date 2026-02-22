@@ -1,11 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://snakescene"]
+[gd_scene format=3 uid="uid://snakescene"]
 
 [ext_resource type="Script" uid="uid://b6r2we1eq5t4c" path="res://scenes/snake/snake.gd" id="1_8v03p"]
 
-[node name="Snake" type="Node2D"]
+[node name="Snake" type="Node2D" unique_id=700757401]
 script = ExtResource("1_8v03p")
 
-[node name="Head" type="ColorRect" parent="."]
+[node name="Head" type="ColorRect" parent="." unique_id=1609450893]
 offset_right = 32.0
 offset_bottom = 32.0
 color = Color(0.0509804, 0.521569, 0.0509804, 1)

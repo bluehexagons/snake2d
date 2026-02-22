@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://pausemenu"]
+[gd_scene format=3 uid="uid://pausemenu"]
 
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="1_theme"]
 
-[node name="PauseMenu" type="CenterContainer"]
+[node name="PauseMenu" type="CenterContainer" unique_id=1410852260]
 process_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,27 +11,27 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_theme")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1180864918]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=1913092680]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 32
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1793557719]
 layout_mode = 2
 focus_mode = 2
 
-[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=2001933904]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
 text = "PAUSED"
 horizontal_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ResumeButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=995427112]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
@@ -39,7 +39,7 @@ focus_neighbor_top = NodePath("../QuitButton")
 focus_neighbor_bottom = NodePath("../QuitButton")
 text = "Resume"
 
-[node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=2047791310]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
@@ -48,11 +48,11 @@ focus_neighbor_bottom = NodePath("../ResumeButton")
 theme_type_variation = &"QuitButton"
 text = "Quit to Menu"
 
-[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=394879365]
 layout_mode = 2
 alignment = 1
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints"]
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=1416937241]
 layout_mode = 2
 theme_type_variation = &"HintLabel"
 text = "[A] Select   [B] Back"

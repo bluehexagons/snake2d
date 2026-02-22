@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://bj6w0rdbd1g4b"]
+[gd_scene format=3 uid="uid://bj6w0rdbd1g4b"]
 
 [ext_resource type="Script" uid="uid://ckpcnsqsf6mel" path="res://scenes/ui/credits_screen.gd" id="1_credits"]
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="2_theme"]
 
-[node name="CreditsScreen" type="CenterContainer"]
+[node name="CreditsScreen" type="CenterContainer" unique_id=154645991]
 process_mode = 2
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,28 +13,28 @@ grow_vertical = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_credits")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1502238797]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=1208349414]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 32
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=150770226]
 layout_mode = 2
 focus_mode = 2
 theme_override_constants/separation = 24
 
-[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=85532416]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
 text = "CREDITS"
 horizontal_alignment = 1
 
-[node name="CreditsRichText" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="CreditsRichText" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=653768451]
 custom_minimum_size = Vector2(300, 200)
 layout_mode = 2
 theme_override_colors/default_color = Color(0.85098, 0.847059, 0.843137, 1)
@@ -55,7 +55,7 @@ Averia Sans Libre
 Version: 1.1[/center]"
 fit_content = true
 
-[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1149227835]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
@@ -65,11 +65,11 @@ focus_next = NodePath(".")
 focus_previous = NodePath(".")
 text = "Back to Menu"
 
-[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1217405360]
 layout_mode = 2
 alignment = 1
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints"]
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=1110699030]
 layout_mode = 2
 theme_type_variation = &"HintLabel"
 text = "[A] Select   [B] Back"

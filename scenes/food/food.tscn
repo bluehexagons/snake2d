@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://foodscene"]
 
-[node name="Food" type="Node2D"]
+[node name="Food" type="Node2D" unique_id=810355454]
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1087297714]
 offset_right = 32.0
 offset_bottom = 32.0
 color = Color(0.854902, 0.14902, 0.14902, 1)
