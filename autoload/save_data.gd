@@ -1,30 +1,53 @@
 extends RefCounted
 
 const ConfigData = preload("res://autoload/config.gd")
+const SAVE_VERSION := 1
 
 static func load_high_scores() -> Array[int]:
 	if not FileAccess.file_exists(ConfigData.HIGHSCORE_FILE):
 		return []
-
+	
 	var file := FileAccess.open(ConfigData.HIGHSCORE_FILE, FileAccess.READ)
 	if not file:
 		return []
-
-	var loaded_scores = file.get_var()
-	if loaded_scores is not Array:
-		return []
-
+	
+	var loaded = file.get_var()
 	var parsed_scores: Array[int] = []
-	for value in loaded_scores:
-		if value is int and value > 0:
-			parsed_scores.append(value)
-
+	
+	if loaded is Array:
+		# Old format (version 0) - direct array
+		for value in loaded:
+			if value is int and value > 0:
+				parsed_scores.append(value)
+	elif loaded is Dictionary and loaded.has("version"):
+		# New format with versioning
+		var version = loaded.get("version", 0)
+		match version:
+			1:
+				# Current version format
+				var scores = loaded.get("scores", [])
+				if scores is Array:
+					for value in scores:
+						if value is int and value > 0:
+							parsed_scores.append(value)
+			_:
+				# Unknown future version, return empty
+				return []
+	else:
+		# Unknown format
+		return []
+	
 	return sanitize_high_scores(parsed_scores)
 
 static func save_high_scores(scores: Array[int]) -> void:
+	var sanitized = sanitize_high_scores(scores)
+	var save_data = {
+		"version": SAVE_VERSION,
+		"scores": sanitized
+	}
 	var file := FileAccess.open(ConfigData.HIGHSCORE_FILE, FileAccess.WRITE)
 	if file:
-		file.store_var(sanitize_high_scores(scores))
+		file.store_var(save_data)
 
 static func sanitize_high_scores(scores: Array[int]) -> Array[int]:
 	var cleaned_scores: Array[int] = []
