@@ -1,25 +1,25 @@
 extends RefCounted
 
-const GRID_SIZE := 32
-const GRID_WIDTH := 23
-const GRID_HEIGHT := 18
+@export var GRID_SIZE: int = 32
+@export var GRID_WIDTH: int = 23
+@export var GRID_HEIGHT: int = 18
 
-const MAX_HIGH_SCORES := 100
-const STARTING_SPEED := 7.0
-const SPEED_INCREMENT := 0.5
-const MAX_SPEED := 20.0
+@export var MAX_HIGH_SCORES: int = 100
+@export var STARTING_SPEED: float = 7.0
+@export var SPEED_INCREMENT: float = 0.5
+@export var MAX_SPEED: float = 20.0
 
-const CAMERA_LOOK_AHEAD := 3.0
-const CAMERA_SMOOTHING := 0.115
-const CENTER_PULL_WEIGHT := 0.4
-const FOOD_ATTRACTION_WEIGHT := 0.5
-const LOOK_AHEAD_WEIGHT := 0.66
-const SNAKE_CENTER_WEIGHT := 0.3
-const CAMERA_DAMPING := 0.9
-const CAMERA_ACCELERATION := 0.02
+@export var CAMERA_LOOK_AHEAD: float = 3.0
+@export var CAMERA_SMOOTHING: float = 0.115
+@export var CENTER_PULL_WEIGHT: float = 0.4
+@export var FOOD_ATTRACTION_WEIGHT: float = 0.5
+@export var LOOK_AHEAD_WEIGHT: float = 0.66
+@export var SNAKE_CENTER_WEIGHT: float = 0.3
+@export var CAMERA_DAMPING: float = 0.9
+@export var CAMERA_ACCELERATION: float = 0.02
 
-const BASE_FREQUENCY := 420.0
-const AUDIO_HARMONICS := 8
+@export var BASE_FREQUENCY: float = 420.0
+@export var AUDIO_HARMONICS: int = 8
 
 const HIGHSCORE_FILE := "user://highscore.dat"
 const SETTINGS_FILE := "user://settings.dat"

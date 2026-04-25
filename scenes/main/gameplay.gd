@@ -16,10 +16,12 @@ const ControlsTutorial = preload("res://scenes/main/controls_tutorial.tscn")
 const BASE_TIMER_WAIT := 0.2
 const MIN_TIMER_WAIT := 0.05
 const SPEED_INCREASE_PER_SEGMENT := 0.005
+const TAIL_SEGMENT_POOL_SIZE := 50  # Pre-allocate tail segments
 
 var snake: Node2D
 var food: Node2D
 var tail_segments: Array[ColorRect] = []
+var tail_segment_pool: Array[ColorRect] = []  # Pool of reusable segments
 var tail_positions: Array[Vector2] = []
 var score := 0
 var game_over_state := false
@@ -37,8 +39,11 @@ func start_game() -> void:
 	score = 0
 	score_updated.emit(score)
 	
+	# Return tail segments to pool instead of freeing them
 	for segment in tail_segments:
-		segment.queue_free()
+		if segment:
+			segment.hide()
+			tail_segment_pool.append(segment)
 	tail_segments.clear()
 	tail_positions.clear()
 	
@@ -48,13 +53,12 @@ func start_game() -> void:
 		snake.queue_free()
 	snake = Snake.instantiate()
 	game_world.add_child(snake)
-	@warning_ignore("integer_division")
-	snake.position = Vector2(ConfigData.GRID_WIDTH / 2, ConfigData.GRID_HEIGHT / 2) * ConfigData.GRID_SIZE
+	snake.position = Vector2(float(ConfigData.GRID_WIDTH) / 2.0, float(ConfigData.GRID_HEIGHT) / 2.0) * ConfigData.GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
 	snake.died.connect(_on_snake_died)
 	snake.first_move.connect(_on_snake_first_move)
-
+	
 	tail_positions.insert(0, snake.position)
 	
 	spawn_food()
@@ -65,7 +69,7 @@ func start_game() -> void:
 	AudioManager.reset_pitch()
 
 func _physics_process(delta: float) -> void:
-	if game_over_state or get_tree().paused:
+	if game_over_state or get_tree().is_paused():
 		return
 		
 	time_since_move += delta
@@ -142,7 +146,13 @@ func _on_snake_moved(new_position: Vector2) -> void:
 func _on_snake_grew() -> void:
 	AudioManager.play_eat()
 	
-	var segment := ColorRect.new()
+	# Get segment from pool or create new one if pool is empty
+	var segment: ColorRect
+	if tail_segment_pool.size() > 0:
+		segment = tail_segment_pool.pop_back()
+	else:
+		segment = ColorRect.new()
+	
 	segment.size = Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE)
 	
 	var base_color := Color(0.0862745, 0.741176, 0.0862745)
@@ -162,6 +172,7 @@ func _on_snake_grew() -> void:
 		segment.color = new_color
 	
 	segment.position = food.position
+	segment.show()  # Make sure it's visible
 	
 	game_world.add_child(segment)
 	tail_segments.append(segment)
@@ -244,6 +255,5 @@ func _create_controls_tutorial() -> void:
 
 	get_parent().add_child(tutorial)
 
-	@warning_ignore("integer_division")
-	tutorial.position = Vector2(ConfigData.GRID_WIDTH * ConfigData.GRID_SIZE / 2.0, ConfigData.GRID_HEIGHT * ConfigData.GRID_SIZE / 2.0)
+	tutorial.position = Vector2(float(ConfigData.GRID_WIDTH) * ConfigData.GRID_SIZE / 2.0, float(ConfigData.GRID_HEIGHT) * ConfigData.GRID_SIZE / 2.0)
 	tutorial.position -= tutorial.size / 2
