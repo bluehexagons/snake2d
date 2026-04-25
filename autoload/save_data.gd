@@ -15,26 +15,21 @@ static func load_high_scores() -> Array[int]:
 	var parsed_scores: Array[int] = []
 	
 	if loaded is Array:
-		# Old format (version 0) - direct array
 		for value in loaded:
 			if value is int and value > 0:
 				parsed_scores.append(value)
 	elif loaded is Dictionary and loaded.has("version"):
-		# New format with versioning
 		var version = loaded.get("version", 0)
 		match version:
 			1:
-				# Current version format
 				var scores = loaded.get("scores", [])
 				if scores is Array:
 					for value in scores:
 						if value is int and value > 0:
 							parsed_scores.append(value)
 			_:
-				# Unknown future version, return empty
 				return []
 	else:
-		# Unknown format
 		return []
 	
 	return sanitize_high_scores(parsed_scores)
@@ -54,9 +49,9 @@ static func sanitize_high_scores(scores: Array[int]) -> Array[int]:
 	for score in scores:
 		if score > 0:
 			cleaned_scores.append(score)
-
+	
 	cleaned_scores.sort_custom(func(a: int, b: int): return a > b)
 	if cleaned_scores.size() > ConfigData.MAX_HIGH_SCORES:
 		cleaned_scores.resize(ConfigData.MAX_HIGH_SCORES)
-
+	
 	return cleaned_scores

@@ -43,12 +43,10 @@ func _physics_process(_delta: float) -> void:
 		snake_center * ConfigData.SNAKE_CENTER_WEIGHT
 	) / (ConfigData.LOOK_AHEAD_WEIGHT + ConfigData.CENTER_PULL_WEIGHT + ConfigData.FOOD_ATTRACTION_WEIGHT + ConfigData.SNAKE_CENTER_WEIGHT)
 	
-	# Smooth acceleration using cubic easing
 	var t := ConfigData.CAMERA_ACCELERATION
 	t = t * t * (3.0 - 2.0 * t)
 	var desired_velocity := (new_target - target) * t
 	
-	# Apply damping to prevent oscillation
 	velocity = velocity * ConfigData.CAMERA_DAMPING + desired_velocity
 	target += velocity
 

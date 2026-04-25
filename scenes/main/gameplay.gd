@@ -16,12 +16,12 @@ const ControlsTutorial = preload("res://scenes/main/controls_tutorial.tscn")
 const BASE_TIMER_WAIT := 0.2
 const MIN_TIMER_WAIT := 0.05
 const SPEED_INCREASE_PER_SEGMENT := 0.005
-const TAIL_SEGMENT_POOL_SIZE := 50  # Pre-allocate tail segments
+const TAIL_SEGMENT_POOL_SIZE := 50
 
 var snake: Node2D
 var food: Node2D
 var tail_segments: Array[ColorRect] = []
-var tail_segment_pool: Array[ColorRect] = []  # Pool of reusable segments
+var tail_segment_pool: Array[ColorRect] = []
 var tail_positions: Array[Vector2] = []
 var score := 0
 var game_over_state := false
@@ -39,7 +39,6 @@ func start_game() -> void:
 	score = 0
 	score_updated.emit(score)
 	
-	# Return tail segments to pool instead of freeing them
 	for segment in tail_segments:
 		if segment:
 			segment.hide()
@@ -146,7 +145,6 @@ func _on_snake_moved(new_position: Vector2) -> void:
 func _on_snake_grew() -> void:
 	AudioManager.play_eat()
 	
-	# Get segment from pool or create new one if pool is empty
 	var segment: ColorRect
 	if tail_segment_pool.size() > 0:
 		segment = tail_segment_pool.pop_back()
@@ -172,7 +170,7 @@ func _on_snake_grew() -> void:
 		segment.color = new_color
 	
 	segment.position = food.position
-	segment.show()  # Make sure it's visible
+	segment.show()
 	
 	game_world.add_child(segment)
 	tail_segments.append(segment)

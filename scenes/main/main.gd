@@ -19,8 +19,8 @@ var is_mobile := false
 @onready var game_over_score_label: Label = $UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreLabel
 
 @onready var game_world: Node2D = %GameWorld
-@onready var gameplay: Node = %GameManager  # Reference to Gameplay scene
-@onready var game_manager: Node = $/root/GameManager  # Reference to GameManager autoload
+@onready var gameplay: Node = %GameManager
+@onready var game_manager: Node = $/root/GameManager
 @onready var play_area_background: Panel = $GameLayer/GameViewport/GameWorld/PlayArea/Background
 @onready var camera_node: Camera2D = %Camera2D
 
@@ -44,16 +44,13 @@ func _ready() -> void:
 	GAME_WIDTH = ConfigData.get_game_width()
 	GAME_HEIGHT = ConfigData.get_game_height()
 	
-	# Initialize GameManager autoload if it doesn't exist
 	if not GameManager.get_singleton():
 		var game_manager_instance = GameManager.new()
 		add_child(game_manager_instance)
 		game_manager_instance.name = "GameManager"
 	
-	# Get the GameManager singleton
 	game_manager = GameManager.get_singleton()
 	
-	# Set up dependencies for GameManager
 	game_manager.set_gameplay(gameplay)
 	game_manager.set_save_data_util(SaveDataUtil)
 	game_manager.set_config(ConfigData)
@@ -120,7 +117,6 @@ func _ready() -> void:
 	gameover_quit.pressed.connect(_on_quit_to_menu_pressed)
 	gameover_quit.button_down.connect(AudioManager.play_click)
 	
-	# Connect to GameManager signals
 	game_manager.game_started.connect(_on_game_started)
 	game_manager.game_paused.connect(_on_game_paused)
 	game_manager.game_resumed.connect(_on_game_resumed)
