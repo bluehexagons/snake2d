@@ -24,6 +24,26 @@ A Simple Snake Game is a simple snake game in which you simply snake.
 - Full controller support with UI navigation
 - Sound toggle option
 
+### Building the Game
+
+The game can be built for different platforms using the provided build script.
+
+#### Requirements
+- Godot Engine (version 4.6 or later) installed and available in your PATH
+
+#### Usage
+```bash
+# Build all platforms (Web, Windows, Linux)
+./build.sh
+
+# Build a specific platform
+./build.sh web
+./build.sh windows
+./build.sh linux
+```
+
+The exported files will be placed in the `out/` directory.
+
 ### Technical Details
 
 - Audio engine supporting multiple types of waveforms (sin, square, saw)
