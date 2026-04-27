@@ -28,9 +28,9 @@ jobs:
     - name: Create Release Archives
       run: |
         mkdir -p dist
-        (cd out/html && zip -r ../dist/snake-web.zip .)
-        (cd out/win64 && zip -r ../dist/snake-windows.zip .)
-        (cd out/linux64 && zip -r ../dist/snake-linux.zip .)
+        (cd out/html && zip -r ../../dist/snake-web.zip .)
+        (cd out/win64 && zip -r ../../dist/snake-windows.zip .)
+        (cd out/linux64 && zip -r ../../dist/snake-linux.zip .)
 
     - name: Create Release
       id: create_release
