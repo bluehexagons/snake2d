@@ -8,8 +8,9 @@ PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Building project in: $PROJECT_DIR"
 
 # Check if godot command is available
-if ! command -v godot &> /dev/null; then
-    echo "Error: godot command not found. Please ensure Godot is installed and in your PATH."
+GODOT_BIN="${GODOT_BIN:-godot}"
+if ! command -v "$GODOT_BIN" &> /dev/null; then
+    echo "Error: $GODOT_BIN command not found. Please ensure Godot is installed and in your PATH."
     exit 1
 fi
 
@@ -26,21 +27,21 @@ PLATFORM=${1:-all}
 case "$PLATFORM" in
     web|Web)
         echo "Exporting Web version..."
-        godot --path "$PROJECT_DIR" --export-preset "Web"
+        "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "Web" "$PROJECT_DIR/out/html/index.html"
         ;;
     windows|Windows\ Desktop)
         echo "Exporting Windows Desktop version..."
-        godot --path "$PROJECT_DIR" --export-preset "Windows Desktop"
+        "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "Windows Desktop" "$PROJECT_DIR/out/win64/snake.exe"
         ;;
     linux|Linux)
         echo "Exporting Linux version..."
-        godot --path "$PROJECT_DIR" --export-preset "Linux"
+        "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "Linux" "$PROJECT_DIR/out/linux64/snake.x86_64"
         ;;
     all)
         echo "Exporting all platforms..."
-        godot --path "$PROJECT_DIR" --export-preset "Web"
-        godot --path "$PROJECT_DIR" --export-preset "Windows Desktop"
-        godot --path "$PROJECT_DIR" --export-preset "Linux"
+        "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "Web" "$PROJECT_DIR/out/html/index.html"
+        "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "Windows Desktop" "$PROJECT_DIR/out/win64/snake.exe"
+        "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "Linux" "$PROJECT_DIR/out/linux64/snake.x86_64"
         ;;
     *)
         echo "Error: Unknown platform '$PLATFORM'"

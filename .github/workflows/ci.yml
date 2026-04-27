@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Godot
+      uses: chickensoft-games/setup-godot@v2
+      with:
+        version: 4.6.2
+        include-templates: true
+
+    - name: Build
+      env:
+        GODOT_BIN: godot4
+      run: |
+        ./build.sh all
+
+    - name: Create Build Archives
+      run: |
+        mkdir -p dist
+        zip -r dist/snake-web.zip out/html/
+        zip -r dist/snake-windows.zip out/win64/
+        zip -r dist/snake-linux.zip out/linux64/
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: godot-build
+        path: dist/
