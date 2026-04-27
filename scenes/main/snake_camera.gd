@@ -6,7 +6,7 @@ var velocity := Vector2.ZERO
 var target := Vector2.ZERO
 var game_width := 0
 var game_height := 0
-var game_manager: Gameplay = null
+var game_manager: Node = null
 
 func _ready() -> void:
 	game_width = ConfigData.get_game_width()
@@ -31,12 +31,12 @@ func _physics_process(_delta: float) -> void:
 	# - Food attraction: draws camera toward food
 	# - Snake center: focuses on the snake's body mass center
 	var center := Vector2(float(game_width)/2.0, float(game_height)/2.0)
-	var snake_position := game_manager.get_snake_position()
-	var look_ahead := snake_position + (game_manager.get_snake_direction() * 32 * ConfigData.CAMERA_LOOK_AHEAD)
-	var food_pos := game_manager.get_food_position()
-	var snake_center := game_manager.get_weighted_snake_center()
+	var snake_position: Vector2 = game_manager.get_snake_position()
+	var look_ahead: Vector2 = snake_position + (game_manager.get_snake_direction() * 32 * ConfigData.CAMERA_LOOK_AHEAD)
+	var food_pos: Vector2 = game_manager.get_food_position()
+	var snake_center: Vector2 = game_manager.get_weighted_snake_center()
 	
-	var new_target := (
+	var new_target: Vector2 = (
 		look_ahead * ConfigData.LOOK_AHEAD_WEIGHT +
 		center * ConfigData.CENTER_PULL_WEIGHT +
 		food_pos * ConfigData.FOOD_ATTRACTION_WEIGHT +
@@ -45,7 +45,7 @@ func _physics_process(_delta: float) -> void:
 	
 	var t := ConfigData.CAMERA_ACCELERATION
 	t = t * t * (3.0 - 2.0 * t)
-	var desired_velocity := (new_target - target) * t
+	var desired_velocity: Vector2 = (new_target - target) * t
 	
 	velocity = velocity * ConfigData.CAMERA_DAMPING + desired_velocity
 	target += velocity

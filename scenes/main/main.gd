@@ -2,7 +2,7 @@ extends Control
 
 const ConfigData = preload("res://autoload/config.gd")
 const SaveDataUtil = preload("res://autoload/save_data.gd")
-const GameManager = preload("res://autoload/game_manager.gd")
+const GameManagerScript = preload("res://autoload/game_manager.gd")
 
 var GAME_WIDTH: int
 var GAME_HEIGHT: int
@@ -20,7 +20,7 @@ var is_mobile := false
 
 @onready var game_world: Node2D = %GameWorld
 @onready var gameplay: Node = %GameManager
-@onready var game_manager: Node = $/root/GameManager
+@onready var game_manager: Node = get_node_or_null("/root/GameManager")
 @onready var play_area_background: Panel = $GameLayer/GameViewport/GameWorld/PlayArea/Background
 @onready var camera_node: Camera2D = %Camera2D
 
@@ -44,12 +44,11 @@ func _ready() -> void:
 	GAME_WIDTH = ConfigData.get_game_width()
 	GAME_HEIGHT = ConfigData.get_game_height()
 	
-	if not GameManager.get_singleton():
-		var game_manager_instance = GameManager.new()
+	if not game_manager:
+		var game_manager_instance = GameManagerScript.new()
 		add_child(game_manager_instance)
 		game_manager_instance.name = "GameManager"
-	
-	game_manager = GameManager.get_singleton()
+		game_manager = game_manager_instance
 	
 	game_manager.set_gameplay(gameplay)
 	game_manager.set_save_data_util(SaveDataUtil)
@@ -161,6 +160,7 @@ func _on_start_pressed() -> void:
 func _on_game_started() -> void:
 	# Called when game starts via GameManager
 	in_game = true
+	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
 	ui_background.visible = false
 	score_display_label.visible = true
 	game_world.visible = true
@@ -279,7 +279,7 @@ func _on_high_scores_back_pressed() -> void:
 	_update_menu_focus()
 
 func reset_high_scores() -> void:
-	SaveDataUtil.reset_high_scores()
+	SaveDataUtil.save_high_scores([])
 	high_scores = SaveDataUtil.load_high_scores()
 
 func _on_score_updated(new_score: int) -> void:
