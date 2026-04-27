@@ -61,7 +61,7 @@ func set_paused(paused_state: bool) -> void:
 	if paused_state == currently_paused:
 		return
 
-	get_tree().set_pause(paused_state)
+	get_tree().paused = paused_state
 	
 	if main_node:
 		var game_manager = main_node.get("game_manager")
@@ -95,7 +95,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if current_state == UIState.GAME_OVER:
 			if main_node and main_node.has_method("_cleanup_game"):
 				main_node._cleanup_game()
-			get_tree().set_pause(true)
+			get_tree().paused = true
 			change_state(UIState.MAIN_MENU)
 			get_viewport().set_input_as_handled()
 			return

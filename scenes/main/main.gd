@@ -124,12 +124,14 @@ func _ready() -> void:
 	game_manager.score_updated.connect(_on_score_updated)
 	game_manager.high_scores_updated.connect(_on_high_scores_updated)
 	
-	get_tree().set_pause(true)
+	get_tree().paused = true
 	ui_background.visible = false
 	main_menu.visible = true
 	options_menu.visible = false
 	score_display_label.visible = false
 	game_world.visible = false
+	if not is_mobile:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	
 	for button in _get_all_buttons():
 		button.focus_entered.connect(AudioManager.play_focus)
@@ -162,7 +164,7 @@ func _on_game_started() -> void:
 	ui_background.visible = false
 	score_display_label.visible = true
 	game_world.visible = true
-	get_tree().set_pause(false)
+	get_tree().paused = false
 	if not is_mobile:
 		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
@@ -193,7 +195,9 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 			ui_background.visible = false
 			score_display_label.visible = false
 			game_world.visible = false
-			get_tree().set_pause(true)
+			get_tree().paused = true
+			if not is_mobile:
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		ui_state_manager.UIState.PAUSED:
 			ui_background.visible = true
 		ui_state_manager.UIState.GAME_OVER:
