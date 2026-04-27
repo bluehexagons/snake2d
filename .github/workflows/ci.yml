@@ -24,8 +24,6 @@ jobs:
         include-templates: true
 
     - name: Build
-      env:
-        GODOT_BIN: godot4
       run: |
         ./build.sh all
 

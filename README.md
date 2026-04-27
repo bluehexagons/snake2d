@@ -30,6 +30,7 @@ The game can be built for different platforms using the provided build script.
 
 #### Requirements
 - Godot Engine (version 4.6 or later) installed and available in your PATH
+- The build script auto-detects `godot`, `godot4`, and the `GODOT`/`GODOT4` paths exported by `setup-godot`
 
 #### Usage
 ```bash

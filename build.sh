@@ -7,12 +7,37 @@
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Building project in: $PROJECT_DIR"
 
-# Check if godot command is available
-GODOT_BIN="${GODOT_BIN:-godot}"
-if ! command -v "$GODOT_BIN" &> /dev/null; then
-    echo "Error: $GODOT_BIN command not found. Please ensure Godot is installed and in your PATH."
+# Resolve the Godot executable from explicit configuration first, then common CI defaults.
+resolve_godot_bin() {
+    local requested_bin="${GODOT_BIN:-}"
+    local candidate
+
+    if [[ -n "$requested_bin" ]]; then
+        if command -v "$requested_bin" &> /dev/null; then
+            printf '%s\n' "$requested_bin"
+            return 0
+        fi
+
+        echo "Error: $requested_bin command not found. Please ensure Godot is installed and in your PATH."
+        return 1
+    fi
+
+    for candidate in "${GODOT:-}" "${GODOT4:-}" godot godot4; do
+        if [[ -n "$candidate" ]] && command -v "$candidate" &> /dev/null; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    echo "Error: Could not find a Godot executable. Tried GODOT_BIN, GODOT, GODOT4, godot, and godot4."
+    return 1
+}
+
+if ! GODOT_BIN="$(resolve_godot_bin)"; then
     exit 1
 fi
+
+echo "Using Godot executable: $GODOT_BIN"
 
 # Function to show usage
 show_usage() {
