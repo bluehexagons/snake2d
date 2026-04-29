@@ -171,8 +171,9 @@ func _on_snake_grew() -> void:
 	
 	segment.position = food.position
 	segment.show()
-	
-	game_world.add_child(segment)
+
+	if segment.get_parent() == null:
+		game_world.add_child(segment)
 	tail_segments.append(segment)
 	
 	_update_game_speed()
@@ -217,8 +218,11 @@ func cleanup() -> void:
 	for segment in tail_segments:
 		segment.queue_free()
 	tail_segments.clear()
+	for segment in tail_segment_pool:
+		segment.queue_free()
+	tail_segment_pool.clear()
 	tail_positions.clear()
-	
+
 	game_over_state = false
 
 func get_snake_position() -> Vector2:

@@ -71,10 +71,6 @@ func _input(event: InputEvent) -> void:
 			waiting_for_input = false
 			first_move.emit()
 
-func _process(_delta) -> void:
-	# Process method kept for potential future use, but input handling moved to _input
-	pass
-
 func move() -> void:
 	if waiting_for_input:
 		can_move = true
