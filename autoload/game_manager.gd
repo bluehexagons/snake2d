@@ -77,7 +77,7 @@ func end_game(final_score: int) -> void:
 			score_added = true
 			break
 	
-	if not score_added and high_scores.size() < config.get_max_high_scores():
+	if not score_added and high_scores.size() < config.MAX_HIGH_SCORES:
 		high_scores.append(final_score)
 	
 	# Sanitize and save high scores
@@ -114,6 +114,9 @@ func get_high_scores() -> Array[int]:
 # Setter methods for dependency injection
 func set_gameplay(gameplay_node: Node) -> void:
 	gameplay = gameplay_node
+	if gameplay:
+		gameplay.game_over.connect(end_game)
+		gameplay.score_updated.connect(_on_gameplay_score_updated)
 
 func set_save_data_util(save_data: RefCounted) -> void:
 	save_data_util = save_data
@@ -123,3 +126,13 @@ func set_config(config_node: RefCounted) -> void:
 
 func set_ui_state_manager(ui_manager: Node) -> void:
 	ui_state_manager = ui_manager
+
+func set_paused(paused: bool) -> void:
+	if paused:
+		pause_game()
+	else:
+		resume_game()
+
+func _on_gameplay_score_updated(new_score: int) -> void:
+	current_score = new_score
+	score_updated.emit(current_score)

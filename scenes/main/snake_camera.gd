@@ -22,7 +22,7 @@ func _process(delta: float) -> void:
 		position = position.lerp(target, weight)
 
 func _physics_process(_delta: float) -> void:
-	if get_tree().is_paused():
+	if get_tree().is_paused() or game_manager == null:
 		return
 
 	# Calculate camera target based on weighted factors:

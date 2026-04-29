@@ -25,9 +25,9 @@ var is_mobile := false
 @onready var camera_node: Camera2D = %Camera2D
 
 @onready var main_menu: CenterContainer = $UILayer/MainMenu
-@onready var options_menu: CenterContainer = $UILayer/OptionsMenu
-@onready var credits_screen: CenterContainer = $UILayer/CreditsScreen
-@onready var high_scores_menu: CenterContainer = $UILayer/HighScoresMenu
+@onready var options_menu: OptionsMenu = $UILayer/OptionsMenu
+@onready var credits_screen: CreditsScreen = $UILayer/CreditsScreen
+@onready var high_scores_menu: HighScoresMenu = $UILayer/HighScoresMenu
 @onready var pause_menu: CenterContainer = $UILayer/PauseMenu
 @onready var game_over_container: CenterContainer = $UILayer/GameOverContainer
 
@@ -54,6 +54,7 @@ func _ready() -> void:
 	game_manager.set_save_data_util(SaveDataUtil)
 	game_manager.set_config(ConfigData)
 	game_manager.set_ui_state_manager(ui_state_manager)
+	camera_node.game_manager = gameplay
 	
 	ui_state_manager.state_changed.connect(_on_ui_state_changed)
 	ui_state_manager.pause_state_changed.connect(_on_pause_state_changed)
@@ -210,7 +211,16 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 
 func _on_pause_state_changed(is_paused: bool) -> void:
 	if game_manager:
-		game_manager.set_paused(is_paused)
+		if is_paused:
+			game_manager.pause_game()
+		else:
+			game_manager.resume_game()
+
+func _cleanup_game() -> void:
+	in_game = false
+	if gameplay and gameplay.has_method("cleanup"):
+		gameplay.cleanup()
+	get_tree().paused = true
 
 func _get_all_buttons() -> Array[Button]:
 	var buttons: Array[Button] = []
@@ -248,6 +258,7 @@ func _process(_delta) -> void:
 		_toggle_pause()
 
 func _on_scores_pressed() -> void:
+	high_scores_menu.update_scores(high_scores)
 	ui_state_manager.change_state(ui_state_manager.UIState.HIGH_SCORES)
 
 func _on_options_pressed() -> void:
