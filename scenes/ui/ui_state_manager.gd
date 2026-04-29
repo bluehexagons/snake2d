@@ -20,6 +20,9 @@ var previous_state: UIState = UIState.MAIN_MENU
 var ui_elements: Dictionary[UIState, Node] = {}
 var focus_targets: Dictionary[UIState, Button] = {}
 
+const TRANSITION_DURATION := 0.18
+var _transition_tweens: Dictionary = {}
+
 var main_node: Node
 
 func _ready() -> void:
@@ -39,16 +42,60 @@ func change_state(new_state: UIState) -> void:
 	current_state = new_state
 	
 	for state in ui_elements:
-		if ui_elements[state] != null:
-			ui_elements[state].visible = false
-	
-	if ui_elements.has(current_state) and ui_elements[current_state] != null:
-		ui_elements[current_state].visible = true
+		var elem = ui_elements[state]
+		if elem == null:
+			continue
+		if state == current_state:
+			_fade_in(elem)
+		elif elem.visible:
+			_fade_out(elem)
 	
 	if focus_targets.has(current_state) and focus_targets[current_state] != null:
 		focus_targets[current_state].grab_focus()
 	
 	state_changed.emit(previous_state, current_state)
+
+func _kill_transition(elem: CanvasItem) -> void:
+	if _transition_tweens.has(elem):
+		var t: Tween = _transition_tweens[elem]
+		if t and t.is_valid():
+			t.kill()
+		_transition_tweens.erase(elem)
+
+func _fade_in(elem: CanvasItem) -> void:
+	if elem == null:
+		return
+	_kill_transition(elem)
+	elem.visible = true
+	var start_mod := elem.modulate
+	start_mod.a = 0.0
+	elem.modulate = start_mod
+	var tween := get_tree().create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.tween_property(elem, "modulate:a", 1.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if elem is Control:
+		var ctrl: Control = elem
+		var orig_pivot := ctrl.pivot_offset
+		ctrl.pivot_offset = ctrl.size * 0.5
+		ctrl.scale = Vector2(0.96, 0.96)
+		tween.parallel().tween_property(ctrl, "scale", Vector2.ONE, TRANSITION_DURATION).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_callback(func() -> void: ctrl.pivot_offset = orig_pivot)
+	_transition_tweens[elem] = tween
+
+func _fade_out(elem: CanvasItem) -> void:
+	if elem == null:
+		return
+	_kill_transition(elem)
+	var tween := get_tree().create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.tween_property(elem, "modulate:a", 0.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.tween_callback(func() -> void:
+		elem.visible = false
+		var m := elem.modulate
+		m.a = 1.0
+		elem.modulate = m
+	)
+	_transition_tweens[elem] = tween
 
 func go_back() -> void:
 	change_state(previous_state)

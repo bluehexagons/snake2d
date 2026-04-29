@@ -1,6 +1,9 @@
-[gd_scene format=3 uid="uid://foodscene"]
+[gd_scene load_steps=2 format=3 uid="uid://foodscene"]
+
+[ext_resource type="Script" path="res://scenes/food/food.gd" id="1_foodgd"]
 
 [node name="Food" type="Node2D" unique_id=810355454]
+script = ExtResource("1_foodgd")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1087297714]
 offset_right = 32.0

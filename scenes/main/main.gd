@@ -134,7 +134,9 @@ func _ready() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	
 	for button in _get_all_buttons():
-		button.focus_entered.connect(AudioManager.play_focus)
+		if not button.focus_entered.is_connected(AudioManager.play_focus):
+			button.focus_entered.connect(AudioManager.play_focus)
+		_install_button_polish(button)
 	
 	_update_menu_focus()
 	
@@ -228,19 +230,49 @@ func _cleanup_game() -> void:
 
 func _get_all_buttons() -> Array[Button]:
 	var buttons: Array[Button] = []
-	for node in main_menu_box.get_children():
-		if node is Button:
-			buttons.append(node)
-	for node in options_menu_box.get_children():
-		if node is Button:
-			buttons.append(node)
-	for node in pause_menu_box.get_children():
-		if node is Button:
-			buttons.append(node)
-	for node in game_over_menu_box.get_children():
-		if node is Button:
-			buttons.append(node)
+	var containers := [
+		main_menu_box,
+		options_menu_box,
+		credits_menu_box,
+		high_scores_menu_box,
+		pause_menu_box,
+		game_over_menu_box,
+	]
+	for container in containers:
+		if container == null:
+			continue
+		for node in container.get_children():
+			if node is Button:
+				buttons.append(node)
 	return buttons
+
+# Adds a subtle scale animation on focus/hover/press transitions for any Button.
+func _install_button_polish(btn: Button) -> void:
+	btn.pivot_offset = btn.size * 0.5
+	btn.resized.connect(func() -> void:
+		btn.pivot_offset = btn.size * 0.5
+	)
+	var animate_to := func(target_scale: Vector2, duration: float) -> void:
+		var tween := get_tree().create_tween()
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tween.tween_property(btn, "scale", target_scale, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	btn.focus_entered.connect(func() -> void: animate_to.call(Vector2(1.06, 1.06), 0.14))
+	btn.focus_exited.connect(func() -> void: animate_to.call(Vector2.ONE, 0.18))
+	btn.mouse_entered.connect(func() -> void:
+		if btn.has_focus():
+			return
+		animate_to.call(Vector2(1.04, 1.04), 0.12)
+	)
+	btn.mouse_exited.connect(func() -> void:
+		if btn.has_focus():
+			return
+		animate_to.call(Vector2.ONE, 0.16)
+	)
+	btn.button_down.connect(func() -> void: animate_to.call(Vector2(0.96, 0.96), 0.06))
+	btn.button_up.connect(func() -> void:
+		var dest := Vector2(1.06, 1.06) if btn.has_focus() else Vector2.ONE
+		animate_to.call(dest, 0.12)
+	)
 
 func _update_menu_focus() -> void:
 	var current_state = ui_state_manager.current_state
