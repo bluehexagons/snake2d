@@ -90,24 +90,28 @@ func is_position_occupied(pos: Vector2) -> bool:
 	
 	return false
 
-func spawn_food() -> void:
+func spawn_food() -> bool:
 	if food:
 		food.queue_free()
+		food = null
 	
-	var valid_position := false
-	var x := 0
-	var y := 0
-	
-	while not valid_position:
-		x = randi_range(0, ConfigData.GRID_WIDTH - 1)
-		y = randi_range(0, ConfigData.GRID_HEIGHT - 1)
-		var test_pos := Vector2(x, y) * ConfigData.GRID_SIZE
-		valid_position = not is_position_occupied(test_pos)
+	var available_positions: Array[Vector2] = []
+	for x in ConfigData.GRID_WIDTH:
+		for y in ConfigData.GRID_HEIGHT:
+			var test_pos := Vector2(x, y) * ConfigData.GRID_SIZE
+			if not is_position_occupied(test_pos):
+				available_positions.append(test_pos)
+
+	if available_positions.is_empty():
+		game_over_state = true
+		game_over.emit(score)
+		return false
 	
 	food = Food.instantiate()
 	game_world.add_child(food)
-	food.position = Vector2(x, y) * ConfigData.GRID_SIZE
+	food.position = available_positions.pick_random()
 	food_spawned.emit(food.position)
+	return true
 
 func _update_game_speed() -> void:
 	var segment_count := tail_segments.size()

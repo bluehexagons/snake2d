@@ -19,7 +19,7 @@ A Simple Snake Game is a simple snake game in which you simply snake.
   - Keyboard (Arrow keys or WASD)
   - Gamepad (D-pad or analog stick)
   - Mouse/Touch (Click/tap where you want to go)
-- Top 10 high scores system
+- Top 100 high scores system
 - Pause functionality (Space/P/Start button)
 - Full controller support with UI navigation
 - Sound toggle option
@@ -29,7 +29,7 @@ A Simple Snake Game is a simple snake game in which you simply snake.
 The game can be built for different platforms using the provided build script.
 
 #### Requirements
-- Godot Engine (version 4.6 or later) installed and available in your PATH
+- Godot Engine (version 4.6.2 or later) installed and available in your PATH
 - The build script auto-detects `godot`, `godot4`, and the `GODOT`/`GODOT4` paths exported by `setup-godot`
 
 #### Usage

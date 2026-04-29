@@ -3,14 +3,13 @@ extends Node2D
 const ConfigData = preload("res://autoload/config.gd")
 
 signal moved(new_position: Vector2)
-signal grew
-signal died
-signal first_move
+signal grew()
+signal died()
+signal first_move()
 
 @export var direction := Vector2.RIGHT
 var next_direction: Vector2 = Vector2.RIGHT
 var can_move := true
-var using_touch := false
 var waiting_for_input := true
 
 var _direction_indicator: Polygon2D
@@ -42,14 +41,7 @@ func _input(event: InputEvent) -> void:
 	var touch_dir := Vector2.ZERO
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var viewport := get_viewport()
-		var mouse_pos := viewport.get_mouse_position()
-		var screen_size := viewport.get_visible_rect().size
-		mouse_pos *= Vector2(viewport.size) / screen_size
-		var camera := get_viewport().get_camera_2d()
-		if camera:
-			mouse_pos += camera.position - Vector2(get_viewport().size / 2)
-		var to_mouse := (mouse_pos - position).normalized()
+		var to_mouse := (get_global_mouse_position() - global_position).normalized()
 		if abs(to_mouse.x) > abs(to_mouse.y):
 			touch_dir = Vector2(sign(to_mouse.x), 0)
 		else:

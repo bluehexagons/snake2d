@@ -19,7 +19,6 @@ const PITCH_RANGE := 0.95
 const PITCH_VARIATION := 0.04
 
 var audio_players: Array[AudioStreamPlayer] = []
-var generator_playbacks: Array[AudioStreamGeneratorPlayback] = []
 var next_channel_index := 0
 
 var is_muted := false
@@ -27,6 +26,13 @@ var current_pitch_momentum := 0.0
 var target_pitch_offset := 0.0
 
 func _ready() -> void:
+	load_settings()
+	_update_players()
+
+func _ensure_audio_players() -> void:
+	if not audio_players.is_empty():
+		return
+
 	for i in range(CHANNEL_COUNT):
 		var generator := AudioStreamGenerator.new()
 		generator.mix_rate = int(SAMPLE_HZ)
@@ -38,10 +44,14 @@ func _ready() -> void:
 		player.play()
 
 		audio_players.append(player)
-		generator_playbacks.append(player.get_stream_playback() as AudioStreamGeneratorPlayback)
 
-	load_settings()
 	_update_players()
+
+func _exit_tree() -> void:
+	for player in audio_players:
+		player.stop()
+		player.stream = null
+	audio_players.clear()
 
 func _update_players() -> void:
 	for player in audio_players:
@@ -109,12 +119,14 @@ func reset_pitch() -> void:
 	target_pitch_offset = 0.0
 
 func play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
-	if is_muted:
+	if is_muted or DisplayServer.get_name() == "headless":
 		return
 	_play_tone(frequency, duration, volume_db, waveform)
 
 func _play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
-	if audio_players.is_empty() or generator_playbacks.is_empty():
+	_ensure_audio_players()
+
+	if audio_players.is_empty():
 		return
 	var volume_linear := db_to_linear(volume_db)
 
@@ -127,11 +139,7 @@ func _play_tone(frequency: float, duration: float, volume_db: float, waveform: W
 
 		var playback := player.get_stream_playback() as AudioStreamGeneratorPlayback
 		if playback == null:
-			playback = generator_playbacks[channel]
-		if playback == null:
 			continue
-
-		generator_playbacks[channel] = playback
 
 		if _push_tone(playback, frequency, duration, volume_linear, waveform):
 			return
@@ -145,7 +153,7 @@ func _acquire_channel_index() -> int:
 			selected = i
 			break
 
-		var playback := generator_playbacks[i]
+		var playback := audio_players[i].get_stream_playback() as AudioStreamGeneratorPlayback
 		if playback == null:
 			continue
 
