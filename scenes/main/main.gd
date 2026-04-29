@@ -201,8 +201,12 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		ui_state_manager.UIState.PAUSED:
 			ui_background.visible = true
+			if not is_mobile:
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		ui_state_manager.UIState.GAME_OVER:
 			in_game = false
+			if not is_mobile:
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_:
 			if old_state == ui_state_manager.UIState.GAMEPLAY:
 				ui_background.visible = true

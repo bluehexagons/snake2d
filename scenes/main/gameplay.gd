@@ -52,7 +52,7 @@ func start_game() -> void:
 		snake.queue_free()
 	snake = Snake.instantiate()
 	game_world.add_child(snake)
-	snake.position = Vector2(float(ConfigData.GRID_WIDTH) / 2.0, float(ConfigData.GRID_HEIGHT) / 2.0) * ConfigData.GRID_SIZE
+	snake.position = Vector2(ConfigData.GRID_WIDTH / 2, ConfigData.GRID_HEIGHT / 2) * ConfigData.GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
 	snake.died.connect(_on_snake_died)
@@ -184,9 +184,10 @@ func _on_snake_grew() -> void:
 func _on_snake_died() -> void:
 	AudioManager.play_die()
 	AudioManager.reset_pitch()
-	
+
 	game_over_state = true
-	
+	snake.hide_indicator()
+
 	var head := snake.get_node("Head")
 	if head:
 		head.color = Color(0.8, 0.2, 0.2, 1)

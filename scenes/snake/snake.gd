@@ -13,10 +13,27 @@ var can_move := true
 var using_touch := false
 var waiting_for_input := true
 
+var _direction_indicator: Polygon2D
+
 func _ready() -> void:
 	Input.emulate_touch_from_mouse = true
 	Input.emulate_mouse_from_touch = true
 	position = position.snapped(Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE))
+
+	_direction_indicator = Polygon2D.new()
+	_direction_indicator.color = Color(0.85, 1.0, 0.4, 0.55)
+	add_child(_direction_indicator)
+	_update_direction_indicator()
+
+func _update_direction_indicator() -> void:
+	var half := ConfigData.GRID_SIZE / 2.0
+	var tip := Vector2(half, half) + next_direction * (half - 5)
+	var perp := Vector2(-next_direction.y, next_direction.x)
+	_direction_indicator.polygon = PackedVector2Array([
+		tip,
+		tip - next_direction * 7 + perp * 4,
+		tip - next_direction * 7 - perp * 4
+	])
 
 func _input(event: InputEvent) -> void:
 	if not can_move:
@@ -49,6 +66,7 @@ func _input(event: InputEvent) -> void:
 
 	if touch_dir != Vector2.ZERO and (touch_dir != -direction or waiting_for_input):
 		next_direction = touch_dir
+		_update_direction_indicator()
 		if waiting_for_input:
 			waiting_for_input = false
 			first_move.emit()
@@ -66,6 +84,7 @@ func move() -> void:
 	var new_position := position + direction * ConfigData.GRID_SIZE
 	
 	if new_position.x < 0 or new_position.x >= ConfigData.GRID_WIDTH * ConfigData.GRID_SIZE or new_position.y < 0 or new_position.y >= ConfigData.GRID_HEIGHT * ConfigData.GRID_SIZE:
+		_direction_indicator.hide()
 		died.emit()
 		return
 		
@@ -75,3 +94,6 @@ func move() -> void:
 
 func grow() -> void:
 	grew.emit()
+
+func hide_indicator() -> void:
+	_direction_indicator.hide()
