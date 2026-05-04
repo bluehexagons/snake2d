@@ -5,9 +5,6 @@ const GRID_WIDTH: int = 23
 const GRID_HEIGHT: int = 18
 
 const MAX_HIGH_SCORES: int = 100
-const STARTING_SPEED: float = 7.0
-const SPEED_INCREMENT: float = 0.5
-const MAX_SPEED: float = 20.0
 
 const CAMERA_LOOK_AHEAD: float = 3.0
 const CAMERA_SMOOTHING: float = 0.115

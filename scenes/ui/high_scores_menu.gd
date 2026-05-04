@@ -10,17 +10,19 @@ signal high_scores_closed
 const SCROLL_SPEED: float = 6.66
 
 func _ready() -> void:
-	back_button.pressed.connect(_on_back_pressed)
-	back_button.button_down.connect(AudioManager.play_click)
-	back_button.focus_entered.connect(AudioManager.play_focus)
+    back_button.pressed.connect(_on_back_pressed)
+    back_button.button_down.connect(AudioManager.play_click)
+    back_button.focus_entered.connect(AudioManager.play_focus)
+    set_process(false)
+    visibility_changed.connect(_on_visibility_changed)
+
+func _on_visibility_changed() -> void:
+    set_process(self.visible)
 
 func _process(_delta: float) -> void:
-	if not self.visible:
-		return
-
-	var scroll_input: float = Input.get_axis("ui_up", "ui_down")
-	if scroll_input != 0:
-		scroll_container.scroll_vertical += int(scroll_input * SCROLL_SPEED)
+    var scroll_input: float = Input.get_axis("ui_up", "ui_down")
+    if scroll_input != 0:
+        scroll_container.scroll_vertical += int(scroll_input * SCROLL_SPEED)
 
 func update_scores(scores: Array[int]) -> void:
 	for child in scores_list.get_children():

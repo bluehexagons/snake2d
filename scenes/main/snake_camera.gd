@@ -6,7 +6,7 @@ var velocity := Vector2.ZERO
 var target := Vector2.ZERO
 var game_width := 0
 var game_height := 0
-var game_manager: Node = null
+var gameplay: Node = null
 
 func _ready() -> void:
 	game_width = ConfigData.get_game_width()
@@ -22,7 +22,7 @@ func _process(delta: float) -> void:
 		position = position.lerp(target, weight)
 
 func _physics_process(_delta: float) -> void:
-	if get_tree().is_paused() or game_manager == null:
+	if get_tree().is_paused() or gameplay == null:
 		return
 
 	# Calculate camera target based on weighted factors:
@@ -31,10 +31,10 @@ func _physics_process(_delta: float) -> void:
 	# - Food attraction: draws camera toward food
 	# - Snake center: focuses on the snake's body mass center
 	var center := Vector2(float(game_width)/2.0, float(game_height)/2.0)
-	var snake_position: Vector2 = game_manager.get_snake_position()
-	var look_ahead: Vector2 = snake_position + (game_manager.get_snake_direction() * 32 * ConfigData.CAMERA_LOOK_AHEAD)
-	var food_pos: Vector2 = game_manager.get_food_position()
-	var snake_center: Vector2 = game_manager.get_weighted_snake_center()
+	var snake_position: Vector2 = gameplay.get_snake_position()
+	var look_ahead: Vector2 = snake_position + (gameplay.get_snake_direction() * 32 * ConfigData.CAMERA_LOOK_AHEAD)
+	var food_pos: Vector2 = gameplay.get_food_position()
+	var snake_center: Vector2 = gameplay.get_weighted_snake_center()
 	
 	var new_target: Vector2 = (
 		look_ahead * ConfigData.LOOK_AHEAD_WEIGHT +

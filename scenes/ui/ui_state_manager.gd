@@ -104,25 +104,20 @@ func get_state_name() -> String:
 	return UIState.keys()[current_state]
 
 func set_paused(paused_state: bool) -> void:
-	var currently_paused = current_state == UIState.PAUSED
-	if paused_state == currently_paused:
-		return
+    var currently_paused = current_state == UIState.PAUSED
+    if paused_state == currently_paused:
+        return
 
-	get_tree().paused = paused_state
-	
-	if main_node:
-		var game_manager = main_node.get("game_manager")
-		if game_manager and game_manager.has_method("set_paused"):
-			game_manager.set_paused(paused_state)
-	
-	if paused_state:
-		if current_state == UIState.GAMEPLAY:
-			change_state(UIState.PAUSED)
-	else:
-		if current_state == UIState.PAUSED:
-			change_state(UIState.GAMEPLAY)
-	
-	pause_state_changed.emit(paused_state)
+    get_tree().paused = paused_state
+    
+    if paused_state:
+        if current_state == UIState.GAMEPLAY:
+            change_state(UIState.PAUSED)
+    else:
+        if current_state == UIState.PAUSED:
+            change_state(UIState.GAMEPLAY)
+    
+    pause_state_changed.emit(paused_state)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

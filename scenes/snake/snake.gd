@@ -3,7 +3,7 @@ extends Node2D
 const ConfigData = preload("res://autoload/config.gd")
 
 signal moved(new_position: Vector2)
-signal grew()
+signal grew(food_position: Vector2)
 signal died()
 signal first_move()
 
@@ -19,9 +19,7 @@ var visual_prev_position: Vector2
 var _direction_indicator: Polygon2D
 
 func _ready() -> void:
-	Input.emulate_touch_from_mouse = true
-	Input.emulate_mouse_from_touch = true
-	position = position.snapped(Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE))
+    position = position.snapped(Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE))
 	logical_position = position
 	visual_prev_position = position
 
@@ -88,8 +86,8 @@ func move() -> void:
 	can_move = true
 	moved.emit(new_position)
 
-func grow() -> void:
-	grew.emit()
+func grow(food_position: Vector2) -> void:
+    grew.emit(food_position)
 
 func hide_indicator() -> void:
 	_direction_indicator.hide()

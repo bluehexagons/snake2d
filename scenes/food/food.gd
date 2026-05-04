@@ -72,9 +72,11 @@ func _play_spawn() -> void:
 # Public: gameplay calls this when the snake eats the food. The node frees itself
 # at the end of the animation. Returns the tween so callers can await it if needed.
 func eat() -> Tween:
-	if _eaten:
-		return null
-	_eaten = true
+    if _eaten:
+        var noop := create_tween()
+        noop.tween_callback(func() -> void: pass)
+        return noop
+    _eaten = true
 	# Make sure we draw beneath the snake head so it slides over us.
 	z_index = -1
 	var tween := create_tween()
