@@ -116,8 +116,8 @@ func set_paused(paused_state: bool) -> void:
 	else:
 		if current_state == UIState.PAUSED:
 			change_state(UIState.GAMEPLAY)
-    
-    pause_state_changed.emit(paused_state)
+
+	pause_state_changed.emit(paused_state)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

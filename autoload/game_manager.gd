@@ -84,7 +84,7 @@ func end_game(final_score: int) -> void:
 	
 	# Notify UI
 	game_over.emit(final_score)
-high_scores_updated.emit(high_scores)
+	high_scores_updated.emit(high_scores)
 
 func add_score(points: int) -> void:
 	if not is_running:
@@ -108,8 +108,9 @@ func get_high_scores() -> Array[int]:
 # Setter methods for dependency injection
 func set_gameplay(gameplay_node: Node) -> void:
 	gameplay = gameplay_node
-	if gameplay:
+	if gameplay and gameplay.has_signal("game_over"):
 		gameplay.game_over.connect(end_game)
+	if gameplay and gameplay.has_signal("score_updated"):
 		gameplay.score_updated.connect(_on_gameplay_score_updated)
 
 func set_save_data_util(save_data: RefCounted) -> void:

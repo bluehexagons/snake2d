@@ -220,7 +220,7 @@ func _on_snake_grew(food_position: Vector2) -> void:
 			new_color.s,
 			new_color.v
 		)
-        segment.color = new_color
+		segment.color = new_color
 
 	segment.position = food_position
 	segment.show()
@@ -249,7 +249,7 @@ func _on_snake_died() -> void:
 	if head:
 		head.color = Color(0.8, 0.2, 0.2, 1)
 	
-for segment in tail_segments:
+	for segment in tail_segments:
 		var current_color := segment.color
 		var dead_color := Color(0.78, 0.12, 0.12, current_color.a)
 		segment.color = current_color.lerp(dead_color, 0.6)

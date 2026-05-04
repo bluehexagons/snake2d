@@ -19,7 +19,7 @@ var visual_prev_position: Vector2
 var _direction_indicator: Polygon2D
 
 func _ready() -> void:
-    position = position.snapped(Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE))
+	position = position.snapped(Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE))
 	logical_position = position
 	visual_prev_position = position
 
@@ -87,7 +87,7 @@ func move() -> void:
 	moved.emit(new_position)
 
 func grow(food_position: Vector2) -> void:
-    grew.emit(food_position)
+	grew.emit(food_position)
 
 func hide_indicator() -> void:
 	_direction_indicator.hide()
