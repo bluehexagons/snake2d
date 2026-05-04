@@ -54,8 +54,13 @@ func start_game() -> void:
 	if snake:
 		snake.queue_free()
 	snake = Snake.instantiate()
+	var spawn_position := Vector2(ConfigData.GRID_WIDTH / 2, ConfigData.GRID_HEIGHT / 2) * ConfigData.GRID_SIZE
+	snake.position = spawn_position
+	if "logical_position" in snake:
+		snake.logical_position = spawn_position
+	if "visual_prev_position" in snake:
+		snake.visual_prev_position = spawn_position
 	game_world.add_child(snake)
-	snake.position = Vector2(ConfigData.GRID_WIDTH / 2, ConfigData.GRID_HEIGHT / 2) * ConfigData.GRID_SIZE
 	snake.moved.connect(_on_snake_moved)
 	snake.grew.connect(_on_snake_grew)
 	snake.died.connect(_on_snake_died)
