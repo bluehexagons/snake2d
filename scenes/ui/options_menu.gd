@@ -80,11 +80,11 @@ func update_fullscreen_button() -> void:
 	fullscreen_button.text = str("Fullscreen: ", "On" if is_fullscreen else "Off")
 
 func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable) -> void:
-    var dialog := ConfirmationDialog.new()
-    dialog.title = title
-    dialog.dialog_text = text
-    dialog.confirmed.connect(func() -> void: on_confirm.call(); dialog.queue_free())
-    dialog.close_requested.connect(dialog.queue_free)
-    dialog.canceled.connect(dialog.queue_free)
-    add_child(dialog)
-    dialog.popup_centered()
+	var dialog := ConfirmationDialog.new()
+	dialog.title = title
+	dialog.dialog_text = text
+	dialog.confirmed.connect(func() -> void: on_confirm.call(); dialog.queue_free())
+	dialog.close_requested.connect(dialog.queue_free)
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()

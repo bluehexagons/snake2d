@@ -104,18 +104,18 @@ func get_state_name() -> String:
 	return UIState.keys()[current_state]
 
 func set_paused(paused_state: bool) -> void:
-    var currently_paused = current_state == UIState.PAUSED
-    if paused_state == currently_paused:
-        return
+	var currently_paused = current_state == UIState.PAUSED
+	if paused_state == currently_paused:
+		return
 
-    get_tree().paused = paused_state
-    
-    if paused_state:
-        if current_state == UIState.GAMEPLAY:
-            change_state(UIState.PAUSED)
-    else:
-        if current_state == UIState.PAUSED:
-            change_state(UIState.GAMEPLAY)
+	get_tree().paused = paused_state
+
+	if paused_state:
+		if current_state == UIState.GAMEPLAY:
+			change_state(UIState.PAUSED)
+	else:
+		if current_state == UIState.PAUSED:
+			change_state(UIState.GAMEPLAY)
     
     pause_state_changed.emit(paused_state)
 

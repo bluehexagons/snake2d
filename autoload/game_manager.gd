@@ -20,7 +20,7 @@ var save_data_util: RefCounted
 var config: RefCounted
 
 func _ready() -> void:
-    pass
+	pass
 
 func start_game() -> void:
 	is_running = true
@@ -113,11 +113,11 @@ func set_gameplay(gameplay_node: Node) -> void:
 		gameplay.score_updated.connect(_on_gameplay_score_updated)
 
 func set_save_data_util(save_data: RefCounted) -> void:
-    save_data_util = save_data
-    high_scores = save_data_util.load_high_scores()
+	save_data_util = save_data
+	high_scores = save_data_util.load_high_scores()
 
 func set_config(config_node: RefCounted) -> void:
-    config = config_node
+	config = config_node
 
 func set_paused(paused: bool) -> void:
 	if paused:
