@@ -50,7 +50,7 @@ func _ready() -> void:
 		game_manager_instance.name = "GameManager"
 		game_manager = game_manager_instance
 	
-game_manager.set_gameplay(gameplay)
+	game_manager.set_gameplay(gameplay)
 	game_manager.set_save_data_util(SaveDataUtil)
 	game_manager.set_config(ConfigData)
 	camera_node.gameplay = gameplay

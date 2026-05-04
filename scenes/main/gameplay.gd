@@ -167,7 +167,7 @@ func _on_snake_moved(new_position: Vector2) -> void:
 	
 	tail_positions.insert(0, new_position)
 	
-var ate_food: bool = food and (new_position == food.position)
+	var ate_food: bool = food and (new_position == food.position)
 	if ate_food:
 		var food_pos := food.position
 		snake.grow(food_pos)
