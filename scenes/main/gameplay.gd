@@ -97,19 +97,19 @@ func _apply_visual_interp() -> void:
 		tail_segments[i].position = prev.lerp(target, eased)
 
 func is_position_occupied(pos: Vector2) -> bool:
-	var grid_pos := pos / ConfigData.GRID_SIZE
-	
-	if snake:
-		var snake_logical: Vector2 = snake.logical_position if "logical_position" in snake else snake.position
-		if (snake_logical / ConfigData.GRID_SIZE) == grid_pos:
-			return true
-	
-	for i in tail_segments.size():
-		var seg_logical: Vector2 = tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position
-		if (seg_logical / ConfigData.GRID_SIZE) == grid_pos:
-			return true
-	
-	return false
+    var snapped_pos := pos.snapped(Vector2.ONE * ConfigData.GRID_SIZE)
+    
+    if snake:
+        var snake_logical: Vector2 = snake.logical_position if "logical_position" in snake else snake.position
+        if snake_logical == snapped_pos:
+            return true
+    
+    for i in tail_segments.size():
+        var seg_logical: Vector2 = tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position
+        if seg_logical == snapped_pos:
+            return true
+    
+    return false
 
 func spawn_food() -> bool:
 	if food:
@@ -249,14 +249,10 @@ func _on_snake_died() -> void:
 	if head:
 		head.color = Color(0.8, 0.2, 0.2, 1)
 	
-	for segment in tail_segments:
-		var current_color := segment.color
-		segment.color = Color(
-			lerp(current_color.g, 0.8, 0.5),
-			current_color.r * 0.1,
-			current_color.b * 0.1,
-			current_color.a
-		)
+for segment in tail_segments:
+        var current_color := segment.color
+        var dead_color := Color(0.78, 0.12, 0.12, current_color.a)
+        segment.color = current_color.lerp(dead_color, 0.6)
 	
 	game_over.emit(score)
 
