@@ -12,6 +12,7 @@ var score := 0
 var snake_camera: Camera2D
 var in_game := false
 var is_mobile := false
+var using_mouse := true
 
 @onready var ui_state_manager: Node = $UIStateManager
 @onready var ui_background: ColorRect = $UILayer/Background
@@ -129,9 +130,8 @@ func _ready() -> void:
 	options_menu.visible = false
 	score_display_label.visible = false
 	game_world.visible = false
-	if not is_mobile:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	
+	_update_cursor_visibility()
+
 	for button in _get_all_buttons():
 		if not button.focus_entered.is_connected(AudioManager.play_focus):
 			button.focus_entered.connect(AudioManager.play_focus)
@@ -142,6 +142,26 @@ func _ready() -> void:
 	get_tree().root.size_changed.connect(_on_window_resize)
 	_on_window_resize()
 	_update_game_area()
+
+func _input(event: InputEvent) -> void:
+	if is_mobile:
+		return
+	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) == 0:
+		if not using_mouse:
+			using_mouse = true
+			_update_cursor_visibility()
+	elif event is InputEventJoypadButton or event is InputEventJoypadMotion \
+			or event is InputEventKey \
+			or event is InputEventScreenTouch or event is InputEventScreenDrag:
+		if using_mouse:
+			using_mouse = false
+			_update_cursor_visibility()
+
+func _update_cursor_visibility() -> void:
+	if is_mobile:
+		return
+	var active_gameplay := ui_state_manager.current_state == ui_state_manager.UIState.GAMEPLAY
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if (not active_gameplay or using_mouse) else Input.MOUSE_MODE_HIDDEN
 
 func _update_game_area() -> void:
 	var window_size := DisplayServer.window_get_size()
@@ -167,8 +187,7 @@ func _on_game_started() -> void:
 	score_display_label.visible = true
 	game_world.visible = true
 	get_tree().paused = false
-	if not is_mobile:
-		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	_update_cursor_visibility()
 
 func _on_game_paused() -> void:
 	# Called when game is paused via GameManager
@@ -177,8 +196,7 @@ func _on_game_paused() -> void:
 func _on_game_resumed() -> void:
 	# Called when game is resumed via GameManager
 	ui_background.visible = false
-	if not is_mobile:
-		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	_update_cursor_visibility()
 
 func _on_game_over(final_score: int) -> void:
 	# Called when game is over via GameManager
@@ -193,21 +211,19 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 			ui_background.visible = false
 			score_display_label.visible = true
 			game_world.visible = true
+			_update_cursor_visibility()
 		ui_state_manager.UIState.MAIN_MENU:
 			ui_background.visible = false
 			score_display_label.visible = false
 			game_world.visible = false
 			get_tree().paused = true
-			if not is_mobile:
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			_update_cursor_visibility()
 		ui_state_manager.UIState.PAUSED:
 			ui_background.visible = true
-			if not is_mobile:
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			_update_cursor_visibility()
 		ui_state_manager.UIState.GAME_OVER:
 			in_game = false
-			if not is_mobile:
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			_update_cursor_visibility()
 		_:
 			if old_state == ui_state_manager.UIState.GAMEPLAY:
 				ui_background.visible = true

@@ -53,8 +53,8 @@ func _on_reset_settings_pressed() -> void:
 		"Reset Settings",
 		"Are you sure you want to reset all settings?",
 		func() -> void:
-		AudioManager.reset_settings()
-		update_button_states()
+			AudioManager.reset_settings()
+			update_button_states()
 	)
 
 func _on_reset_scores_pressed() -> void:
@@ -62,7 +62,7 @@ func _on_reset_scores_pressed() -> void:
 		"Reset High Scores",
 		"Are you sure you want to reset all high scores?",
 		func() -> void:
-		reset_scores_requested.emit()
+			reset_scores_requested.emit()
 	)
 
 func _on_back_pressed() -> void:

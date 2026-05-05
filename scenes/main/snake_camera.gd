@@ -2,7 +2,6 @@ extends Camera2D
 
 const ConfigData = preload("res://autoload/config.gd")
 
-var velocity := Vector2.ZERO
 var target := Vector2.ZERO
 var game_width := 0
 var game_height := 0
@@ -14,7 +13,6 @@ func _ready() -> void:
 
 	target = Vector2(float(game_width)/2.0, float(game_height)/2.0)
 	position = target
-	velocity = Vector2.ZERO
 
 func _process(delta: float) -> void:
 	if not get_tree().is_paused():
@@ -43,14 +41,8 @@ func _physics_process(_delta: float) -> void:
 		snake_center * ConfigData.SNAKE_CENTER_WEIGHT
 	) / (ConfigData.LOOK_AHEAD_WEIGHT + ConfigData.CENTER_PULL_WEIGHT + ConfigData.FOOD_ATTRACTION_WEIGHT + ConfigData.SNAKE_CENTER_WEIGHT)
 	
-	var t := ConfigData.CAMERA_ACCELERATION
-	t = t * t * (3.0 - 2.0 * t)
-	var desired_velocity: Vector2 = (new_target - target) * t
-	
-	velocity = velocity * ConfigData.CAMERA_DAMPING + desired_velocity
-	target += velocity
+	target = target.lerp(new_target, ConfigData.CAMERA_SMOOTHING)
 
 func reset_camera() -> void:
 	target = Vector2(float(game_width)/2.0, float(game_height)/2.0)
 	position = target
-	velocity = Vector2.ZERO

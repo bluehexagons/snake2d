@@ -316,5 +316,5 @@ func _create_controls_tutorial() -> void:
 
 	get_parent().add_child(tutorial)
 
-	tutorial.position = Vector2(float(ConfigData.GRID_WIDTH) * ConfigData.GRID_SIZE / 2.0, float(ConfigData.GRID_HEIGHT) * ConfigData.GRID_SIZE / 2.0)
-	tutorial.position -= tutorial.size / 2
+	var center := Vector2(float(ConfigData.GRID_WIDTH) * ConfigData.GRID_SIZE / 2.0, float(ConfigData.GRID_HEIGHT) * ConfigData.GRID_SIZE / 2.0)
+	tutorial.position = center - tutorial.get_minimum_size() / 2

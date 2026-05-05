@@ -44,7 +44,8 @@ func _input(event: InputEvent) -> void:
 
 	var touch_dir := Vector2.ZERO
 
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	if (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) or \
+			(event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) > 0):
 		var to_mouse := (get_global_mouse_position() - global_position).normalized()
 		if abs(to_mouse.x) > abs(to_mouse.y):
 			touch_dir = Vector2(sign(to_mouse.x), 0)

@@ -61,6 +61,8 @@ func _kill_transition(elem: CanvasItem) -> void:
 		if t and t.is_valid():
 			t.kill()
 		_transition_tweens.erase(elem)
+	if elem is Control:
+		(elem as Control).scale = Vector2.ONE
 
 func _fade_in(elem: CanvasItem) -> void:
 	if elem == null:
@@ -75,11 +77,9 @@ func _fade_in(elem: CanvasItem) -> void:
 	tween.tween_property(elem, "modulate:a", 1.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	if elem is Control:
 		var ctrl: Control = elem
-		var orig_pivot := ctrl.pivot_offset
 		ctrl.pivot_offset = ctrl.size * 0.5
 		ctrl.scale = Vector2(0.96, 0.96)
 		tween.parallel().tween_property(ctrl, "scale", Vector2.ONE, TRANSITION_DURATION).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tween.tween_callback(func() -> void: ctrl.pivot_offset = orig_pivot)
 	_transition_tweens[elem] = tween
 
 func _fade_out(elem: CanvasItem) -> void:

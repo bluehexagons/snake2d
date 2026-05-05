@@ -12,8 +12,6 @@ const CENTER_PULL_WEIGHT: float = 0.4
 const FOOD_ATTRACTION_WEIGHT: float = 0.5
 const LOOK_AHEAD_WEIGHT: float = 0.66
 const SNAKE_CENTER_WEIGHT: float = 0.3
-const CAMERA_DAMPING: float = 0.9
-const CAMERA_ACCELERATION: float = 0.02
 
 const BASE_FREQUENCY: float = 420.0
 const AUDIO_HARMONICS: int = 8

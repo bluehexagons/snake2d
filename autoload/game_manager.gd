@@ -86,13 +86,6 @@ func end_game(final_score: int) -> void:
 	game_over.emit(final_score)
 	high_scores_updated.emit(high_scores)
 
-func add_score(points: int) -> void:
-	if not is_running:
-		return
-	
-	current_score += points
-	score_updated.emit(current_score)
-
 func is_game_running() -> bool:
 	return is_running
 
