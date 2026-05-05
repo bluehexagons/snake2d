@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://mainmenu"]
 
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="1_sl1te"]
+[ext_resource type="Script" uid="uid://dv3n7t8mxk2p5" path="res://scenes/ui/main_menu.gd" id="2_mainmenu"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg2hj"]
 bg_color = Color(0.1462, 0.17, 0.1462, 0.92549)
@@ -108,6 +109,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_sl1te")
+script = ExtResource("2_mainmenu")
 
 [node name="PanelContainer" type="PanelContainer" parent="." unique_id=1981040175]
 layout_mode = 2

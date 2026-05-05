@@ -52,7 +52,7 @@ Licenses:
 Averia Sans Libre
 - OFL, Dan Sayers
 
-Version: 1.1[/center]"
+[/center]"
 fit_content = true
 
 [node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1149227835]
