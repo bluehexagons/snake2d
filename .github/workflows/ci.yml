@@ -40,3 +40,4 @@ jobs:
       with:
         name: godot-build
         path: dist/
+        retention-days: 7
