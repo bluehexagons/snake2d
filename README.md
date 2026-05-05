@@ -45,6 +45,23 @@ The game can be built for different platforms using the provided build script.
 
 The exported files will be placed in the `out/` directory.
 
+### Testing from the CLI
+
+Use the smoke test script to verify the game boots into gameplay in headless mode:
+
+```bash
+./test.sh source
+```
+
+For the built Linux export, run:
+
+```bash
+./build.sh linux
+./test.sh linux-export
+```
+
+`test.sh all` runs both paths end-to-end. The source smoke test uses the Godot binary in headless mode, loads the main scene, verifies the main menu appears, presses **Start**, and checks that gameplay spawns the snake and food without opening the game window.
+
 ### Technical Details
 
 - Audio engine supporting multiple types of waveforms (sin, square, saw)

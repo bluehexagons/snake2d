@@ -14,7 +14,7 @@ var in_game := false
 var is_mobile := false
 var using_mouse := true
 
-@onready var ui_state_manager: Node = $UIStateManager
+@onready var ui_state_manager: UIStateManager = $UIStateManager
 @onready var ui_background: ColorRect = $UILayer/Background
 @onready var score_display_label: Label = $UILayer/ScoreLabel
 @onready var game_over_score_label: Label = $UILayer/GameOverContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreLabel
@@ -160,7 +160,7 @@ func _input(event: InputEvent) -> void:
 func _update_cursor_visibility() -> void:
 	if is_mobile:
 		return
-	var active_gameplay := ui_state_manager.current_state == ui_state_manager.UIState.GAMEPLAY
+	var active_gameplay: bool = ui_state_manager.current_state == UIStateManager.UIState.GAMEPLAY
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if (not active_gameplay or using_mouse) else Input.MOUSE_MODE_HIDDEN
 
 func _update_game_area() -> void:
@@ -170,7 +170,7 @@ func _update_game_area() -> void:
 	play_area_background.size = game_size
 
 func _toggle_pause() -> void:
-	var is_currently_paused = ui_state_manager.current_state == ui_state_manager.UIState.PAUSED
+	var is_currently_paused: bool = ui_state_manager.current_state == UIStateManager.UIState.PAUSED
 	ui_state_manager.set_paused(not is_currently_paused)
 
 func _on_resume_pressed() -> void:

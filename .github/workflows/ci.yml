@@ -24,9 +24,17 @@ jobs:
         use-dotnet: false
         include-templates: true
 
+    - name: Smoke test
+      run: |
+        ./test.sh source
+
     - name: Build
       run: |
         ./build.sh all
+
+    - name: Smoke Linux export
+      run: |
+        ./test.sh linux-export
 
     - name: Create Build Archives
       run: |
