@@ -1,24 +1,36 @@
 extends Node
 
 enum Waveform {SINE, SQUARE, TRIANGLE, SAW}
+enum TonePriority {MOVE, UI, EAT, DIE}
 
 const ConfigData = preload("res://autoload/config.gd")
 const SETTINGS_FILE := ConfigData.SETTINGS_FILE
 
-const CHANNEL_COUNT := 32
+const CHANNEL_COUNT := 12
 const SAMPLE_HZ := 44100.0
-const BUFFER_LENGTH_SECONDS := 0.6
 const ATTACK_SECONDS := 0.004
-const RELEASE_SECONDS := 0.02
-const MASTER_GAIN_DB := -10.0
-const SOFT_CLIP_DRIVE := 1.25
+const RELEASE_SECONDS := 0.012
+const MASTER_GAIN_DB := -12.0
+const SOFT_CLIP_DRIVE := 1.15
+const PCM_16_SCALE := 32767.0
+const PCM_16_BYTES_PER_SAMPLE := 2
+const MAX_SAMPLE_AMPLITUDE := 0.98
+
+const SYNTH_BUS_NAME := "SynthSfx"
+const LIMITER_CEILING_DB := -1.0
+const LIMITER_THRESHOLD_DB := -7.0
+const LIMITER_SOFT_CLIP_DB := 2.0
+const LIMITER_SOFT_CLIP_RATIO := 8.0
 
 const PITCH_ACCELERATION := 0.04
 const PITCH_DAMPING := 0.9
 const PITCH_RANGE := 0.95
 const PITCH_VARIATION := 0.04
+const MOVE_TONE_SECONDS := 0.045
 
 var audio_players: Array[AudioStreamPlayer] = []
+var player_priorities: Array[int] = []
+var player_started_usec: Array[int] = []
 var next_channel_index := 0
 
 var is_muted := false
@@ -27,23 +39,24 @@ var target_pitch_offset := 0.0
 
 func _ready() -> void:
 	load_settings()
+	if DisplayServer.get_name() != "headless":
+		_ensure_synth_bus()
 	_update_players()
 
 func _ensure_audio_players() -> void:
 	if not audio_players.is_empty():
 		return
 
+	_ensure_synth_bus()
 	for i in range(CHANNEL_COUNT):
-		var generator := AudioStreamGenerator.new()
-		generator.mix_rate = int(SAMPLE_HZ)
-		generator.buffer_length = BUFFER_LENGTH_SECONDS
-
 		var player := AudioStreamPlayer.new()
-		player.stream = generator
+		player.bus = _get_synth_bus_name()
+		player.finished.connect(_on_audio_player_finished.bind(player))
 		add_child(player)
-		player.play()
 
 		audio_players.append(player)
+		player_priorities.append(TonePriority.MOVE)
+		player_started_usec.append(0)
 
 	_update_players()
 
@@ -52,9 +65,52 @@ func _exit_tree() -> void:
 		player.stop()
 		player.stream = null
 	audio_players.clear()
+	player_priorities.clear()
+	player_started_usec.clear()
+
+func _ensure_synth_bus() -> void:
+	var bus_index := AudioServer.get_bus_index(SYNTH_BUS_NAME)
+	if bus_index == -1:
+		AudioServer.add_bus(AudioServer.get_bus_count())
+		bus_index = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(bus_index, SYNTH_BUS_NAME)
+		AudioServer.set_bus_send(bus_index, "Master")
+
+	AudioServer.set_bus_volume_db(bus_index, 0.0)
+	_configure_limiter(bus_index)
+
+func _configure_limiter(bus_index: int) -> void:
+	for i in range(AudioServer.get_bus_effect_count(bus_index)):
+		var existing_limiter := AudioServer.get_bus_effect(bus_index, i) as AudioEffectLimiter
+		if existing_limiter:
+			_apply_limiter_settings(existing_limiter)
+			return
+
+	var limiter := AudioEffectLimiter.new()
+	_apply_limiter_settings(limiter)
+	AudioServer.add_bus_effect(bus_index, limiter, 0)
+
+func _apply_limiter_settings(limiter: AudioEffectLimiter) -> void:
+	limiter.ceiling_db = LIMITER_CEILING_DB
+	limiter.threshold_db = LIMITER_THRESHOLD_DB
+	limiter.soft_clip_db = LIMITER_SOFT_CLIP_DB
+	limiter.soft_clip_ratio = LIMITER_SOFT_CLIP_RATIO
+
+func _get_synth_bus_name() -> StringName:
+	return StringName(SYNTH_BUS_NAME if AudioServer.get_bus_index(SYNTH_BUS_NAME) != -1 else "Master")
+
+func _on_audio_player_finished(player: AudioStreamPlayer) -> void:
+	var index := audio_players.find(player)
+	if index == -1:
+		return
+
+	player.stream = null
+	player_priorities[index] = TonePriority.MOVE
+	player_started_usec[index] = 0
 
 func _update_players() -> void:
 	for player in audio_players:
+		player.bus = _get_synth_bus_name()
 		player.volume_db = -999.0 if is_muted else MASTER_GAIN_DB
 
 func save_settings() -> void:
@@ -100,19 +156,19 @@ func play_move() -> void:
 	var variation: float = randf_range(-PITCH_VARIATION, PITCH_VARIATION)
 	var final_pitch: float = maxf(0.1, momentum_pitch + variation)
 
-	play_tone(ConfigData.BASE_FREQUENCY * 0.5 * final_pitch, 0.07, -20.0, Waveform.SINE)
+	_play_tone(ConfigData.BASE_FREQUENCY * 0.5 * final_pitch, MOVE_TONE_SECONDS, -20.0, Waveform.SINE, TonePriority.MOVE)
 
 func play_eat() -> void:
-	play_tone(ConfigData.BASE_FREQUENCY * 1.9, 0.13, -16.0, Waveform.TRIANGLE)
+	_play_tone(ConfigData.BASE_FREQUENCY * 1.9, 0.13, -16.0, Waveform.TRIANGLE, TonePriority.EAT)
 
 func play_die() -> void:
-	play_tone(ConfigData.BASE_FREQUENCY * 0.5, 0.3, -3.0, Waveform.SAW)
+	_play_tone(ConfigData.BASE_FREQUENCY * 0.5, 0.3, -4.5, Waveform.SAW, TonePriority.DIE)
 
 func play_click() -> void:
-	play_tone(ConfigData.BASE_FREQUENCY * 2.5, 0.05, -12.0, Waveform.TRIANGLE)
+	_play_tone(ConfigData.BASE_FREQUENCY * 2.5, 0.05, -12.0, Waveform.TRIANGLE, TonePriority.UI)
 
 func play_focus() -> void:
-	play_tone(ConfigData.BASE_FREQUENCY * 2.0, 0.05, -20.0, Waveform.TRIANGLE)
+	_play_tone(ConfigData.BASE_FREQUENCY * 2.0, 0.05, -20.0, Waveform.TRIANGLE, TonePriority.UI)
 
 func reset_pitch() -> void:
 	current_pitch_momentum = 0.0
@@ -121,68 +177,93 @@ func reset_pitch() -> void:
 func play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
 	if is_muted or DisplayServer.get_name() == "headless":
 		return
-	_play_tone(frequency, duration, volume_db, waveform)
+	_play_tone(frequency, duration, volume_db, waveform, TonePriority.UI)
 
-func _play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
+func _play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform, priority: TonePriority) -> void:
+	if is_muted or DisplayServer.get_name() == "headless":
+		return
+
 	_ensure_audio_players()
 
 	if audio_players.is_empty():
 		return
-	var volume_linear := db_to_linear(volume_db)
 
-	for _attempt in range(audio_players.size()):
-		var channel := _acquire_channel_index()
-		var player := audio_players[channel]
+	var channel := _acquire_channel_index(priority)
+	if channel == -1:
+		return
 
-		if not player.playing:
-			player.play()
+	var stream := _render_tone_stream(frequency, duration, db_to_linear(volume_db), waveform)
+	if stream == null:
+		return
 
-		var playback := player.get_stream_playback() as AudioStreamGeneratorPlayback
-		if playback == null:
-			continue
+	var player := audio_players[channel]
+	if player.playing:
+		player.stop()
+	player.stream = stream
+	player.volume_db = -999.0 if is_muted else MASTER_GAIN_DB
+	player.bus = _get_synth_bus_name()
+	player_priorities[channel] = priority
+	player_started_usec[channel] = Time.get_ticks_usec()
+	player.play()
 
-		if _push_tone(playback, frequency, duration, volume_linear, waveform):
-			return
+func _acquire_channel_index(priority: TonePriority) -> int:
+	for offset in range(audio_players.size()):
+		var channel := (next_channel_index + offset) % audio_players.size()
+		if not audio_players[channel].playing:
+			next_channel_index = (channel + 1) % audio_players.size()
+			return channel
 
-func _acquire_channel_index() -> int:
-	var selected := next_channel_index
-	var best_available := -1
-
+	var selected := -1
+	var selected_priority := priority
+	var selected_started_usec := 0
 	for i in range(audio_players.size()):
-		if not audio_players[i].playing:
-			selected = i
-			break
-
-		var playback := audio_players[i].get_stream_playback() as AudioStreamGeneratorPlayback
-		if playback == null:
+		var existing_priority := player_priorities[i]
+		if priority != TonePriority.DIE and existing_priority >= priority:
 			continue
 
-		var available := playback.get_frames_available()
-		if available > best_available:
-			best_available = available
+		if (
+			selected == -1
+			or existing_priority < selected_priority
+			or (
+				existing_priority == selected_priority
+				and player_started_usec[i] < selected_started_usec
+			)
+		):
 			selected = i
+			selected_priority = existing_priority
+			selected_started_usec = player_started_usec[i]
 
-	next_channel_index = (selected + 1) % audio_players.size()
+	if selected != -1:
+		next_channel_index = (selected + 1) % audio_players.size()
+
 	return selected
 
-func _push_tone(playback: AudioStreamGeneratorPlayback, frequency: float, duration: float, volume_linear: float, waveform: Waveform) -> bool:
+func _render_tone_stream(frequency: float, duration: float, volume_linear: float, waveform: Waveform) -> AudioStreamWAV:
 	var sample_count := int(duration * SAMPLE_HZ)
-	if sample_count <= 0:
-		return false
-	if playback.get_frames_available() < sample_count:
-		return false
+	if sample_count <= 1 or frequency <= 0.0 or duration <= 0.0:
+		return null
 
-	var pushed_samples := 0
+	var safe_frequency := minf(frequency, SAMPLE_HZ * 0.45)
+	var sample_data := PackedByteArray()
+	sample_data.resize(sample_count * PCM_16_BYTES_PER_SAMPLE)
 
-	for i in sample_count:
-		var t := float(i) / SAMPLE_HZ
-		var envelope := _envelope_gain(i, sample_count)
-		var raw_sample := _wave_sample(t, frequency, waveform) * envelope * volume_linear
-		var sample := _soft_clip(raw_sample)
-		playback.push_frame(Vector2(sample, sample))
-		pushed_samples += 1
+	for i in range(sample_count):
+		var sample := _tone_sample(i, sample_count, safe_frequency, volume_linear, waveform)
+		var pcm_sample := int(clampf(sample, -MAX_SAMPLE_AMPLITUDE, MAX_SAMPLE_AMPLITUDE) * PCM_16_SCALE)
+		sample_data.encode_s16(i * PCM_16_BYTES_PER_SAMPLE, pcm_sample)
 
-	return pushed_samples > 0
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = int(SAMPLE_HZ)
+	stream.stereo = false
+	stream.data = sample_data
+	return stream
+
+func _tone_sample(sample_index: int, sample_count: int, frequency: float, volume_linear: float, waveform: Waveform) -> float:
+	var t := float(sample_index) / SAMPLE_HZ
+	var envelope := _envelope_gain(sample_index, sample_count)
+	var raw_sample := _wave_sample(t, frequency, waveform) * envelope * volume_linear
+	return _soft_clip(raw_sample)
 
 func _soft_clip(sample: float) -> float:
 	return tanh(sample * SOFT_CLIP_DRIVE) / tanh(SOFT_CLIP_DRIVE)
