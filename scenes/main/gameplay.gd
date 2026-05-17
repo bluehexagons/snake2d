@@ -94,12 +94,10 @@ func _apply_visual_interp() -> void:
 	var t: float = clamp(time_since_move / current_move_time, 0.0, 1.0)
 	if snake.has_method("apply_visual_interp"):
 		snake.apply_visual_interp(t)
-	# Smootherstep eased progress for tail segments.
-	var eased: float = t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 	for i in tail_segments.size():
 		var prev: Vector2 = tail_prev_positions[i] if i < tail_prev_positions.size() else tail_segments[i].position
 		var target: Vector2 = tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position
-		tail_segments[i].position = prev.lerp(target, eased)
+		tail_segments[i].position = prev.lerp(target, t)
 
 func is_position_occupied(pos: Vector2) -> bool:
 	var snapped_pos := pos.snapped(Vector2.ONE * ConfigData.GRID_SIZE)
