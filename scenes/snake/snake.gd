@@ -97,4 +97,6 @@ func hide_indicator() -> void:
 # `t` is the normalized [0,1] progress through the current move tick.
 func apply_visual_interp(t: float) -> void:
 	t = clamp(t, 0.0, 1.0)
-	position = visual_prev_position.lerp(logical_position, t)
+	# Smootherstep: 6t^5 - 15t^4 + 10t^3. Gradual start, fast middle, soft tail.
+	var eased := t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
+	position = visual_prev_position.lerp(logical_position, eased)

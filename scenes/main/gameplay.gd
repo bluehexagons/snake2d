@@ -25,6 +25,7 @@ var tail_segment_pool: Array[ColorRect] = []
 var tail_positions: Array[Vector2] = []
 # Visual-only previous positions for ease-in-out interpolation of tail segments.
 var tail_prev_positions: Array[Vector2] = []
+var tail_corner_turns: Array[bool] = []
 var score := 0
 var game_over_state := false
 
@@ -48,6 +49,7 @@ func start_game() -> void:
 	tail_segments.clear()
 	tail_positions.clear()
 	tail_prev_positions.clear()
+	tail_corner_turns.clear()
 	
 	_create_controls_tutorial()
 	
@@ -94,10 +96,12 @@ func _apply_visual_interp() -> void:
 	var t: float = clamp(time_since_move / current_move_time, 0.0, 1.0)
 	if snake.has_method("apply_visual_interp"):
 		snake.apply_visual_interp(t)
+	var eased: float = t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 	for i in tail_segments.size():
 		var prev: Vector2 = tail_prev_positions[i] if i < tail_prev_positions.size() else tail_segments[i].position
 		var target: Vector2 = tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position
-		tail_segments[i].position = prev.lerp(target, t)
+		var progress := t if (i < tail_corner_turns.size() and tail_corner_turns[i]) else eased
+		tail_segments[i].position = prev.lerp(target, progress)
 
 func is_position_occupied(pos: Vector2) -> bool:
 	var snapped_pos := pos.snapped(Vector2.ONE * ConfigData.GRID_SIZE)
@@ -164,9 +168,21 @@ func _on_snake_moved(new_position: Vector2) -> void:
 	
 	# Capture each segment's current logical position as its "previous" for visual interp.
 	tail_prev_positions.clear()
+	tail_corner_turns.clear()
 	for i in tail_segments.size():
 		# Logical position = where it was sitting at this point in tail_positions[i+1] before update.
 		tail_prev_positions.append(tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position)
+		var current_dir := (
+			tail_positions[i] - tail_positions[i + 1]
+			if (i + 1) < tail_positions.size()
+			else Vector2.ZERO
+		)
+		var previous_dir := (
+			tail_positions[i + 1] - tail_positions[i + 2]
+			if (i + 2) < tail_positions.size()
+			else current_dir
+		)
+		tail_corner_turns.append(current_dir != Vector2.ZERO and previous_dir != Vector2.ZERO and current_dir != previous_dir)
 	
 	tail_positions.insert(0, new_position)
 	
@@ -191,6 +207,8 @@ func _on_snake_moved(new_position: Vector2) -> void:
 		var last := tail_segments.size() - 1
 		if last < tail_prev_positions.size():
 			tail_prev_positions[last] = tail_segments[last].position
+		if last < tail_corner_turns.size():
+			tail_corner_turns[last] = false
 	
 	if not ate_food:
 		for segment in tail_segments:
@@ -234,6 +252,7 @@ func _on_snake_grew(food_position: Vector2) -> void:
 	# Placeholder; the real visual-prev for new segments is set in `_on_snake_moved`
 	# after the per-segment positions are finalized so the new segment doesn't visibly slide.
 	tail_prev_positions.append(segment.position)
+	tail_corner_turns.append(false)
 
 	_update_game_speed()
 
@@ -273,6 +292,7 @@ func cleanup() -> void:
 	for segment in tail_segments:
 		segment.queue_free()
 	tail_segments.clear()
+	tail_corner_turns.clear()
 	for segment in tail_segment_pool:
 		segment.queue_free()
 	tail_segment_pool.clear()
