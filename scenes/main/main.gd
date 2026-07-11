@@ -74,7 +74,7 @@ func _ready() -> void:
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.GAME_OVER, game_over_menu_box.get_node("RestartButton"))
 	
 	is_mobile = DisplayServer.get_name() in ["android", "ios", "web"]
-	high_scores = SaveDataUtil.load_high_scores()
+	high_scores = game_manager.get_high_scores()
 	
 	var start_button: Button = main_menu_box.get_node("StartButton")
 	start_button.pressed.connect(_on_start_pressed)
@@ -341,8 +341,7 @@ func _on_high_scores_back_pressed() -> void:
 	_update_menu_focus()
 
 func reset_high_scores() -> void:
-	SaveDataUtil.save_high_scores([])
-	high_scores = SaveDataUtil.load_high_scores()
+	game_manager.clear_high_scores()
 
 func _on_score_updated(new_score: int) -> void:
 	score = new_score

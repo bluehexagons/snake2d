@@ -56,6 +56,8 @@ run_and_check_logs() {
 run_source_smoke() {
     "$GODOT_BIN" --headless --path "$PROJECT_DIR" --import --quit
     run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/audio_synth_test.gd"
+    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/game_manager_test.gd"
+    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_map_test.gd"
     run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --scene "res://tests/smoke_test.tscn" --quit-after 300
 }
 

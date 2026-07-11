@@ -47,9 +47,10 @@ export_build() {
 
     echo "Exporting ${preset_name} version..."
     mkdir -p "$(dirname "$output_path")"
+    rm -f -- "$output_path"
     "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "$preset_name" "$output_path"
 
-    if [[ ! -e "$output_path" ]]; then
+    if [[ ! -s "$output_path" ]]; then
         echo "Error: Expected export output was not created: $output_path"
         exit 1
     fi
