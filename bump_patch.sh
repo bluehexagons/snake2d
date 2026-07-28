@@ -27,7 +27,7 @@ if [[ "$local_head" != "$remote_head" ]]; then
     exit 1
 fi
 
-current_version="$(sed -n 's/^config\\/version=\"\\(.*\\)\"/\\1/p' "$PROJECT_FILE")"
+current_version="$(sed -n 's/^config\/version="\([^"]*\)"/\1/p' "$PROJECT_FILE")"
 
 if [[ -z "$current_version" ]]; then
     echo "Error: could not find version in $PROJECT_FILE"
@@ -58,7 +58,7 @@ echo "Bumping: $current_version -> $new_version"
 
 sed -i "s/config\/version=\"$current_version\"/config\/version=\"$new_version\"/" "$PROJECT_FILE"
 
-actual="$(sed -n 's/^config\\/version=\"\\(.*\\)\"/\\1/p' "$PROJECT_FILE")"
+actual="$(sed -n 's/^config\/version="\([^"]*\)"/\1/p' "$PROJECT_FILE")"
 if [[ "$actual" != "$new_version" ]]; then
     echo "Error: version update failed (got '$actual')"
     exit 1
