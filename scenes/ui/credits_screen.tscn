@@ -43,7 +43,7 @@ text = "[center]A Simple Snake Game
 
 © 2025
 
-Built with [color=#7affc3]Godot Engine 4.4[/color]
+Built with [color=#7affc3]Godot Engine {godot_version}[/color]
 
 [color=#4dc94d]Programming, etc:[/color]
 bluehexagons
@@ -52,6 +52,7 @@ Licenses:
 Averia Sans Libre
 - OFL, Dan Sayers
 
+Version: {project_version}
 [/center]"
 fit_content = true
 

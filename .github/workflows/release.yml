@@ -17,9 +17,13 @@ jobs:
     - name: Setup Godot
       uses: chickensoft-games/setup-godot@v2
       with:
-        version: 4.7.0
+        version: 4.7.1
         use-dotnet: false
         include-templates: true
+
+    - name: Smoke test
+      run: |
+        ./test.sh source
 
     - name: Build
       run: |

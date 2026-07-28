@@ -8,8 +8,6 @@ var GAME_WIDTH: int
 var GAME_HEIGHT: int
 var high_scores: Array[int] = []
 
-var score := 0
-var snake_camera: Camera2D
 var in_game := false
 var is_mobile := false
 var using_mouse := true
@@ -41,89 +39,86 @@ var using_mouse := true
 
 func _ready() -> void:
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
-	
+
 	GAME_WIDTH = ConfigData.get_game_width()
 	GAME_HEIGHT = ConfigData.get_game_height()
-	
+
+	_setup_game_dependencies()
+	_register_ui_states()
+	_connect_ui_signals()
+	_connect_game_signals()
+	_initialize_presentation()
+
+	get_tree().root.size_changed.connect(_on_window_resize)
+	_on_window_resize()
+
+func _setup_game_dependencies() -> void:
 	if not game_manager:
-		var game_manager_instance = GameManagerScript.new()
-		add_child(game_manager_instance)
+		var game_manager_instance := GameManagerScript.new()
 		game_manager_instance.name = "GameManager"
+		add_child(game_manager_instance)
 		game_manager = game_manager_instance
-	
+
 	game_manager.set_gameplay(gameplay)
 	game_manager.set_save_data_util(SaveDataUtil)
 	game_manager.set_config(ConfigData)
 	camera_node.gameplay = gameplay
-	
+
+func _register_ui_states() -> void:
 	ui_state_manager.state_changed.connect(_on_ui_state_changed)
 	ui_state_manager.pause_state_changed.connect(_on_pause_state_changed)
-	
+
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.MAIN_MENU, main_menu)
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.OPTIONS_MENU, options_menu)
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.CREDITS_SCREEN, credits_screen)
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.HIGH_SCORES, high_scores_menu)
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.PAUSED, pause_menu)
 	ui_state_manager.register_ui_element(ui_state_manager.UIState.GAME_OVER, game_over_container)
-	
+
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.MAIN_MENU, main_menu_box.get_node("StartButton"))
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.OPTIONS_MENU, options_menu_box.get_node("SoundButton"))
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.CREDITS_SCREEN, credits_menu_box.get_node("BackButton"))
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.HIGH_SCORES, high_scores_menu_box.get_node("BackButton"))
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.PAUSED, pause_menu_box.get_node("ResumeButton"))
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.GAME_OVER, game_over_menu_box.get_node("RestartButton"))
-	
-	is_mobile = DisplayServer.get_name() in ["android", "ios", "web"]
-	high_scores = game_manager.get_high_scores()
-	
-	var start_button: Button = main_menu_box.get_node("StartButton")
-	start_button.pressed.connect(_on_start_pressed)
-	start_button.button_down.connect(AudioManager.play_click)
-	
-	var scores_button: Button = main_menu_box.get_node("ScoresButton")
-	scores_button.pressed.connect(_on_scores_pressed)
-	scores_button.button_down.connect(AudioManager.play_click)
-	
-	var options_button: Button = main_menu_box.get_node("OptionsButton")
-	options_button.pressed.connect(_on_options_pressed)
-	options_button.button_down.connect(AudioManager.play_click)
-	
-	var credits_button: Button = main_menu_box.get_node("CreditsButton")
-	credits_button.pressed.connect(_on_credits_pressed)
-	credits_button.button_down.connect(AudioManager.play_click)
-	
-	var quit_button: Button = main_menu_box.get_node("QuitButton")
-	quit_button.pressed.connect(_on_quit_game_pressed)
-	quit_button.button_down.connect(AudioManager.play_click)
-	
+
+func _connect_ui_signals() -> void:
+	_connect_button(main_menu_box.get_node("StartButton"), _on_start_pressed)
+	_connect_button(main_menu_box.get_node("ScoresButton"), _on_scores_pressed)
+	_connect_button(main_menu_box.get_node("OptionsButton"), _on_options_pressed)
+	_connect_button(main_menu_box.get_node("CreditsButton"), _on_credits_pressed)
+	_connect_button(main_menu_box.get_node("QuitButton"), _on_quit_game_pressed)
+
 	options_menu.options_closed.connect(_on_options_back_pressed)
 	options_menu.reset_scores_requested.connect(reset_high_scores)
 	credits_screen.credits_screen_closed.connect(_on_credits_back_pressed)
 	high_scores_menu.high_scores_closed.connect(_on_high_scores_back_pressed)
-	
-	var resume_button: Button = pause_menu_box.get_node("ResumeButton")
-	resume_button.pressed.connect(_on_resume_pressed)
-	resume_button.button_down.connect(AudioManager.play_click)
-	
-	var pause_quit: Button = pause_menu_box.get_node("QuitButton")
-	pause_quit.pressed.connect(_on_quit_to_menu_pressed)
-	pause_quit.button_down.connect(AudioManager.play_click)
-	
-	var restart_button: Button = game_over_menu_box.get_node("RestartButton")
-	restart_button.pressed.connect(_on_restart_pressed)
-	restart_button.button_down.connect(AudioManager.play_click)
-	
-	var gameover_quit: Button = game_over_menu_box.get_node("QuitButton")
-	gameover_quit.pressed.connect(_on_quit_to_menu_pressed)
-	gameover_quit.button_down.connect(AudioManager.play_click)
-	
+
+	_connect_button(pause_menu_box.get_node("ResumeButton"), _on_resume_pressed)
+	_connect_button(pause_menu_box.get_node("QuitButton"), _on_quit_to_menu_pressed)
+	_connect_button(game_over_menu_box.get_node("RestartButton"), _on_restart_pressed)
+	_connect_button(game_over_menu_box.get_node("QuitButton"), _on_quit_to_menu_pressed)
+
+func _connect_button(button: Button, callback: Callable) -> void:
+	button.pressed.connect(callback)
+	button.button_down.connect(AudioManager.play_click)
+
+func _connect_game_signals() -> void:
 	game_manager.game_started.connect(_on_game_started)
 	game_manager.game_paused.connect(_on_game_paused)
 	game_manager.game_resumed.connect(_on_game_resumed)
 	game_manager.game_over.connect(_on_game_over)
 	game_manager.score_updated.connect(_on_score_updated)
 	game_manager.high_scores_updated.connect(_on_high_scores_updated)
-	
+
+func _initialize_presentation() -> void:
+	is_mobile = (
+		OS.has_feature("mobile")
+		or OS.has_feature("web_android")
+		or OS.has_feature("web_ios")
+	)
+	high_scores = game_manager.get_high_scores()
+
 	get_tree().paused = true
 	ui_background.visible = false
 	main_menu.visible = true
@@ -136,11 +131,8 @@ func _ready() -> void:
 		if not button.focus_entered.is_connected(AudioManager.play_focus):
 			button.focus_entered.connect(AudioManager.play_focus)
 		_install_button_polish(button)
-	
+
 	_update_menu_focus()
-	
-	get_tree().root.size_changed.connect(_on_window_resize)
-	_on_window_resize()
 	_update_game_area()
 
 func _input(event: InputEvent) -> void:
@@ -164,9 +156,9 @@ func _update_cursor_visibility() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if (not active_gameplay or using_mouse) else Input.MOUSE_MODE_HIDDEN
 
 func _update_game_area() -> void:
-	var window_size := DisplayServer.window_get_size()
+	var viewport_size := get_viewport().get_visible_rect().size
 	var game_size := Vector2(GAME_WIDTH, GAME_HEIGHT)
-	game_world.position = (Vector2(window_size) - game_size) / 2.0
+	game_world.position = (viewport_size - game_size) / 2.0
 	play_area_background.size = game_size
 
 func _toggle_pause() -> void:
@@ -182,6 +174,7 @@ func _on_start_pressed() -> void:
 func _on_game_started() -> void:
 	# Called when game starts via GameManager
 	in_game = true
+	camera_node.reset_camera()
 	ui_state_manager.change_state(ui_state_manager.UIState.GAMEPLAY)
 	ui_background.visible = false
 	score_display_label.visible = true
@@ -239,7 +232,9 @@ func _on_pause_state_changed(is_paused: bool) -> void:
 
 func _cleanup_game() -> void:
 	in_game = false
-	if gameplay and gameplay.has_method("cleanup"):
+	if game_manager and game_manager.has_method("stop_game"):
+		game_manager.stop_game()
+	elif gameplay and gameplay.has_method("cleanup"):
 		gameplay.cleanup()
 	get_tree().paused = true
 
@@ -322,6 +317,7 @@ func _on_quit_game_pressed() -> void:
 	get_tree().quit()
 
 func _on_quit_to_menu_pressed() -> void:
+	_cleanup_game()
 	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
 	_update_menu_focus()
 
@@ -344,7 +340,6 @@ func reset_high_scores() -> void:
 	game_manager.clear_high_scores()
 
 func _on_score_updated(new_score: int) -> void:
-	score = new_score
 	score_display_label.text = "Score: " + str(new_score)
 
 func _on_high_scores_updated(new_high_scores: Array[int]) -> void:

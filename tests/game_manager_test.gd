@@ -43,6 +43,13 @@ func _initialize() -> void:
 	_expect_scores(game_manager.get_high_scores(), [5], "keep cleared scores cleared")
 	_expect_scores(save_data.stored_scores, [5], "persist only the new score after reset")
 
+	game_manager.start_game()
+	game_manager.pause_game()
+	game_manager.stop_game()
+	_expect_equal(game_manager.is_game_running(), false, "stop running game")
+	_expect_equal(game_manager.is_game_paused(), false, "clear paused state")
+	_expect_equal(game_manager.get_current_score(), 0, "reset current score")
+
 	game_manager.free()
 	if _failed:
 		quit(1)
@@ -51,6 +58,11 @@ func _initialize() -> void:
 		quit()
 
 func _expect_scores(actual: Array[int], expected: Array[int], action: String) -> void:
+	if actual != expected:
+		_failed = true
+		push_error("Expected %s to produce %s, got %s." % [action, expected, actual])
+
+func _expect_equal(actual: Variant, expected: Variant, action: String) -> void:
 	if actual != expected:
 		_failed = true
 		push_error("Expected %s to produce %s, got %s." % [action, expected, actual])

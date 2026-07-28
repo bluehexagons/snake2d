@@ -7,7 +7,8 @@ signal high_scores_closed
 @onready var back_button: Button = %BackButton
 @onready var scroll_container: ScrollContainer = $PanelContainer/MarginContainer/VBoxContainer/ScoresContainer/ScrollContainer
 
-const SCROLL_SPEED: float = 6.66
+const SCROLL_SPEED := 400.0
+var _scroll_position := 0.0
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
@@ -18,11 +19,18 @@ func _ready() -> void:
 
 func _on_visibility_changed() -> void:
 	set_process(self.visible)
+	_scroll_position = float(scroll_container.scroll_vertical)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var scroll_input: float = Input.get_axis("ui_up", "ui_down")
 	if scroll_input != 0:
-		scroll_container.scroll_vertical += int(scroll_input * SCROLL_SPEED)
+		_scroll_position += scroll_input * SCROLL_SPEED * delta
+		var requested_scroll := roundi(_scroll_position)
+		scroll_container.scroll_vertical = requested_scroll
+		if scroll_container.scroll_vertical != requested_scroll:
+			_scroll_position = float(scroll_container.scroll_vertical)
+	else:
+		_scroll_position = float(scroll_container.scroll_vertical)
 
 func update_scores(scores: Array[int]) -> void:
 	for child in scores_list.get_children():
@@ -42,4 +50,5 @@ func update_scores(scores: Array[int]) -> void:
 
 func _on_back_pressed() -> void:
 	scroll_container.scroll_vertical = 0
+	_scroll_position = 0.0
 	high_scores_closed.emit()
