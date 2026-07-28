@@ -2,6 +2,7 @@ extends Node
 
 const MAIN_SCENE := preload("res://scenes/main/main.tscn")
 const UIStateManagerScript := preload("res://scenes/ui/ui_state_manager.gd")
+const ConfigData := preload("res://autoload/config.gd")
 
 func _ready() -> void:
 	call_deferred("_run_smoke_test")
@@ -19,6 +20,27 @@ func _run_smoke_test() -> void:
 	var main_menu := main.get_node_or_null("UILayer/MainMenu") as Control
 	if main_menu == null or not main_menu.visible:
 		_fail("Expected the main menu to be visible after startup.")
+		return
+
+	var credits_text := main.get_node_or_null(
+		"UILayer/CreditsScreen/PanelContainer/MarginContainer/VBoxContainer/CreditsRichText"
+	) as RichTextLabel
+	if credits_text == null:
+		_fail("Expected the credits text to exist.")
+		return
+
+	var project_version := str(ProjectSettings.get_setting("application/config/version", "unknown"))
+	var engine_version := Engine.get_version_info()
+	var godot_version := "%d.%d.%d" % [
+		engine_version.major,
+		engine_version.minor,
+		engine_version.patch,
+	]
+	if not credits_text.text.contains("Godot Engine " + godot_version):
+		_fail("Expected the credits to show the runtime Godot version.")
+		return
+	if not credits_text.text.contains("Version: " + project_version):
+		_fail("Expected the credits to show the configured project version.")
 		return
 
 	var start_button := main.get_node_or_null("UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer/StartButton") as Button
@@ -63,8 +85,47 @@ func _run_smoke_test() -> void:
 		_fail("Expected gameplay to spawn a snake when the game starts.")
 		return
 
+	var snake := gameplay.get("snake") as Node2D
+	var expected_spawn := Vector2(
+		floorf(ConfigData.GRID_WIDTH / 2.0),
+		floorf(ConfigData.GRID_HEIGHT / 2.0)
+	) * ConfigData.GRID_SIZE
+	if snake.get("logical_position") != expected_spawn:
+		_fail("Expected the snake to spawn on the center grid cell.")
+		return
+
 	if gameplay.get("food") == null:
 		_fail("Expected gameplay to spawn food when the game starts.")
+		return
+
+	var game_manager := main.get("game_manager") as Node
+	var camera := main.get_node_or_null("GameLayer/GameViewport/GameWorld/Camera2D") as Camera2D
+	if game_manager == null or camera == null:
+		_fail("Expected the game manager and camera to exist.")
+		return
+
+	camera.position = Vector2.ZERO
+	game_manager.start_game()
+
+	var expected_camera_position := Vector2(
+		ConfigData.get_game_width() / 2.0,
+		ConfigData.get_game_height() / 2.0
+	)
+	if camera.position != expected_camera_position:
+		_fail("Expected a restarted game to reset the camera.")
+		return
+
+	var tutorial := gameplay.get("controls_tutorial") as Control
+	if tutorial == null or tutorial.get_parent() == null:
+		_fail("Expected a restarted game to replace the controls tutorial.")
+		return
+
+	main.call("_on_quit_to_menu_pressed")
+	if gameplay.get("snake") != null or gameplay.get("food") != null:
+		_fail("Expected quitting to the menu to clean up gameplay nodes.")
+		return
+	if game_manager.get("is_running") or game_manager.get("is_paused"):
+		_fail("Expected quitting to the menu to clear game manager state.")
 		return
 
 	print("Smoke test passed.")

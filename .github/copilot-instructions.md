@@ -1,1 +1,1 @@
-This is a simple Snake clone, in Godot 4.4, programmed in GDScript.
+This is a simple Snake clone, built with Godot 4.7.1 and programmed in GDScript.

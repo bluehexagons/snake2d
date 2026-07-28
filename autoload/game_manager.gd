@@ -19,9 +19,6 @@ var gameplay: Node
 var save_data_util: RefCounted
 var config: RefCounted
 
-func _ready() -> void:
-	pass
-
 func start_game() -> void:
 	is_running = true
 	is_paused = false
@@ -84,7 +81,20 @@ func end_game(final_score: int) -> void:
 	
 	# Notify UI
 	game_over.emit(final_score)
-	high_scores_updated.emit(high_scores)
+	high_scores_updated.emit(get_high_scores())
+
+func clear_high_scores() -> void:
+	high_scores.clear()
+	if save_data_util:
+		save_data_util.save_high_scores(high_scores)
+	high_scores_updated.emit(get_high_scores())
+
+func stop_game() -> void:
+	is_running = false
+	is_paused = false
+	current_score = 0
+	if gameplay and gameplay.has_method("cleanup"):
+		gameplay.cleanup()
 
 func is_game_running() -> bool:
 	return is_running

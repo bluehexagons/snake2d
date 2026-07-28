@@ -41,15 +41,36 @@ fi
 
 echo "Using Godot executable: $GODOT_BIN"
 
+run_and_check_logs() {
+    local log_file
+    log_file="$(mktemp)"
+
+    if ! "$@" >"$log_file" 2>&1; then
+        cat "$log_file"
+        rm -f "$log_file"
+        return 1
+    fi
+
+    cat "$log_file"
+    if grep -Eq 'SCRIPT ERROR:|Parse Error:|Compile Error:|(^|[[:space:]])ERROR:' "$log_file"; then
+        rm -f "$log_file"
+        echo "Error: Godot reported an error."
+        return 1
+    fi
+
+    rm -f "$log_file"
+}
+
 export_build() {
     local preset_name="$1"
     local output_path="$2"
 
     echo "Exporting ${preset_name} version..."
     mkdir -p "$(dirname "$output_path")"
-    "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "$preset_name" "$output_path"
+    rm -f -- "$output_path"
+    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "$preset_name" "$output_path"
 
-    if [[ ! -e "$output_path" ]]; then
+    if [[ ! -s "$output_path" ]]; then
         echo "Error: Expected export output was not created: $output_path"
         exit 1
     fi

@@ -29,7 +29,8 @@ A Simple Snake Game is a simple snake game in which you simply snake.
 The game can be built for different platforms using the provided build script.
 
 #### Requirements
-- Godot Engine (version 4.6.2 or later) installed and available in your PATH
+- Godot Engine (version 4.7.1 or later) and matching export templates installed
+- The Godot executable available in your PATH
 - The build script auto-detects `godot`, `godot4`, and the `GODOT`/`GODOT4` paths exported by `setup-godot`
 
 #### Usage
@@ -61,6 +62,16 @@ For the built Linux export, run:
 ```
 
 `test.sh all` runs both paths end-to-end. The source smoke test uses the Godot binary in headless mode, loads the main scene, verifies the main menu appears, presses **Start**, and checks that gameplay spawns the snake and food without opening the game window.
+
+### Releasing
+
+Releases are created from a clean, up-to-date `main` branch:
+
+```bash
+./bump_patch.sh
+```
+
+The helper runs the source test suite, increments `application/config/version`, creates the version commit and matching `v*` tag, then atomically pushes both. Pushing the tag triggers the GitHub release workflow, which tests and exports the Web, Windows, and Linux builds before publishing their archives.
 
 ### Technical Details
 

@@ -16,10 +16,10 @@ const ControlsTutorial = preload("res://scenes/main/controls_tutorial.tscn")
 const BASE_TIMER_WAIT := 0.2
 const MIN_TIMER_WAIT := 0.05
 const SPEED_INCREASE_PER_SEGMENT := 0.005
-const TAIL_SEGMENT_POOL_SIZE := 50
 
 var snake: Node2D
 var food: Node2D
+var controls_tutorial: Control
 var tail_segments: Array[ColorRect] = []
 var tail_segment_pool: Array[ColorRect] = []
 var tail_positions: Array[Vector2] = []
@@ -56,7 +56,10 @@ func start_game() -> void:
 	if snake:
 		snake.queue_free()
 	snake = Snake.instantiate()
-	var spawn_position := Vector2(ConfigData.GRID_WIDTH / 2, ConfigData.GRID_HEIGHT / 2) * ConfigData.GRID_SIZE
+	var spawn_position := Vector2(
+		floorf(ConfigData.GRID_WIDTH / 2.0),
+		floorf(ConfigData.GRID_HEIGHT / 2.0)
+	) * ConfigData.GRID_SIZE
 	snake.position = spawn_position
 	if "logical_position" in snake:
 		snake.logical_position = spawn_position
@@ -283,6 +286,7 @@ func set_paused(is_paused: bool) -> void:
 		snake.process_mode = Node.PROCESS_MODE_DISABLED if is_paused else Node.PROCESS_MODE_INHERIT
 
 func cleanup() -> void:
+	_remove_controls_tutorial()
 	if snake:
 		snake.queue_free()
 		snake = null
@@ -311,8 +315,7 @@ func get_snake_direction() -> Vector2:
 	return snake.direction if snake else Vector2.RIGHT
 	
 func _on_snake_first_move() -> void:
-	if get_parent().has_node("ControlsTutorial"):
-		get_parent().get_node("ControlsTutorial").queue_free()
+	_remove_controls_tutorial()
 
 func get_weighted_snake_center() -> Vector2:
 	if snake and not tail_segments.is_empty():
@@ -326,13 +329,23 @@ func get_weighted_snake_center() -> Vector2:
 	return snake.position if snake else Vector2.ZERO
 
 func _create_controls_tutorial() -> void:
-	if get_parent().has_node("ControlsTutorial"):
-		get_parent().get_node("ControlsTutorial").queue_free()
+	_remove_controls_tutorial()
 
-	var tutorial := ControlsTutorial.instantiate()
-	tutorial.name = "ControlsTutorial"
+	controls_tutorial = ControlsTutorial.instantiate() as Control
+	controls_tutorial.name = "ControlsTutorial"
 
-	get_parent().add_child(tutorial)
+	get_parent().add_child(controls_tutorial)
 
 	var center := Vector2(float(ConfigData.GRID_WIDTH) * ConfigData.GRID_SIZE / 2.0, float(ConfigData.GRID_HEIGHT) * ConfigData.GRID_SIZE / 2.0)
-	tutorial.position = center - tutorial.get_minimum_size() / 2
+	controls_tutorial.position = center - controls_tutorial.get_minimum_size() / 2
+
+func _remove_controls_tutorial() -> void:
+	if not is_instance_valid(controls_tutorial):
+		controls_tutorial = null
+		return
+
+	var tutorial_parent := controls_tutorial.get_parent()
+	if tutorial_parent:
+		tutorial_parent.remove_child(controls_tutorial)
+	controls_tutorial.queue_free()
+	controls_tutorial = null

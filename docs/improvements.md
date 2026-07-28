@@ -1,6 +1,6 @@
-# snake2d — Improvements Plan
+# snake2d — Improvements Audit
 
-Issues found by reading every `.gd` file in the project. Ordered by severity.
+Historical findings from a full GDScript audit. All items have been resolved.
 
 ---
 
@@ -222,5 +222,5 @@ segment.color = current_color.lerp(dead_color, 0.6)
 
 Positions are always set as `n * GRID_SIZE`, so the division is exact in practice. Using `pos.snapped(Vector2.ONE * ConfigData.GRID_SIZE)` instead of dividing would make the intent clearer and be safe if sub-grid positions are ever introduced.
 
-### 14. `main.gd` mixes scene wiring with game flow logic (341 lines)
-`_ready()` handles dependency injection, button wiring, animation polish installation, high score loading, window resize setup, and initial visibility state. The file isn't broken, but splitting button wiring and polish into helper methods would make the flow easier to follow.
+### 14. `main.gd` mixes scene wiring with game flow logic
+Resolved by splitting dependency setup, UI registration, signal wiring, and initial presentation into focused helper methods.
