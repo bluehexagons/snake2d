@@ -35,3 +35,12 @@ func tick_seconds_for_length(body_length: int) -> float:
 		initial_tick_seconds - foods_eaten * tick_decrease_per_food,
 		minimum_tick_seconds
 	)
+
+## Returns 0 at the initial speed and 1 once the configured minimum tick is reached.
+## Presentation systems can follow game difficulty without duplicating timing rules.
+func speed_progress_for_length(body_length: int) -> float:
+	var speed_range := initial_tick_seconds - minimum_tick_seconds
+	if speed_range <= 0.0:
+		return 0.0
+	var elapsed_range := initial_tick_seconds - tick_seconds_for_length(body_length)
+	return clampf(elapsed_range / speed_range, 0.0, 1.0)

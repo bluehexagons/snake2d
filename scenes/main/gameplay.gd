@@ -70,7 +70,6 @@ func start_game() -> void:
 
 	_show_food(model.food_cell)
 	time_since_tick = 0.0
-	_audio_service.reset_pitch()
 	score_updated.emit(model.score)
 
 func _physics_process(delta: float) -> void:
@@ -111,7 +110,7 @@ func advance_one_tick() -> SnakeGame.StepResult:
 		tick_completed.emit(result)
 		return result
 
-	_audio_service.play_move()
+	_audio_service.play_move(_rules.speed_progress_for_length(model.snake.body.size()))
 	snake.move_to_cell(model.snake.body[0])
 	_sync_tail_presentation(previous_body)
 	snake_moved.emit(_cell_to_pixel(model.snake.body[0]))
@@ -287,7 +286,6 @@ func _finish_round() -> void:
 	if snake == null:
 		return
 	_audio_service.play_die()
-	_audio_service.reset_pitch()
 	snake.mark_dead()
 	for segment in tail_segments:
 		segment.mark_dead()

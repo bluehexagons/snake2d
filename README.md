@@ -90,7 +90,7 @@ The helper runs the source test suite, increments `application/config/version`, 
 - Explicit scene composition with no Autoload singletons
 - Pure `Vector2i` grid model with seeded randomness and bounded fixed-tick catch-up
 - Inspector-editable `GameRules` Resource
-- Owned and injected audio service with reusable PCM tones, click-safe voice pooling, and four waveforms
+- Owned and injected audio service with speed-aware movement tones, reusable swept PCM cues, click-safe voice pooling, and four waveforms
 - Reusable, pooled snake segment scenes and a custom-drawn food view
 - Responsive UI design
 - Versioned high-score and settings persistence with legacy migration

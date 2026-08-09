@@ -10,7 +10,7 @@ This roadmap reflects the current Godot 4.7.1 project after the architecture and
 - `Gameplay` is a Godot adapter for ticking, interpolation, pooled views, signals, and audio.
 - `TouchGesture` and `SnakeInputAdapter` classify taps and scale-aware swipes per finger, use unscaled screen-relative drag motion, and ignore emulated duplicate mouse events without owning turn legality. Gameplay input is enabled only in the playing session state.
 - `GameRules` provides Inspector-editable presets for board, scoring, timing, and camera tuning.
-- Audio, settings, and high-score persistence are explicitly owned services with typed consumers. Synth tones have zero-amplitude edges, bounded PCM reuse, a limiter, and non-stealing player channels.
+- Audio, settings, and high-score persistence are explicitly owned services with typed consumers. Synth tones have zero-amplitude edges, phase-continuous sweeps, playback-time cue gain, bounded prewarmed PCM reuse, a limiter, and non-stealing player channels. Movement tone follows an eased game-speed curve rather than elapsed ticks.
 - The F1 debug overlay exposes live state; F2 advances one paused tick.
 - Model, session, persistence, audio, input, input-map, and composed-scene tests run through `./test.sh source` and CI.
 - `docs/architecture.md` and `docs/learning-path.md` describe ownership and a recommended reading order.
@@ -23,6 +23,7 @@ Add a short manual test matrix for:
 
 - Android/iOS tap, swipe, cancellation, and multi-touch behavior with the active Camera2D
 - Web touch, physical mouse switching, and pointer capture
+- native and Web audio latency, cue balance, and limiter behavior at maximum movement speed
 - controller-only navigation through the volume slider and confirmation dialogs
 - resizing and aspect-ratio extremes
 - reduced-motion behavior across every menu transition

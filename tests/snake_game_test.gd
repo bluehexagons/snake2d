@@ -10,6 +10,7 @@ func _initialize() -> void:
 	_the_departing_tail_cell_is_legal()
 	_food_is_deterministic_and_never_occupies_the_snake()
 	_eating_updates_score_length_and_speed()
+	_speed_progress_tracks_the_configured_tick_range()
 	_filling_the_board_completes_the_round()
 	_reset_restores_initial_state()
 	check.finish(self, "Snake game model test")
@@ -80,6 +81,25 @@ func _eating_updates_score_length_and_speed() -> void:
 		"eating decreases the tick duration"
 	)
 	check.expect_false(game.is_cell_occupied(game.food_cell), "respawned food avoids the grown snake")
+
+func _speed_progress_tracks_the_configured_tick_range() -> void:
+	var rules := GameRules.new()
+	check.expect_true(
+		is_zero_approx(rules.speed_progress_for_length(1)),
+		"speed progress starts at zero"
+	)
+	check.expect_true(
+		is_equal_approx(rules.speed_progress_for_length(16), 0.5),
+		"speed progress reaches one half after half the configured acceleration"
+	)
+	check.expect_true(
+		is_equal_approx(rules.speed_progress_for_length(31), 1.0),
+		"speed progress reaches one at the minimum tick duration"
+	)
+	check.expect_true(
+		is_equal_approx(rules.speed_progress_for_length(1000), 1.0),
+		"speed progress remains clamped after reaching maximum speed"
+	)
 
 func _filling_the_board_completes_the_round() -> void:
 	var game := _new_game(Vector2i(2, 1), 7)

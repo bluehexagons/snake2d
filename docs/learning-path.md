@@ -100,7 +100,9 @@ Read `services/audio_service.gd` and `tests/audio_synth_test.gd`.
 
 - Tones are rendered into PCM data in `AudioStreamWAV`.
 - Attack and release envelopes make every complete stream begin and end at zero amplitude.
-- A bounded cache reuses quantized tones instead of regenerating identical PCM data during play.
+- Linear frequency sweeps integrate frequency over time so their waveform phase remains continuous.
+- Every PCM stream uses the same render headroom before waveshaping, while cue volume is applied during playback. This keeps synthesis clean and lets a bounded cache reuse tones at different settings levels.
+- Movement pitch follows `GameRules.speed_progress_for_length()`. Its eased, quantized curve stays low early, reaches its high register only near maximum speed, and is fully prewarmed before play.
 - The player pool never cuts an active waveform; it drops overflow and reserves one critical voice for death.
 - A dedicated bus and limiter constrain combined output.
 - Settings are injected from `SettingsService`; audio does not load files itself.

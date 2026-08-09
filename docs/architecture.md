@@ -87,7 +87,7 @@ The model uses `Vector2i` cells. Presentation converts cells to pixel positions 
 
 `HighScoreStore` owns the versioned high-score file. It accepts old array-only saves and fails closed on malformed or unsupported data.
 
-`SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, and applies mute, effects volume, fullscreen, and reduced motion. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes, reuses quantized PCM streams through a bounded cache, and drops overflow instead of cutting an active waveform. A reserved voice keeps the death sound available without channel stealing.
+`SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, and applies mute, effects volume, fullscreen, and reduced motion. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
 
 ## Verification
 
