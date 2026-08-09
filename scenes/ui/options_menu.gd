@@ -5,55 +5,66 @@ signal options_closed
 signal reset_scores_requested
 
 var sound_button: Button
+var volume_label: Label
+var volume_slider: HSlider
 var fullscreen_button: Button
+var reduced_motion_button: Button
 var reset_settings_button: Button
 var reset_scores_button: Button
 var back_button: Button
+var _settings_service: SettingsService
+var _updating_controls := false
 
 func _ready() -> void:
 	sound_button = %SoundButton
+	volume_label = %VolumeLabel
+	volume_slider = %VolumeSlider
 	fullscreen_button = %FullscreenButton
+	reduced_motion_button = %ReducedMotionButton
 	reset_settings_button = %ResetSettingsButton
 	reset_scores_button = %ResetScoresButton
 	back_button = %BackButton
 	
 	sound_button.pressed.connect(_on_sound_toggled)
-	sound_button.button_down.connect(AudioManager.play_click)
-	
+	volume_slider.value_changed.connect(_on_volume_changed)
 	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
-	fullscreen_button.button_down.connect(AudioManager.play_click)
-	
+	reduced_motion_button.pressed.connect(_on_reduced_motion_toggled)
 	reset_settings_button.pressed.connect(_on_reset_settings_pressed)
-	reset_settings_button.button_down.connect(AudioManager.play_click)
 	
 	reset_scores_button.pressed.connect(_on_reset_scores_pressed)
-	reset_scores_button.button_down.connect(AudioManager.play_click)
 	
 	back_button.pressed.connect(_on_back_pressed)
-	back_button.button_down.connect(AudioManager.play_click)
-	
+	update_button_states()
+
+## Supplies the versioned settings boundary this menu edits.
+func set_settings_service(service: SettingsService) -> void:
+	_settings_service = service
 	update_button_states()
 
 func _on_sound_toggled() -> void:
-	var is_muted := AudioManager.toggle_mute()
+	_settings_service.toggle_mute()
 	update_sound_button()
-	if not is_muted:
-		AudioManager.play_click()
+
+func _on_volume_changed(volume_db: float) -> void:
+	if _updating_controls or _settings_service == null:
+		return
+	_settings_service.set_effects_volume_db(volume_db)
+	update_volume_label()
 
 func _on_fullscreen_toggled() -> void:
-	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	_settings_service.toggle_fullscreen()
 	update_fullscreen_button()
-	AudioManager.save_settings()
+
+func _on_reduced_motion_toggled() -> void:
+	_settings_service.toggle_reduced_motion()
+	update_reduced_motion_button()
 
 func _on_reset_settings_pressed() -> void:
 	_show_confirmation_dialog(
 		"Reset Settings",
 		"Are you sure you want to reset all settings?",
 		func() -> void:
-			AudioManager.reset_settings()
+			_settings_service.reset_settings()
 			update_button_states()
 	)
 
@@ -68,16 +79,45 @@ func _on_reset_scores_pressed() -> void:
 func _on_back_pressed() -> void:
 	options_closed.emit()
 
+func get_buttons() -> Array[Button]:
+	return [
+		sound_button,
+		fullscreen_button,
+		reduced_motion_button,
+		reset_settings_button,
+		reset_scores_button,
+		back_button,
+	]
+
+func get_default_focus() -> Button:
+	return sound_button
+
 func update_button_states() -> void:
+	if _settings_service == null:
+		return
+	_updating_controls = true
 	update_sound_button()
+	volume_slider.value = _settings_service.effects_volume_db
+	update_volume_label()
 	update_fullscreen_button()
+	update_reduced_motion_button()
+	_updating_controls = false
 
 func update_sound_button() -> void:
-	sound_button.text = str("Sound: ", "Off" if AudioManager.is_muted else "On")
+	sound_button.text = str("Sound: ", "Off" if _settings_service.is_muted else "On")
+
+func update_volume_label() -> void:
+	var linear_volume := db_to_linear(_settings_service.effects_volume_db)
+	volume_label.text = "Effects Volume: %d%%" % roundi(linear_volume * 100.0)
 
 func update_fullscreen_button() -> void:
-	var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-	fullscreen_button.text = str("Fullscreen: ", "On" if is_fullscreen else "Off")
+	fullscreen_button.text = str("Fullscreen: ", "On" if _settings_service.is_fullscreen else "Off")
+
+func update_reduced_motion_button() -> void:
+	reduced_motion_button.text = str(
+		"Reduced Motion: ",
+		"On" if _settings_service.reduced_motion else "Off"
+	)
 
 func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable) -> void:
 	var dialog := ConfirmationDialog.new()

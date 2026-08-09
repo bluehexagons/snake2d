@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://pausemenu"]
+[gd_scene load_steps=2 format=3 uid="uid://pausemenu"]
+
+[ext_resource type="Script" path="res://scenes/ui/pause_menu.gd" id="1_pause"]
 
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="1_theme"]
 
@@ -9,6 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_pause")
 theme = ExtResource("1_theme")
 
 [node name="PanelContainer" type="PanelContainer" parent="." unique_id=1180864918]

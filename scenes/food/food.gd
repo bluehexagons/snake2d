@@ -1,27 +1,25 @@
+class_name FoodView
 extends Node2D
-
-const ConfigData = preload("res://autoload/config.gd")
 
 const BASE_COLOR := Color(0.854902, 0.14902, 0.14902, 1)
 const SPAWN_DURATION := 0.28
 const EAT_DURATION := 0.22
 
 # Visual state, all driven by tweens.
-var _size: float = float(ConfigData.GRID_SIZE)
+var _size := 32.0
 var _scale: float = 0.0
 var _corner_radius: float = 6.0
 var _color: Color = BASE_COLOR
 var _eaten: bool = false
 
-@onready var _color_rect: ColorRect = $ColorRect
-
 func _ready() -> void:
-	# Hide the legacy ColorRect; we paint the food ourselves so we can round corners.
-	if _color_rect:
-		_color_rect.visible = false
 	z_index = 0
 	queue_redraw()
 	_play_spawn()
+
+func configure(cell_size: int) -> void:
+	_size = float(cell_size)
+	queue_redraw()
 
 func _draw() -> void:
 	var s := _size * _scale

@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://snakescene"]
+
+[ext_resource type="Script" uid="uid://b6r2we1eq5t4c" path="res://scenes/snake/snake_view.gd" id="1_8v03p"]
+[ext_resource type="PackedScene" path="res://scenes/snake/snake_segment.tscn" id="2_segment"]
+
+[node name="SnakeView" type="Node2D" unique_id=700757401]
+script = ExtResource("1_8v03p")
+
+[node name="Head" parent="." unique_id=1609450893 instance=ExtResource("2_segment")]
+color = Color(0.0509804, 0.521569, 0.0509804, 1)

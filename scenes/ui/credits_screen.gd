@@ -8,9 +8,8 @@ var back_button: Button
 func _ready() -> void:
 	back_button = %BackButton
 	back_button.pressed.connect(_on_back_pressed)
-	back_button.button_down.connect(AudioManager.play_click)
 
-	var credits_text: RichTextLabel = $PanelContainer/MarginContainer/VBoxContainer/CreditsRichText
+	var credits_text: RichTextLabel = %CreditsRichText
 	var engine_version := Engine.get_version_info()
 	var godot_version := "%d.%d.%d" % [
 		engine_version.major,
@@ -25,3 +24,9 @@ func _ready() -> void:
 
 func _on_back_pressed() -> void:
 	credits_screen_closed.emit()
+
+func get_buttons() -> Array[Button]:
+	return [back_button]
+
+func get_default_focus() -> Button:
+	return back_button

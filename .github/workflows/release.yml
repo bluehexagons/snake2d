@@ -21,7 +21,7 @@ jobs:
         use-dotnet: false
         include-templates: true
 
-    - name: Smoke test
+    - name: Source tests
       run: |
         ./test.sh source
 

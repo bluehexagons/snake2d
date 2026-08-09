@@ -1,12 +1,15 @@
+class_name AudioService
 extends Node
 
+## An explicitly owned service for procedural sound synthesis and playback.
+## Main composes this node and supplies it only to components that need audio behavior.
+
 enum Waveform {SINE, SQUARE, TRIANGLE, SAW}
-enum TonePriority {MOVE, UI, EAT, DIE}
+enum VoiceGroup {GENERAL, CRITICAL}
 
-const ConfigData = preload("res://autoload/config.gd")
-const SETTINGS_FILE := ConfigData.SETTINGS_FILE
-
+const AppConstants = preload("res://core/app_constants.gd")
 const CHANNEL_COUNT := 12
+const CRITICAL_CHANNEL_COUNT := 1
 const SAMPLE_HZ := 44100.0
 const ATTACK_SECONDS := 0.004
 const RELEASE_SECONDS := 0.012
@@ -27,20 +30,23 @@ const PITCH_DAMPING := 0.9
 const PITCH_RANGE := 0.95
 const PITCH_VARIATION := 0.04
 const MOVE_TONE_SECONDS := 0.045
+const TONE_CACHE_FREQUENCY_STEP_HZ := 2.0
+const TONE_CACHE_CAPACITY := 128
 
 var audio_players: Array[AudioStreamPlayer] = []
-var player_priorities: Array[int] = []
-var player_started_usec: Array[int] = []
-var next_channel_index := 0
+var next_general_channel_index := 0
+var _tone_cache: Dictionary[String, AudioStreamWAV] = {}
+var _tone_cache_order: Array[String] = []
 
 var is_muted := false
+var effects_volume_db := 0.0
 var current_pitch_momentum := 0.0
 var target_pitch_offset := 0.0
 
 func _ready() -> void:
-	load_settings()
 	if DisplayServer.get_name() != "headless":
-		_ensure_synth_bus()
+		_ensure_audio_players()
+		_prewarm_fixed_tones()
 	_update_players()
 
 func _ensure_audio_players() -> void:
@@ -55,8 +61,6 @@ func _ensure_audio_players() -> void:
 		add_child(player)
 
 		audio_players.append(player)
-		player_priorities.append(TonePriority.MOVE)
-		player_started_usec.append(0)
 
 	_update_players()
 
@@ -65,8 +69,8 @@ func _exit_tree() -> void:
 		player.stop()
 		player.stream = null
 	audio_players.clear()
-	player_priorities.clear()
-	player_started_usec.clear()
+	_tone_cache.clear()
+	_tone_cache_order.clear()
 
 func _ensure_synth_bus() -> void:
 	var bus_index := AudioServer.get_bus_index(SYNTH_BUS_NAME)
@@ -100,48 +104,20 @@ func _get_synth_bus_name() -> StringName:
 	return StringName(SYNTH_BUS_NAME if AudioServer.get_bus_index(SYNTH_BUS_NAME) != -1 else "Master")
 
 func _on_audio_player_finished(player: AudioStreamPlayer) -> void:
-	var index := audio_players.find(player)
-	if index == -1:
-		return
-
 	player.stream = null
-	player_priorities[index] = TonePriority.MOVE
-	player_started_usec[index] = 0
 
 func _update_players() -> void:
 	for player in audio_players:
 		player.bus = _get_synth_bus_name()
-		player.volume_db = -999.0 if is_muted else MASTER_GAIN_DB
+		player.volume_db = -999.0 if is_muted else MASTER_GAIN_DB + effects_volume_db
 
-func save_settings() -> void:
-	var file := FileAccess.open(SETTINGS_FILE, FileAccess.WRITE)
-	if file:
-		file.store_8(1 if is_muted else 0)
-		file.store_8(1 if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else 0)
-
-func load_settings() -> void:
-	if FileAccess.file_exists(SETTINGS_FILE):
-		var file := FileAccess.open(SETTINGS_FILE, FileAccess.READ)
-		if file:
-			is_muted = file.get_8() == 1
-			_update_players()
-
-			var fullscreen := file.get_8() == 1
-			DisplayServer.window_set_mode(
-				DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
-			)
-
-func reset_settings() -> void:
-	is_muted = false
+func set_muted(muted: bool) -> void:
+	is_muted = muted
 	_update_players()
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	save_settings()
 
-func toggle_mute() -> bool:
-	is_muted = !is_muted
+func set_effects_volume_db(volume_db: float) -> void:
+	effects_volume_db = clampf(volume_db, -30.0, 0.0)
 	_update_players()
-	save_settings()
-	return is_muted
 
 func play_move() -> void:
 	if is_muted:
@@ -156,19 +132,25 @@ func play_move() -> void:
 	var variation: float = randf_range(-PITCH_VARIATION, PITCH_VARIATION)
 	var final_pitch: float = maxf(0.1, momentum_pitch + variation)
 
-	_play_tone(ConfigData.BASE_FREQUENCY * 0.5 * final_pitch, MOVE_TONE_SECONDS, -20.0, Waveform.SINE, TonePriority.MOVE)
+	_play_tone(AppConstants.BASE_FREQUENCY * 0.5 * final_pitch, MOVE_TONE_SECONDS, -20.0, Waveform.SINE)
 
 func play_eat() -> void:
-	_play_tone(ConfigData.BASE_FREQUENCY * 1.9, 0.13, -16.0, Waveform.TRIANGLE, TonePriority.EAT)
+	_play_tone(AppConstants.BASE_FREQUENCY * 1.9, 0.13, -16.0, Waveform.TRIANGLE)
 
 func play_die() -> void:
-	_play_tone(ConfigData.BASE_FREQUENCY * 0.5, 0.3, -4.5, Waveform.SAW, TonePriority.DIE)
+	_play_tone(
+		AppConstants.BASE_FREQUENCY * 0.5,
+		0.3,
+		-4.5,
+		Waveform.SAW,
+		VoiceGroup.CRITICAL
+	)
 
 func play_click() -> void:
-	_play_tone(ConfigData.BASE_FREQUENCY * 2.5, 0.05, -12.0, Waveform.TRIANGLE, TonePriority.UI)
+	_play_tone(AppConstants.BASE_FREQUENCY * 2.5, 0.05, -12.0, Waveform.TRIANGLE)
 
 func play_focus() -> void:
-	_play_tone(ConfigData.BASE_FREQUENCY * 2.0, 0.05, -20.0, Waveform.TRIANGLE, TonePriority.UI)
+	_play_tone(AppConstants.BASE_FREQUENCY * 2.0, 0.05, -20.0, Waveform.TRIANGLE)
 
 func reset_pitch() -> void:
 	current_pitch_momentum = 0.0
@@ -177,9 +159,15 @@ func reset_pitch() -> void:
 func play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
 	if is_muted or DisplayServer.get_name() == "headless":
 		return
-	_play_tone(frequency, duration, volume_db, waveform, TonePriority.UI)
+	_play_tone(frequency, duration, volume_db, waveform)
 
-func _play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform, priority: TonePriority) -> void:
+func _play_tone(
+	frequency: float,
+	duration: float,
+	volume_db: float,
+	waveform: Waveform,
+	voice_group := VoiceGroup.GENERAL
+) -> void:
 	if is_muted or DisplayServer.get_name() == "headless":
 		return
 
@@ -188,55 +176,112 @@ func _play_tone(frequency: float, duration: float, volume_db: float, waveform: W
 	if audio_players.is_empty():
 		return
 
-	var channel := _acquire_channel_index(priority)
+	var channel := _acquire_channel_index(voice_group)
 	if channel == -1:
 		return
 
-	var stream := _render_tone_stream(frequency, duration, db_to_linear(volume_db), waveform)
+	var stream := _get_cached_tone_stream(frequency, duration, db_to_linear(volume_db), waveform)
 	if stream == null:
 		return
 
 	var player := audio_players[channel]
-	if player.playing:
-		player.stop()
 	player.stream = stream
-	player.volume_db = -999.0 if is_muted else MASTER_GAIN_DB
+	player.volume_db = -999.0 if is_muted else MASTER_GAIN_DB + effects_volume_db
 	player.bus = _get_synth_bus_name()
-	player_priorities[channel] = priority
-	player_started_usec[channel] = Time.get_ticks_usec()
 	player.play()
 
-func _acquire_channel_index(priority: TonePriority) -> int:
-	for offset in range(audio_players.size()):
-		var channel := (next_channel_index + offset) % audio_players.size()
+func _acquire_channel_index(voice_group: VoiceGroup) -> int:
+	# Interrupting a PCM voice at an arbitrary sample creates a discontinuity that
+	# sounds like a click. Overflow is dropped instead, and death owns a reserved voice.
+	var general_channel_count := audio_players.size() - CRITICAL_CHANNEL_COUNT
+	if voice_group == VoiceGroup.CRITICAL:
+		for channel in range(general_channel_count, audio_players.size()):
+			if not audio_players[channel].playing:
+				return channel
+		return -1
+
+	if general_channel_count <= 0:
+		return -1
+	for offset in range(general_channel_count):
+		var channel := (next_general_channel_index + offset) % general_channel_count
 		if not audio_players[channel].playing:
-			next_channel_index = (channel + 1) % audio_players.size()
+			next_general_channel_index = (channel + 1) % general_channel_count
 			return channel
+	return -1
 
-	var selected := -1
-	var selected_priority := priority
-	var selected_started_usec := 0
-	for i in range(audio_players.size()):
-		var existing_priority := player_priorities[i]
-		if priority != TonePriority.DIE and existing_priority >= priority:
-			continue
+func _prewarm_fixed_tones() -> void:
+	_get_cached_tone_stream(
+		AppConstants.BASE_FREQUENCY * 1.9,
+		0.13,
+		db_to_linear(-16.0),
+		Waveform.TRIANGLE
+	)
+	_get_cached_tone_stream(
+		AppConstants.BASE_FREQUENCY * 0.5,
+		0.3,
+		db_to_linear(-4.5),
+		Waveform.SAW
+	)
+	_get_cached_tone_stream(
+		AppConstants.BASE_FREQUENCY * 2.5,
+		0.05,
+		db_to_linear(-12.0),
+		Waveform.TRIANGLE
+	)
+	_get_cached_tone_stream(
+		AppConstants.BASE_FREQUENCY * 2.0,
+		0.05,
+		db_to_linear(-20.0),
+		Waveform.TRIANGLE
+	)
 
-		if (
-			selected == -1
-			or existing_priority < selected_priority
-			or (
-				existing_priority == selected_priority
-				and player_started_usec[i] < selected_started_usec
-			)
-		):
-			selected = i
-			selected_priority = existing_priority
-			selected_started_usec = player_started_usec[i]
+func _get_cached_tone_stream(
+	frequency: float,
+	duration: float,
+	volume_linear: float,
+	waveform: Waveform
+) -> AudioStreamWAV:
+	# Quantization makes changing movement pitches reusable without an unbounded cache.
+	var quantized_frequency := snappedf(frequency, TONE_CACHE_FREQUENCY_STEP_HZ)
+	var cache_key := _tone_cache_key(quantized_frequency, duration, volume_linear, waveform)
+	if _tone_cache.has(cache_key):
+		_touch_cache_key(cache_key)
+		return _tone_cache[cache_key]
 
-	if selected != -1:
-		next_channel_index = (selected + 1) % audio_players.size()
+	var stream := _render_tone_stream(
+		quantized_frequency,
+		duration,
+		volume_linear,
+		waveform
+	)
+	if stream == null:
+		return null
 
-	return selected
+	while _tone_cache_order.size() >= TONE_CACHE_CAPACITY:
+		var oldest_key: String = _tone_cache_order.pop_front()
+		_tone_cache.erase(oldest_key)
+	_tone_cache[cache_key] = stream
+	_tone_cache_order.append(cache_key)
+	return stream
+
+func _tone_cache_key(
+	frequency: float,
+	duration: float,
+	volume_linear: float,
+	waveform: Waveform
+) -> String:
+	return "%d:%d:%d:%d" % [
+		roundi(frequency / TONE_CACHE_FREQUENCY_STEP_HZ),
+		roundi(duration * 10000.0),
+		roundi(volume_linear * 10000.0),
+		waveform,
+	]
+
+func _touch_cache_key(cache_key: String) -> void:
+	var existing_index := _tone_cache_order.find(cache_key)
+	if existing_index != -1:
+		_tone_cache_order.remove_at(existing_index)
+	_tone_cache_order.append(cache_key)
 
 func _render_tone_stream(frequency: float, duration: float, volume_linear: float, waveform: Waveform) -> AudioStreamWAV:
 	var sample_count := int(duration * SAMPLE_HZ)
@@ -292,7 +337,7 @@ func _wave_sample(t: float, frequency: float, waveform: Waveform) -> float:
 			return sin(t * TAU * frequency)
 		Waveform.SQUARE:
 			var square_sample := 0.0
-			for h in ConfigData.AUDIO_HARMONICS:
+			for h in AppConstants.AUDIO_HARMONICS:
 				var harmonic := h * 2 + 1
 				if frequency * harmonic >= SAMPLE_HZ * 0.5:
 					break
@@ -300,7 +345,7 @@ func _wave_sample(t: float, frequency: float, waveform: Waveform) -> float:
 			return square_sample * 4.0 / TAU
 		Waveform.TRIANGLE:
 			var triangle_sample := 0.0
-			for h in ConfigData.AUDIO_HARMONICS:
+			for h in AppConstants.AUDIO_HARMONICS:
 				var harmonic := h * 2 + 1
 				if frequency * harmonic >= SAMPLE_HZ * 0.5:
 					break
@@ -309,7 +354,7 @@ func _wave_sample(t: float, frequency: float, waveform: Waveform) -> float:
 			return triangle_sample * 8.0 / (TAU * TAU)
 		Waveform.SAW:
 			var saw_sample := 0.0
-			for h in ConfigData.AUDIO_HARMONICS:
+			for h in AppConstants.AUDIO_HARMONICS:
 				var harmonic := h + 1
 				if frequency * harmonic >= SAMPLE_HZ * 0.5:
 					break

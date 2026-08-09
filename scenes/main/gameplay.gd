@@ -1,351 +1,341 @@
 class_name Gameplay
 extends Node2D
 
-const ConfigData = preload("res://autoload/config.gd")
+## Adapts the deterministic SnakeGame model to Godot scenes, animation, and audio.
 
 signal score_updated(new_score: int)
 signal game_over(final_score: int)
 signal food_spawned(position: Vector2)
 signal snake_moved(position: Vector2)
 signal snake_grew(position: Vector2)
+signal tick_completed(result: SnakeGame.StepResult)
 
-const Snake = preload("res://scenes/snake/snake.tscn")
-const Food = preload("res://scenes/food/food.tscn")
-const ControlsTutorial = preload("res://scenes/main/controls_tutorial.tscn")
+const SnakeViewScene := preload("res://scenes/snake/snake_view.tscn")
+const SnakeSegmentScene := preload("res://scenes/snake/snake_segment.tscn")
+const FoodViewScene := preload("res://scenes/food/food.tscn")
+const ControlsTutorial := preload("res://scenes/main/controls_tutorial.tscn")
 
-const BASE_TIMER_WAIT := 0.2
-const MIN_TIMER_WAIT := 0.05
-const SPEED_INCREASE_PER_SEGMENT := 0.005
+var model: SnakeGame
+var snake: SnakeView
+var food: FoodView
+var _controls_tutorial: Control
 
-var snake: Node2D
-var food: Node2D
-var controls_tutorial: Control
-var tail_segments: Array[ColorRect] = []
-var tail_segment_pool: Array[ColorRect] = []
-var tail_positions: Array[Vector2] = []
-# Visual-only previous positions for ease-in-out interpolation of tail segments.
-var tail_prev_positions: Array[Vector2] = []
-var tail_corner_turns: Array[bool] = []
-var score := 0
-var game_over_state := false
+var tail_segments: Array[SnakeSegment] = []
+var tail_segment_pool: Array[SnakeSegment] = []
+var tail_previous_positions: Array[Vector2] = []
+var tail_target_positions: Array[Vector2] = []
 
-var time_since_move := 0.0
-var current_move_time := BASE_TIMER_WAIT
+var time_since_tick := 0.0
+
+var _rules: GameRules
+var _audio_service: AudioService
+var _model_random := RandomNumberGenerator.new()
+var _visual_random := RandomNumberGenerator.new()
+var _randomize_on_start := true
 
 @onready var game_world: Node2D = get_parent()
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_INHERIT
+	_visual_random.randomize()
+
+## Supplies authored dependencies before the first round starts.
+func configure(game_rules: GameRules, audio_service: AudioService) -> void:
+	_rules = game_rules
+	_audio_service = audio_service
+
+## Replaces randomized food placement with a caller-owned generator, primarily for tests.
+func set_random_number_generator(random: RandomNumberGenerator) -> void:
+	_model_random = random
+	_randomize_on_start = false
 
 func start_game() -> void:
-	game_over_state = false
-	score = 0
-	score_updated.emit(score)
-	
-	for segment in tail_segments:
-		if segment:
-			segment.hide()
-			tail_segment_pool.append(segment)
-	tail_segments.clear()
-	tail_positions.clear()
-	tail_prev_positions.clear()
-	tail_corner_turns.clear()
-	
+	assert(_rules != null, "Gameplay requires GameRules before starting.")
+	assert(_audio_service != null, "Gameplay requires AudioService before starting.")
+
+	_recycle_active_tail()
+	_remove_current_snake()
+	_remove_current_food()
+	_remove_eaten_food_views()
 	_create_controls_tutorial()
-	
-	if snake:
-		snake.queue_free()
-	snake = Snake.instantiate()
-	var spawn_position := Vector2(
-		floorf(ConfigData.GRID_WIDTH / 2.0),
-		floorf(ConfigData.GRID_HEIGHT / 2.0)
-	) * ConfigData.GRID_SIZE
-	snake.position = spawn_position
-	if "logical_position" in snake:
-		snake.logical_position = spawn_position
-	if "visual_prev_position" in snake:
-		snake.visual_prev_position = spawn_position
+
+	if _randomize_on_start:
+		_model_random.randomize()
+	model = SnakeGame.new(_rules, _model_random)
+	model.reset()
+
+	snake = SnakeViewScene.instantiate() as SnakeView
+	snake.configure(_rules.cell_size)
+	snake.snap_to_cell(model.snake.body[0])
 	game_world.add_child(snake)
-	snake.moved.connect(_on_snake_moved)
-	snake.grew.connect(_on_snake_grew)
-	snake.died.connect(_on_snake_died)
-	snake.first_move.connect(_on_snake_first_move)
-	
-	tail_positions.insert(0, snake.position)
-	
-	spawn_food()
-	
-	time_since_move = 0.0
-	current_move_time = BASE_TIMER_WAIT
-	
-	AudioManager.reset_pitch()
+
+	_show_food(model.food_cell)
+	time_since_tick = 0.0
+	_audio_service.reset_pitch()
+	score_updated.emit(model.score)
 
 func _physics_process(delta: float) -> void:
-	if game_over_state or get_tree().is_paused():
+	if model == null or model.game_over:
 		return
-		
-	time_since_move += delta
-	
-	if time_since_move >= current_move_time:
-		time_since_move -= current_move_time
-		snake.can_move = false
-		snake.move()
 
-	_apply_visual_interp()
+	time_since_tick += delta
+	var steps := 0
+	while (
+		time_since_tick >= model.current_tick_seconds()
+		and steps < _rules.maximum_catch_up_steps
+		and not model.game_over
+	):
+		time_since_tick -= model.current_tick_seconds()
+		advance_one_tick()
+		steps += 1
 
-func _apply_visual_interp() -> void:
-	if not snake or game_over_state:
-		return
-	var t: float = clamp(time_since_move / current_move_time, 0.0, 1.0)
-	if snake.has_method("apply_visual_interp"):
-		snake.apply_visual_interp(t)
-	var eased: float = t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
-	for i in tail_segments.size():
-		var prev: Vector2 = tail_prev_positions[i] if i < tail_prev_positions.size() else tail_segments[i].position
-		var target: Vector2 = tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position
-		var progress := t if (i < tail_corner_turns.size() and tail_corner_turns[i]) else eased
-		tail_segments[i].position = prev.lerp(target, progress)
+	if steps == _rules.maximum_catch_up_steps:
+		time_since_tick = minf(time_since_tick, model.current_tick_seconds())
 
-func is_position_occupied(pos: Vector2) -> bool:
-	var snapped_pos := pos.snapped(Vector2.ONE * ConfigData.GRID_SIZE)
+	_apply_visual_interpolation()
 
-	if snake:
-		var snake_logical: Vector2 = snake.logical_position if "logical_position" in snake else snake.position
-		if snake_logical == snapped_pos:
-			return true
+## Advances exactly one model tick. The debug overlay uses this while the tree is paused.
+func advance_one_tick() -> SnakeGame.StepResult:
+	if model == null or model.game_over:
+		return SnakeGame.StepResult.HIT_SELF
 
-	for i in tail_segments.size():
-		var seg_logical: Vector2 = tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position
-		if seg_logical == snapped_pos:
-			return true
+	var previous_body := model.snake.body.duplicate()
+	var eaten_cell := model.food_cell
+	var result := model.step()
 
-	return false
+	if result == SnakeGame.StepResult.WAITING_FOR_INPUT:
+		tick_completed.emit(result)
+		return result
 
-func spawn_food() -> bool:
-	if food:
-		food.queue_free()
-		food = null
-	
-	var available_positions: Array[Vector2] = []
-	for x in ConfigData.GRID_WIDTH:
-		for y in ConfigData.GRID_HEIGHT:
-			var test_pos := Vector2(x, y) * ConfigData.GRID_SIZE
-			if not is_position_occupied(test_pos):
-				available_positions.append(test_pos)
+	if result == SnakeGame.StepResult.HIT_WALL or result == SnakeGame.StepResult.HIT_SELF:
+		_finish_round()
+		tick_completed.emit(result)
+		return result
 
-	if available_positions.is_empty():
-		game_over_state = true
-		game_over.emit(score)
+	_audio_service.play_move()
+	snake.move_to_cell(model.snake.body[0])
+	_sync_tail_presentation(previous_body)
+	snake_moved.emit(_cell_to_pixel(model.snake.body[0]))
+
+	if result == SnakeGame.StepResult.ATE_FOOD or result == SnakeGame.StepResult.FILLED_BOARD:
+		_audio_service.play_eat()
+		_consume_food_view()
+		score_updated.emit(model.score)
+		snake_grew.emit(_cell_to_pixel(eaten_cell))
+		if result == SnakeGame.StepResult.ATE_FOOD:
+			_show_food(model.food_cell)
+		else:
+			_finish_round()
+
+	tick_completed.emit(result)
+	return result
+
+## Advances one paused tick and displays the resulting cells without interpolation.
+func advance_one_tick_and_snap() -> SnakeGame.StepResult:
+	var result := advance_one_tick()
+	_snap_presentation_to_targets()
+	time_since_tick = 0.0
+	return result
+
+func request_direction(direction: Vector2i) -> bool:
+	if model == null or model.game_over:
 		return false
-	
-	food = Food.instantiate()
-	game_world.add_child(food)
-	food.position = available_positions.pick_random()
-	food_spawned.emit(food.position)
-	return true
+	var accepted := model.request_direction(direction)
+	if accepted:
+		snake.show_queued_direction(model.snake.queued_direction)
+		_remove_controls_tutorial()
+	return accepted
 
-# Detach the current food and play its eaten animation; it will free itself.
-func _consume_food() -> void:
-	if not food:
-		return
-	var eaten_food := food
-	food = null
-	if eaten_food.has_method("eat"):
-		eaten_food.eat()
-	else:
-		eaten_food.queue_free()
-
-func _update_game_speed() -> void:
-	var segment_count := tail_segments.size()
-	current_move_time = max(
-		BASE_TIMER_WAIT - (segment_count * SPEED_INCREASE_PER_SEGMENT),
-		MIN_TIMER_WAIT
-	)
-
-func _on_snake_moved(new_position: Vector2) -> void:
-	if game_over_state:
-		return
-	
-	AudioManager.play_move()
-	snake_moved.emit(new_position)
-	
-	# Capture each segment's current logical position as its "previous" for visual interp.
-	tail_prev_positions.clear()
-	tail_corner_turns.clear()
-	for i in tail_segments.size():
-		# Logical position = where it was sitting at this point in tail_positions[i+1] before update.
-		tail_prev_positions.append(tail_positions[i + 1] if (i + 1) < tail_positions.size() else tail_segments[i].position)
-		var current_dir := (
-			tail_positions[i] - tail_positions[i + 1]
-			if (i + 1) < tail_positions.size()
-			else Vector2.ZERO
-		)
-		var previous_dir := (
-			tail_positions[i + 1] - tail_positions[i + 2]
-			if (i + 2) < tail_positions.size()
-			else current_dir
-		)
-		tail_corner_turns.append(current_dir != Vector2.ZERO and previous_dir != Vector2.ZERO and current_dir != previous_dir)
-	
-	tail_positions.insert(0, new_position)
-	
-	var ate_food: bool = food and (new_position == food.position)
-	if ate_food:
-		var food_pos := food.position
-		snake.grow(food_pos)
-		_consume_food()
-		spawn_food()
-	else:
-		if tail_positions.size() > tail_segments.size() + 1:
-			tail_positions.pop_back()
-	
-	# Snap segment positions to their new logical targets for collision queries; visual interp
-	# in `_apply_visual_interp` will smoothly animate them toward these positions.
-	for i in tail_segments.size():
-		tail_segments[i].position = tail_positions[i + 1]
-	
-	# If the snake just grew, the new (last) segment has no meaningful prior position;
-	# pin its visual-prev to its target so it appears in place rather than sliding in.
-	if ate_food and tail_segments.size() > 0:
-		var last := tail_segments.size() - 1
-		if last < tail_prev_positions.size():
-			tail_prev_positions[last] = tail_segments[last].position
-		if last < tail_corner_turns.size():
-			tail_corner_turns[last] = false
-	
-	if not ate_food:
-		for segment in tail_segments:
-			if segment.position == new_position:
-				_on_snake_died()
-				return
-
-func _on_snake_grew(food_position: Vector2) -> void:
-	AudioManager.play_eat()
-
-	var segment: ColorRect
-	if tail_segment_pool.size() > 0:
-		segment = tail_segment_pool.pop_back()
-	else:
-		segment = ColorRect.new()
-
-	segment.size = Vector2(ConfigData.GRID_SIZE, ConfigData.GRID_SIZE)
-
-	var base_color := Color(0.0862745, 0.741176, 0.0862745)
-	var segment_count := tail_segments.size()
-
-	if segment_count == 0:
-		segment.color = base_color.darkened(0.1)
-	else:
-		var progress := float(segment_count) / 20.0
-		var hue_shift := randf_range(-0.02, 0.02)
-		var new_color := base_color.lightened(progress * 0.3)
-		new_color = Color.from_hsv(
-			fmod(new_color.h + hue_shift, 1.0),
-			new_color.s,
-			new_color.v
-		)
-		segment.color = new_color
-
-	segment.position = food_position
-	segment.show()
-
-	if segment.get_parent() == null:
-		game_world.add_child(segment)
-	tail_segments.append(segment)
-	# Placeholder; the real visual-prev for new segments is set in `_on_snake_moved`
-	# after the per-segment positions are finalized so the new segment doesn't visibly slide.
-	tail_prev_positions.append(segment.position)
-	tail_corner_turns.append(false)
-
-	_update_game_speed()
-
-	score += 10
-	score_updated.emit(score)
-	snake_grew.emit(food_position)
-
-func _on_snake_died() -> void:
-	AudioManager.play_die()
-	AudioManager.reset_pitch()
-
-	game_over_state = true
-	snake.hide_indicator()
-
-	var head := snake.get_node("Head")
-	if head:
-		head.color = Color(0.8, 0.2, 0.2, 1)
-	
-	for segment in tail_segments:
-		var current_color := segment.color
-		var dead_color := Color(0.78, 0.12, 0.12, current_color.a)
-		segment.color = current_color.lerp(dead_color, 0.6)
-	
-	game_over.emit(score)
-
-func set_paused(is_paused: bool) -> void:
-	if snake:
-		snake.process_mode = Node.PROCESS_MODE_DISABLED if is_paused else Node.PROCESS_MODE_INHERIT
+func is_position_occupied(pixel_position: Vector2) -> bool:
+	return model != null and model.is_cell_occupied(_pixel_to_cell(pixel_position))
 
 func cleanup() -> void:
+	_remove_current_snake()
+	_remove_current_food()
+	_remove_eaten_food_views()
 	_remove_controls_tutorial()
-	if snake:
-		snake.queue_free()
-		snake = null
-	if food:
-		food.queue_free()
-		food = null
+
 	for segment in tail_segments:
 		segment.queue_free()
 	tail_segments.clear()
-	tail_corner_turns.clear()
 	for segment in tail_segment_pool:
 		segment.queue_free()
 	tail_segment_pool.clear()
-	tail_positions.clear()
-	tail_prev_positions.clear()
-
-	game_over_state = false
+	tail_previous_positions.clear()
+	tail_target_positions.clear()
+	model = null
+	time_since_tick = 0.0
 
 func get_snake_position() -> Vector2:
 	return snake.position if snake else Vector2.ZERO
 
 func get_food_position() -> Vector2:
 	return food.position if food else Vector2.ZERO
-	
+
 func get_snake_direction() -> Vector2:
-	return snake.direction if snake else Vector2.RIGHT
-	
-func _on_snake_first_move() -> void:
-	_remove_controls_tutorial()
+	return Vector2(model.snake.direction) if model else Vector2.RIGHT
 
 func get_weighted_snake_center() -> Vector2:
 	if snake and not tail_segments.is_empty():
-		var sum_pos := snake.position * 2.0
+		var sum_position := snake.position * 2.0
 		var total_weight := 2.0
 		for i in tail_segments.size():
 			var weight := 1.0 / (i + 2.0)
-			sum_pos += tail_segments[i].position * weight
+			sum_position += tail_segments[i].position * weight
 			total_weight += weight
-		return sum_pos / total_weight
+		return sum_position / total_weight
 	return snake.position if snake else Vector2.ZERO
+
+func get_debug_snapshot() -> Dictionary:
+	if model == null:
+		return {
+			"round_ready": false,
+			"accumulator": time_since_tick,
+		}
+	return {
+		"round_ready": true,
+		"tick": model.tick_count,
+		"tick_seconds": model.current_tick_seconds(),
+		"accumulator": time_since_tick,
+		"head": model.snake.body[0],
+		"body": model.snake.body.duplicate(),
+		"food": model.food_cell,
+		"direction": model.snake.direction,
+		"queued_direction": model.snake.queued_direction,
+		"waiting_for_input": model.snake.waiting_for_input,
+		"score": model.score,
+		"game_over": model.game_over,
+	}
+
+func _sync_tail_presentation(previous_body: Array[Vector2i]) -> void:
+	var required_segments := model.snake.body.size() - 1
+	while tail_segments.size() < required_segments:
+		var segment := _acquire_tail_segment(tail_segments.size())
+		tail_segments.append(segment)
+	while tail_segments.size() > required_segments:
+		var segment: SnakeSegment = tail_segments.pop_back()
+		segment.hide()
+		tail_segment_pool.append(segment)
+
+	tail_previous_positions.clear()
+	tail_target_positions.clear()
+	for i in tail_segments.size():
+		var previous_index := mini(i, previous_body.size() - 1)
+		var previous_position := _cell_to_pixel(previous_body[previous_index])
+		var target_position := _cell_to_pixel(model.snake.body[i + 1])
+		tail_previous_positions.append(previous_position)
+		tail_target_positions.append(target_position)
+		tail_segments[i].position = previous_position
+
+func _acquire_tail_segment(index: int) -> SnakeSegment:
+	var segment: SnakeSegment
+	if tail_segment_pool.is_empty():
+		segment = SnakeSegmentScene.instantiate() as SnakeSegment
+		game_world.add_child(segment)
+	else:
+		segment = tail_segment_pool.pop_back()
+
+	var base_color := Color(0.0862745, 0.741176, 0.0862745)
+	var segment_color: Color
+	if index == 0:
+		segment_color = base_color.darkened(0.1)
+	else:
+		var progress := float(index) / 20.0
+		var new_color := base_color.lightened(progress * 0.3)
+		segment_color = Color.from_hsv(
+			fmod(new_color.h + _visual_random.randf_range(-0.02, 0.02), 1.0),
+			new_color.s,
+			new_color.v
+		)
+	segment.configure(_rules.cell_size, segment_color)
+	return segment
+
+func _apply_visual_interpolation() -> void:
+	if model == null or snake == null or model.game_over:
+		return
+	var progress := clampf(time_since_tick / model.current_tick_seconds(), 0.0, 1.0)
+	var eased := progress * progress * progress * (
+		progress * (progress * 6.0 - 15.0) + 10.0
+	)
+	snake.apply_visual_interpolation(progress)
+	for i in tail_segments.size():
+		tail_segments[i].position = tail_previous_positions[i].lerp(
+			tail_target_positions[i],
+			eased
+		)
+
+func _snap_presentation_to_targets() -> void:
+	if snake:
+		snake.apply_visual_interpolation(1.0)
+	for i in tail_segments.size():
+		tail_segments[i].position = tail_target_positions[i]
+
+func _show_food(cell: Vector2i) -> void:
+	food = FoodViewScene.instantiate() as FoodView
+	food.configure(_rules.cell_size)
+	food.position = _cell_to_pixel(cell)
+	game_world.add_child(food)
+	food_spawned.emit(food.position)
+
+func _consume_food_view() -> void:
+	if food == null:
+		return
+	var eaten_food := food
+	food = null
+	eaten_food.eat()
+
+func _finish_round() -> void:
+	if snake == null:
+		return
+	_audio_service.play_die()
+	_audio_service.reset_pitch()
+	snake.mark_dead()
+	for segment in tail_segments:
+		segment.mark_dead()
+	game_over.emit(model.score)
+
+func _recycle_active_tail() -> void:
+	for segment in tail_segments:
+		segment.hide()
+		tail_segment_pool.append(segment)
+	tail_segments.clear()
+	tail_previous_positions.clear()
+	tail_target_positions.clear()
+
+func _remove_current_snake() -> void:
+	if snake:
+		snake.queue_free()
+		snake = null
+
+func _remove_current_food() -> void:
+	if food:
+		food.queue_free()
+		food = null
+
+func _remove_eaten_food_views() -> void:
+	for child in game_world.get_children():
+		if child is FoodView:
+			child.queue_free()
 
 func _create_controls_tutorial() -> void:
 	_remove_controls_tutorial()
-
-	controls_tutorial = ControlsTutorial.instantiate() as Control
-	controls_tutorial.name = "ControlsTutorial"
-
-	get_parent().add_child(controls_tutorial)
-
-	var center := Vector2(float(ConfigData.GRID_WIDTH) * ConfigData.GRID_SIZE / 2.0, float(ConfigData.GRID_HEIGHT) * ConfigData.GRID_SIZE / 2.0)
-	controls_tutorial.position = center - controls_tutorial.get_minimum_size() / 2
+	_controls_tutorial = ControlsTutorial.instantiate() as Control
+	_controls_tutorial.name = "ControlsTutorial"
+	game_world.add_child(_controls_tutorial)
+	var center := Vector2(_rules.board_size_pixels()) / 2.0
+	_controls_tutorial.position = center - _controls_tutorial.get_minimum_size() / 2.0
 
 func _remove_controls_tutorial() -> void:
-	if not is_instance_valid(controls_tutorial):
-		controls_tutorial = null
+	if not is_instance_valid(_controls_tutorial):
+		_controls_tutorial = null
 		return
-
-	var tutorial_parent := controls_tutorial.get_parent()
+	var tutorial_parent := _controls_tutorial.get_parent()
 	if tutorial_parent:
-		tutorial_parent.remove_child(controls_tutorial)
-	controls_tutorial.queue_free()
-	controls_tutorial = null
+		tutorial_parent.remove_child(_controls_tutorial)
+	_controls_tutorial.queue_free()
+	_controls_tutorial = null
+
+func _cell_to_pixel(cell: Vector2i) -> Vector2:
+	return Vector2(cell * _rules.cell_size)
+
+func _pixel_to_cell(pixel_position: Vector2) -> Vector2i:
+	return Vector2i(pixel_position / float(_rules.cell_size))

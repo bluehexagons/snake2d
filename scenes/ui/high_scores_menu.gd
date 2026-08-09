@@ -5,15 +5,13 @@ signal high_scores_closed
 
 @onready var scores_list: VBoxContainer = %ScoresList
 @onready var back_button: Button = %BackButton
-@onready var scroll_container: ScrollContainer = $PanelContainer/MarginContainer/VBoxContainer/ScoresContainer/ScrollContainer
+@onready var scroll_container: ScrollContainer = %ScrollContainer
 
 const SCROLL_SPEED := 400.0
 var _scroll_position := 0.0
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
-	back_button.button_down.connect(AudioManager.play_click)
-	back_button.focus_entered.connect(AudioManager.play_focus)
 	set_process(false)
 	visibility_changed.connect(_on_visibility_changed)
 
@@ -52,3 +50,9 @@ func _on_back_pressed() -> void:
 	scroll_container.scroll_vertical = 0
 	_scroll_position = 0.0
 	high_scores_closed.emit()
+
+func get_buttons() -> Array[Button]:
+	return [back_button]
+
+func get_default_focus() -> Button:
+	return back_button

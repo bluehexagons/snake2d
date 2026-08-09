@@ -51,5 +51,5 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_6ytnn")
 [node name="HintLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=188600297]
 layout_mode = 2
 theme_type_variation = &"HintLabel"
-text = "Use arrow keys or WASD to move"
+text = "Swipe, tap, or use directional controls"
 horizontal_alignment = 1

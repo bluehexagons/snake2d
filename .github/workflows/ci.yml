@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -22,7 +24,7 @@ jobs:
         use-dotnet: false
         include-templates: true
 
-    - name: Smoke test
+    - name: Source tests
       run: |
         ./test.sh source
 

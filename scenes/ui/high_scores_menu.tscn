@@ -38,6 +38,7 @@ custom_minimum_size = Vector2(300, 200)
 layout_mode = 2
 
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScoresContainer" unique_id=991681394]
+unique_name_in_owner = true
 layout_mode = 2
 horizontal_scroll_mode = 0
 

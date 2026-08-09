@@ -2,7 +2,6 @@ extends Node
 
 const MAIN_SCENE := preload("res://scenes/main/main.tscn")
 const UIStateManagerScript := preload("res://scenes/ui/ui_state_manager.gd")
-const ConfigData := preload("res://autoload/config.gd")
 
 func _ready() -> void:
 	call_deferred("_run_smoke_test")
@@ -12,13 +11,18 @@ func _fail(message: String) -> void:
 	get_tree().quit(1)
 
 func _run_smoke_test() -> void:
-	var main: Node = MAIN_SCENE.instantiate()
+	var main := MAIN_SCENE.instantiate() as Main
+	if main == null:
+		_fail("Expected the main scene to use Main.")
+		return
 	add_child(main)
 
 	await get_tree().process_frame
 
-	var main_menu := main.get_node_or_null("UILayer/MainMenu") as Control
-	if main_menu == null or not main_menu.visible:
+	if main.audio_service == null:
+		_fail("Expected Main to own an AudioService node.")
+		return
+	if not main.main_menu.visible:
 		_fail("Expected the main menu to be visible after startup.")
 		return
 
@@ -28,7 +32,6 @@ func _run_smoke_test() -> void:
 	if credits_text == null:
 		_fail("Expected the credits text to exist.")
 		return
-
 	var project_version := str(ProjectSettings.get_setting("application/config/version", "unknown"))
 	var engine_version := Engine.get_version_info()
 	var godot_version := "%d.%d.%d" % [
@@ -43,89 +46,65 @@ func _run_smoke_test() -> void:
 		_fail("Expected the credits to show the configured project version.")
 		return
 
-	var start_button := main.get_node_or_null("UILayer/MainMenu/PanelContainer/MarginContainer/VBoxContainer/StartButton") as Button
-	if start_button == null:
-		_fail("Expected the main menu StartButton to exist.")
-		return
-
+	var start_button := main.main_menu.get_default_focus()
 	start_button.button_down.emit()
 	start_button.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().physics_frame
 
-	if not bool(main.get("in_game")):
+	if not main.is_round_active():
 		_fail("Expected the game to enter gameplay after pressing Start.")
 		return
-
-	var ui_state_manager := main.get_node_or_null("UIStateManager")
-	if ui_state_manager == null:
-		_fail("Expected the UI state manager to exist.")
-		return
-
-	if int(ui_state_manager.get("current_state")) != UIStateManagerScript.UIState.GAMEPLAY:
+	if main.get_current_ui_state() != UIStateManagerScript.UIState.GAMEPLAY:
 		_fail("Expected UI state to switch to gameplay after pressing Start.")
 		return
-
-	var game_world := main.get_node_or_null("GameLayer/GameViewport/GameWorld") as CanvasItem
-	if game_world == null or not game_world.visible:
+	if not main.game_world.visible:
 		_fail("Expected the game world to be visible during gameplay.")
 		return
-
-	var score_label := main.get_node_or_null("UILayer/ScoreLabel") as CanvasItem
-	if score_label == null or not score_label.visible:
+	if not main.score_display_label.visible:
 		_fail("Expected the score label to be visible during gameplay.")
 		return
-
-	var gameplay := main.get_node_or_null("GameLayer/GameViewport/GameWorld/GameManager")
-	if gameplay == null:
-		_fail("Expected the gameplay manager to exist.")
-		return
-
-	if gameplay.get("snake") == null:
+	if main.gameplay.snake == null:
 		_fail("Expected gameplay to spawn a snake when the game starts.")
 		return
-
-	var snake := gameplay.get("snake") as Node2D
-	var expected_spawn := Vector2(
-		floorf(ConfigData.GRID_WIDTH / 2.0),
-		floorf(ConfigData.GRID_HEIGHT / 2.0)
-	) * ConfigData.GRID_SIZE
-	if snake.get("logical_position") != expected_spawn:
-		_fail("Expected the snake to spawn on the center grid cell.")
-		return
-
-	if gameplay.get("food") == null:
+	if main.gameplay.food == null:
 		_fail("Expected gameplay to spawn food when the game starts.")
 		return
 
-	var game_manager := main.get("game_manager") as Node
-	var camera := main.get_node_or_null("GameLayer/GameViewport/GameWorld/Camera2D") as Camera2D
-	if game_manager == null or camera == null:
-		_fail("Expected the game manager and camera to exist.")
+	var expected_spawn_cell := Vector2i(
+		main.game_rules.columns / 2,
+		main.game_rules.rows / 2
+	)
+	var expected_spawn_position := Vector2(expected_spawn_cell * main.game_rules.cell_size)
+	if main.gameplay.snake.logical_position != expected_spawn_position:
+		_fail("Expected the snake to spawn on the center grid cell.")
 		return
 
-	camera.position = Vector2.ZERO
-	game_manager.start_game()
+	var first_tutorial := main.game_world.get_node_or_null("ControlsTutorial")
+	if first_tutorial == null:
+		_fail("Expected a new round to show the controls tutorial.")
+		return
 
-	var expected_camera_position := Vector2(
-		ConfigData.get_game_width() / 2.0,
-		ConfigData.get_game_height() / 2.0
-	)
-	if camera.position != expected_camera_position:
+	main.game_session.end_round(0)
+	main.camera_node.position = Vector2.ZERO
+	main.start_new_round()
+	await get_tree().process_frame
+
+	var expected_camera_position := Vector2(main.game_rules.board_size_pixels()) / 2.0
+	if main.camera_node.position != expected_camera_position:
 		_fail("Expected a restarted game to reset the camera.")
 		return
-
-	var tutorial := gameplay.get("controls_tutorial") as Control
-	if tutorial == null or tutorial.get_parent() == null:
+	var replacement_tutorial := main.game_world.get_node_or_null("ControlsTutorial")
+	if replacement_tutorial == null or replacement_tutorial == first_tutorial:
 		_fail("Expected a restarted game to replace the controls tutorial.")
 		return
 
 	main.call("_on_quit_to_menu_pressed")
-	if gameplay.get("snake") != null or gameplay.get("food") != null:
+	if main.gameplay.snake != null or main.gameplay.food != null:
 		_fail("Expected quitting to the menu to clean up gameplay nodes.")
 		return
-	if game_manager.get("is_running") or game_manager.get("is_paused"):
-		_fail("Expected quitting to the menu to clear game manager state.")
+	if main.game_session.state != GameSession.State.MAIN_MENU:
+		_fail("Expected quitting to the menu to clear session state.")
 		return
 
 	print("Smoke test passed.")

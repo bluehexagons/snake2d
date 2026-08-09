@@ -20,10 +20,6 @@ run/main_scene="res://scenes/main/main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
-[autoload]
-
-AudioManager="*res://autoload/audio_manager.gd"
-
 [display]
 
 window/size/viewport_width=800

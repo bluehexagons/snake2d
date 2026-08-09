@@ -1,226 +1,85 @@
-# snake2d — Improvements Audit
+# snake2d — Remaining Improvement Roadmap
 
-Historical findings from a full GDScript audit. All items have been resolved.
+This roadmap reflects the current Godot 4.7.1 project after the architecture and learning-environment refinement. Completed historical findings have been removed rather than retained as an ever-growing checklist.
 
----
+## Current baseline
 
-## Bugs
+- There are no Autoloads. `Main` visibly owns services, session state, gameplay, UI, and debug tooling.
+- `GameSession` is the sole owner of application state and `SceneTree.paused`.
+- `SnakeGame`, `SnakeState`, and `GridBoard` implement deterministic `Vector2i` rules independently of scenes and pixels.
+- `Gameplay` is a Godot adapter for ticking, interpolation, pooled views, signals, and audio.
+- `TouchGesture` and `SnakeInputAdapter` classify taps and scale-aware swipes per finger, use unscaled screen-relative drag motion, and ignore emulated duplicate mouse events without owning turn legality. Gameplay input is enabled only in the playing session state.
+- `GameRules` provides Inspector-editable presets for board, scoring, timing, and camera tuning.
+- Audio, settings, and high-score persistence are explicitly owned services with typed consumers. Synth tones have zero-amplitude edges, bounded PCM reuse, a limiter, and non-stealing player channels.
+- The F1 debug overlay exposes live state; F2 advances one paused tick.
+- Model, session, persistence, audio, input, input-map, and composed-scene tests run through `./test.sh source` and CI.
+- `docs/architecture.md` and `docs/learning-path.md` describe ownership and a recommended reading order.
 
-### 1. High scores overwritten on first game after restart
-**Files:** `autoload/game_manager.gd:23-26`, `autoload/game_manager.gd:67-90`
+## Priority 1 — Validate real-device interaction
 
-`GameManager` is an autoload, so its `_ready()` runs before `main.gd` sets dependencies. At the point `_ready()` fires, `save_data_util` is still `null`, so the `if save_data_util:` guard on line 25 skips the load entirely. `game_manager.high_scores` stays `[]` for the rest of startup.
+Headless tests cover direction translation, tap/swipe classification, threshold scaling, and model validation, but they cannot prove viewport transforms, native touch behavior, controller focus, safe areas, or browser-specific pointer behavior.
 
-When the first game ends, `end_game()` inserts the score into that empty array, then saves `[new_score]` — **overwriting whatever was on disk**.
+Add a short manual test matrix for:
 
-Within a single session this doesn't matter (the array accumulates correctly after the first save), but every app restart wipes the leaderboard to one entry.
+- Android/iOS tap, swipe, cancellation, and multi-touch behavior with the active Camera2D
+- Web touch, physical mouse switching, and pointer capture
+- controller-only navigation through the volume slider and confirmation dialogs
+- resizing and aspect-ratio extremes
+- reduced-motion behavior across every menu transition
 
-**Fix:** Load scores immediately after the dependency is injected:
+Automate individual cases only where a regression has occurred or a stable platform runner is available.
 
-```gdscript
-# game_manager.gd
-func set_save_data_util(save_data: RefCounted) -> void:
-    save_data_util = save_data
-    high_scores = save_data_util.load_high_scores()
-```
+## Priority 2 — Add runtime input rebinding if the project needs it
 
----
+The current `InputMap` cleanly separates UI actions from gameplay actions, but bindings are authored in `project.godot`. A reusable next lesson would be a small controls screen that:
 
-### 2. `food.eat()` returns `null` on double-call
-**File:** `scenes/food/food.gd:74-76`
+- captures one keyboard or gamepad event at a time
+- rejects conflicts or explains how conflicts are resolved
+- restores defaults
+- persists a versioned, device-neutral binding description
+- applies changes through `InputMap` without restarting
 
-```gdscript
-func eat() -> Tween:
-    if _eaten:
-        return null   # ← null tween
-```
+Keep this as a separate feature boundary. Do not move input interpretation back into `SnakeView` or the model.
 
-`_consume_food()` in `gameplay.gd` doesn't await the tween, so this is harmless right now. But the return type is `Tween` and returning `null` is an implicit lie. If a caller ever does `await food.eat().finished` it crashes.
+## Priority 3 — Surface persistence failures in the UI
 
-**Fix:** Either change return type to `void` (callers don't use it), or return a no-op tween:
+`SettingsService` warns when `ConfigFile.save()` fails, while `HighScoreStore` currently treats file-open failures as an empty table or unsuccessful write. If this project grows beyond a learning sample:
 
-```gdscript
-func eat() -> Tween:
-    if _eaten:
-        var noop := create_tween()
-        noop.tween_callback(func() -> void: pass)
-        return noop
-```
+- return typed error results from both persistence services
+- distinguish missing files from corrupt or unsupported files
+- show a non-blocking message when settings or scores cannot be saved
+- add an explicit migration test whenever a save version changes
 
----
+Avoid showing errors for a normal first run where no file exists yet.
 
-### 3. High scores menu polls every frame
-**File:** `scenes/ui/high_scores_menu.gd:17-19`
+## Priority 4 — Add visual regression coverage only when visuals stabilize
 
-```gdscript
-func _process(delta: float) -> void:
-    if not self.visible:
-        return
-    # ... polling code
-```
+The headless smoke test verifies composition and startup behavior, not rendered output. If UI or interpolation regressions become common, add a small screenshot suite for one desktop renderer and a few stable states:
 
-The guard prevents logic execution when hidden, but the method still runs every frame. With `_process` this means a callback every 16ms regardless of visibility.
+- main menu
+- active round with several body segments
+- paused overlay
+- game over
+- options with reduced motion enabled
 
-**Fix:** Disable processing by default and toggle via visibility signal:
+Keep tolerances and renderer assumptions documented. Screenshot infrastructure is not currently worth adding solely for completeness.
 
-```gdscript
-func _ready() -> void:
-    set_process(false)
-    visibility_changed.connect(_on_visibility_changed)
+## Priority 5 — Profile before adding more rendering abstractions
 
-func _on_visibility_changed() -> void:
-    set_process(self.visible)
-```
+The current body-segment scene pool is intentionally simple and readable. A single custom renderer, MultiMesh-style approach, or larger preallocated pool should be considered only after profiling shows node count or draw calls matter for realistic board sizes.
 
----
+The learning value of authored scenes and straightforward pooling currently outweighs speculative optimization.
 
-### 4. Silent call-order dependency in food consumption
-**File:** `scenes/main/gameplay.gd:172-173`, `scenes/main/gameplay.gd:224`
+## Non-goals
 
-```gdscript
-# Line 172-173
-snake.grow()
-_consume_food()
+- No separate exercise curriculum; the game, tests, debugger observations, and learning path are the teaching material.
+- No replacement singleton, service locator, event bus, or dependency-injection framework.
+- No second implementation of the game rules for comparison.
+- No plugin dependency for functionality already covered clearly by native Godot APIs.
 
-# Line 224 (inside snake.grow)
-segment.position = food.position  # ← depends on food still being valid
-```
+## Suggested next order
 
-`segment.position = food.position` inside `grow()` is only safe because `_consume_food()` runs **after** `grow()` synchronously. Swapping those two lines would cause a null crash with no obvious explanation — the dependency is implicit in call order, not declared.
-
-**Fix:** Pass the food position as a parameter to `grow()`, or cache it locally before calling grow:
-
-```gdscript
-var food_pos := food.global_position
-snake.grow(food_pos)
-_consume_food()
-```
-
----
-
-### 5. `reset_game()` routes through `end_game(0)`
-**File:** `autoload/game_manager.gd:92-94`
-
-```gdscript
-func reset_game() -> void:
-    end_game(0)  # This will handle cleanup and reset
-```
-
-`end_game` sets `is_running = false` and emits `game_over(0)`, which causes `main.gd` to transition to the game-over UI and set `game_over_score_label` to "Final Score: 0". The score-0 is filtered before saving, but the UI flash and state side-effects are unintended for a reset.
-
-**Fix:** Implement reset as its own operation that resets state without emitting `game_over`, or just remove the method (it isn't called from anywhere in the current codebase).
-
----
-
-### 6. `ConfirmationDialog` nodes are never freed
-**File:** `scenes/ui/options_menu.gd:82-88`
-
-`_show_confirmation_dialog` creates a `ConfirmationDialog`, adds it as a child, and calls `popup_centered()`. Neither the cancel path nor the close-button path calls `queue_free()`. Every dismissed dialog stays in the scene tree indefinitely. Reopening the options menu and dismissing dialogs repeatedly accumulates dead nodes, and each `confirmed.connect` adds another signal connection that never disconnects.
-
-**Fix:** Free the dialog on both outcomes:
-
-```gdscript
-dialog.confirmed.connect(func() -> void: on_confirm.call(); dialog.queue_free())
-dialog.close_requested.connect(dialog.queue_free)
-dialog.canceled.connect(dialog.queue_free)
-add_child(dialog)
-dialog.popup_centered()
-```
-
----
-
-## Code Quality
-
-### 7. Global input state set in instance code
-**File:** `scenes/snake/snake.gd:22-23`
-
-```gdscript
-Input.set_emulate_touch_from_mouse(true)
-Input.set_emulate_touch_from_mouse(true)
-```
-
-These modify global singleton state from an instanced scene. Every snake instantiation (every game restart) resets these flags, and they're never cleared when the snake is freed. If the project settings already control this, the code is redundant; if project settings don't set it, this makes the behavior tied to the snake's lifetime rather than the app's.
-
-**Fix:** Move to Project Settings → Input Devices → Pointing → Emulate Touch From Mouse (or delete if already configured in editor).
-
----
-
-### 8. Unused `ui_state_manager` field in GameManager
-**Files:** `autoload/game_manager.gd:21`, `autoload/game_manager.gd:127-128`
-
-`set_ui_state_manager()` assigns to `self.ui_state_manager`, but no method in `game_manager.gd` ever reads this field. It's a dead dependency — a dependency injection that implies coupling that doesn't exist.
-
-**Fix:** Delete the field and setter if unused, or wire up actual usage if the coupling was intended.
-
----
-
-### 9. Dead speed constants in config.gd
-**File:** `autoload/config.gd:8-10`
-
-```gdscript
-const STARTING_SPEED: float = 7.0
-const SPEED_INCREMENT: float = 0.5
-const MAX_SPEED: float = 20.0
-```
-
-These are never referenced. Gameplay uses `BASE_TIMER_WAIT`, `MIN_TIMER_WAIT`, and `SPEED_INCREASE_PER_SEGMENT` defined locally in `gameplay.gd:16-18`. The config constants imply a "speed in cells/sec" model that doesn't match the timer-based implementation.
-
-**Fix:** Delete the three unused constants, or replace them with the actual timer constants and reference them from `gameplay.gd`.
-
----
-
-### 10. `snake_camera.gd` property named `game_manager` holds a `Gameplay` node
-**Files:** `scenes/main/snake_camera.gd:9`, `scenes/main/main.gd:57`
-
-```gdscript
-# main.gd
-camera_node.game_manager = gameplay   # `gameplay` is the Gameplay node, not GameManager
-```
-
-The camera only calls `Gameplay` methods (`get_snake_position`, `get_food_position`, etc.). The mislabeled property means the code reads like the camera depends on GameManager when it actually depends on Gameplay.
-
-**Fix:** Rename the property in `snake_camera.gd` to `gameplay` and update the assignment in `main.gd`.
-
----
-
-### 11. Double pause dispatch path
-**Files:** `scenes/ui/ui_state_manager.gd:113-116`, `scenes/main/main.gd:218-223`
-
-`UIStateManager.set_paused()` calls `game_manager.set_paused()` directly (line 116) **and** emits `pause_state_changed`, which `main._on_pause_state_changed()` handles by calling `game_manager.pause_game()` again. The second call is silenced by the guard in `pause_game` (`if not is_running or is_paused: return`), so there's no observable bug today — but this is fragile: the behavior depends on the guard remaining idempotent.
-
-**Fix:** Remove the direct `game_manager.set_paused()` call from `UIStateManager.set_paused()` and let the `pause_state_changed` signal be the single dispatch path (which `main.gd` already handles).
-
----
-
-### 12. Death color computation swaps R and G channels
-**File:** `scenes/main/gameplay.gd:253-258`
-
-```gdscript
-segment.color = Color(
-    lerp(current_color.g, 0.8, 0.5),  # red ← green value
-    current_color.r * 0.1,             # green ← red value
-    current_color.b * 0.1,
-    current_color.a
-)
-```
-
-For the current green snake (`r≈0.09, g≈0.74`) this accidentally produces a convincing brownish-red. If the snake color ever changes, this will break in a hard-to-diagnose way.
-
-**Fix:** Lerp toward an explicit target color:
-
-```gdscript
-var dead_color := Color(0.78, 0.12, 0.12, current_color.a)
-segment.color = current_color.lerp(dead_color, 0.6)
-```
-
----
-
-## Low Priority / Nice-to-Have
-
-### 13. `is_position_occupied` uses raw float division for grid comparison
-**File:** `scenes/main/gameplay.gd:100-111`
-
-Positions are always set as `n * GRID_SIZE`, so the division is exact in practice. Using `pos.snapped(Vector2.ONE * ConfigData.GRID_SIZE)` instead of dividing would make the intent clearer and be safe if sub-grid positions are ever introduced.
-
-### 14. `main.gd` mixes scene wiring with game flow logic
-Resolved by splitting dependency setup, UI registration, signal wiring, and initial presentation into focused helper methods.
+1. Perform and document the real-device interaction matrix.
+2. Decide whether runtime rebinding is valuable enough to justify a controls screen.
+3. Improve persistence error reporting when adding the next saved setting or score feature.
+4. Add visual regression tests only in response to recurring visual bugs.

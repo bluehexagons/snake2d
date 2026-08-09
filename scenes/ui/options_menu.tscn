@@ -38,22 +38,46 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 focus_neighbor_top = NodePath("../BackButton")
-focus_neighbor_bottom = NodePath("../FullscreenButton")
+focus_neighbor_bottom = NodePath("../VolumeSlider")
 text = "Sound: On"
+
+[node name="VolumeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Effects Volume: 100%"
+horizontal_alignment = 1
+
+[node name="VolumeSlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath("../SoundButton")
+focus_neighbor_bottom = NodePath("../FullscreenButton")
+min_value = -30.0
+max_value = 0.0
+step = 1.0
 
 [node name="FullscreenButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1644145211]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-focus_neighbor_top = NodePath("../SoundButton")
-focus_neighbor_bottom = NodePath("../ResetSettingsButton")
+focus_neighbor_top = NodePath("../VolumeSlider")
+focus_neighbor_bottom = NodePath("../ReducedMotionButton")
 text = "Fullscreen: Off"
+
+[node name="ReducedMotionButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath("../FullscreenButton")
+focus_neighbor_bottom = NodePath("../ResetSettingsButton")
+text = "Reduced Motion: Off"
 
 [node name="ResetSettingsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1350304461]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-focus_neighbor_top = NodePath("../FullscreenButton")
+focus_neighbor_top = NodePath("../ReducedMotionButton")
 focus_neighbor_bottom = NodePath("../ResetScoresButton")
 text = "Reset Settings"
 
