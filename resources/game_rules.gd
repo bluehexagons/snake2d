@@ -15,6 +15,10 @@ extends Resource
 @export_range(0.0, 0.1, 0.001, "or_greater") var tick_decrease_per_food := 0.005
 @export_range(1, 16, 1, "or_greater") var maximum_catch_up_steps := 4
 
+@export_category("Pitfall mode")
+@export_range(1, 20, 1, "or_greater") var foods_per_pit := 3
+@export_range(1, 10, 1, "or_greater") var pit_safe_distance_cells := 3
+
 @export_category("Camera")
 @export_range(0.0, 10.0, 0.1, "or_greater") var camera_look_ahead_cells := 3.0
 @export_range(0.0, 1.0, 0.001) var camera_smoothing := 0.115

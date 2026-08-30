@@ -107,5 +107,27 @@ func _run_smoke_test() -> void:
 		_fail("Expected quitting to the menu to clear session state.")
 		return
 
+	main.main_menu.mode_selector.select(GameMode.Value.OBSTACLES)
+	main.main_menu.call("_on_mode_selected", GameMode.Value.OBSTACLES)
+	main.main_menu.world_seed_spin_box.value = 424242
+	if not main.main_menu.seed_row.visible:
+		_fail("Expected Obstacles mode to reveal the world seed input.")
+		return
+	main.main_menu.start_button.pressed.emit()
+	await get_tree().process_frame
+	if main.game_session.current_mode != GameMode.Value.OBSTACLES:
+		_fail("Expected the selected Obstacles mode to start.")
+		return
+	if main.game_session.current_world_seed != 424242:
+		_fail("Expected the selected world seed to reach the session.")
+		return
+	if main.gameplay.obstacle_views.is_empty():
+		_fail("Expected a seeded Obstacles round to render walls.")
+		return
+	if main.gameplay.obstacle_views.size() != main.gameplay.model.obstacle_cells.size():
+		_fail("Expected every model wall to have a matching view.")
+		return
+	main.call("_on_quit_to_menu_pressed")
+
 	print("Smoke test passed.")
 	get_tree().quit()

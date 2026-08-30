@@ -9,6 +9,9 @@ func _initialize() -> void:
 	_a_snake_dies_when_it_hits_its_body()
 	_the_departing_tail_cell_is_legal()
 	_food_is_deterministic_and_never_occupies_the_snake()
+	_pitfall_adds_safely_placed_pits_on_schedule()
+	_obstacle_worlds_are_seeded_and_protect_the_spawn()
+	_colliding_with_an_obstacle_ends_the_round()
 	_eating_updates_score_length_and_speed()
 	_speed_progress_tracks_the_configured_tick_range()
 	_filling_the_board_completes_the_round()
@@ -69,6 +72,49 @@ func _food_is_deterministic_and_never_occupies_the_snake() -> void:
 	check.expect_equal(first.food_cell, second.food_cell, "equal seeds choose equal food cells")
 	check.expect_false(first.is_cell_occupied(first.food_cell), "food never starts on the snake")
 
+func _pitfall_adds_safely_placed_pits_on_schedule() -> void:
+	var rules := GameRules.new()
+	rules.columns = 11
+	rules.rows = 11
+	rules.foods_per_pit = 1
+	rules.pit_safe_distance_cells = 3
+	var random := RandomNumberGenerator.new()
+	random.seed = 90210
+	var game := SnakeGame.new(rules, random, GameMode.Value.PITFALL)
+	game.reset()
+	game.food_cell = game.snake.body[0] + Vector2i.RIGHT
+	game.request_direction(Vector2i.RIGHT)
+	check.expect_equal(game.step(), SnakeGame.StepResult.ATE_FOOD, "Pitfall still awards eaten food")
+	check.expect_equal(game.obstacle_cells.size(), 1, "Pitfall adds one pit at the configured cadence")
+	var pit := game.obstacle_cells[0]
+	var projected_next := game.snake.body[0] + game.snake.direction
+	check.expect_false(pit == projected_next, "a pit is not placed directly ahead of the snake")
+	for segment in game.snake.body:
+		var distance := absi(pit.x - segment.x) + absi(pit.y - segment.y)
+		check.expect_true(distance >= rules.pit_safe_distance_cells, "a pit keeps its safe distance")
+		check.expect_false(pit.x == segment.x and pit.y > segment.y, "a pit avoids cells below the snake")
+
+func _obstacle_worlds_are_seeded_and_protect_the_spawn() -> void:
+	var first := _new_game(Vector2i(23, 18), 11, GameMode.Value.OBSTACLES, 777)
+	var second := _new_game(Vector2i(23, 18), 99, GameMode.Value.OBSTACLES, 777)
+	check.expect_equal(first.obstacle_pattern_name, second.obstacle_pattern_name, "equal world seeds choose equal patterns")
+	check.expect_equal(first.obstacle_cells, second.obstacle_cells, "equal world seeds create equal wall cells")
+	check.expect_true(not first.obstacle_cells.is_empty(), "an obstacle world starts with walls")
+	var spawn := first.snake.body[0]
+	for cell in first.obstacle_cells:
+		var distance := absi(cell.x - spawn.x) + absi(cell.y - spawn.y)
+		check.expect_true(distance > 2, "seeded walls protect the snake's spawn area")
+	check.expect_false(first.food_cell in first.obstacle_cells, "food never spawns inside a wall")
+
+func _colliding_with_an_obstacle_ends_the_round() -> void:
+	var game := _new_game(Vector2i(7, 7), 12)
+	var collision_cell := game.snake.body[0] + Vector2i.RIGHT
+	game.obstacle_cells.assign([collision_cell])
+	game.food_cell = Vector2i.ZERO
+	game.request_direction(Vector2i.RIGHT)
+	check.expect_equal(game.step(), SnakeGame.StepResult.HIT_OBSTACLE, "entering a blocked cell hits an obstacle")
+	check.expect_true(game.game_over, "an obstacle collision ends the round")
+
 func _eating_updates_score_length_and_speed() -> void:
 	var game := _new_game(Vector2i(5, 5), 6)
 	game.food_cell = game.snake.body[0] + Vector2i.RIGHT
@@ -119,12 +165,17 @@ func _reset_restores_initial_state() -> void:
 	check.expect_true(game.snake.waiting_for_input, "reset waits for fresh input")
 	check.expect_false(game.game_over, "reset clears game-over state")
 
-func _new_game(board_size: Vector2i, seed_value: int) -> SnakeGame:
+func _new_game(
+	board_size: Vector2i,
+	seed_value: int,
+	mode: GameMode.Value = GameMode.Value.CLASSIC,
+	world_seed: int = 0
+) -> SnakeGame:
 	var rules := GameRules.new()
 	rules.columns = board_size.x
 	rules.rows = board_size.y
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value
-	var game := SnakeGame.new(rules, random)
+	var game := SnakeGame.new(rules, random, mode, world_seed)
 	game.reset()
 	return game

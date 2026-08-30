@@ -13,11 +13,13 @@ signal tick_completed(result: SnakeGame.StepResult)
 const SnakeViewScene := preload("res://scenes/snake/snake_view.tscn")
 const SnakeSegmentScene := preload("res://scenes/snake/snake_segment.tscn")
 const FoodViewScene := preload("res://scenes/food/food.tscn")
+const ObstacleViewScene := preload("res://scenes/obstacle/obstacle.tscn")
 const ControlsTutorial := preload("res://scenes/main/controls_tutorial.tscn")
 
 var model: SnakeGame
 var snake: SnakeView
 var food: FoodView
+var obstacle_views: Array[ObstacleView] = []
 var _controls_tutorial: Control
 
 var tail_segments: Array[SnakeSegment] = []
@@ -32,6 +34,8 @@ var _audio_service: AudioService
 var _model_random := RandomNumberGenerator.new()
 var _visual_random := RandomNumberGenerator.new()
 var _randomize_on_start := true
+var current_mode: GameMode.Value = GameMode.Value.CLASSIC
+var current_world_seed := 0
 
 @onready var game_world: Node2D = get_parent()
 
@@ -48,20 +52,27 @@ func set_random_number_generator(random: RandomNumberGenerator) -> void:
 	_model_random = random
 	_randomize_on_start = false
 
-func start_game() -> void:
+func start_game(
+	mode: GameMode.Value = GameMode.Value.CLASSIC,
+	world_seed: int = 0
+) -> void:
 	assert(_rules != null, "Gameplay requires GameRules before starting.")
 	assert(_audio_service != null, "Gameplay requires AudioService before starting.")
 
 	_recycle_active_tail()
 	_remove_current_snake()
 	_remove_current_food()
+	_remove_obstacle_views()
 	_remove_eaten_food_views()
 	_create_controls_tutorial()
 
 	if _randomize_on_start:
 		_model_random.randomize()
-	model = SnakeGame.new(_rules, _model_random)
+	current_mode = mode
+	current_world_seed = world_seed
+	model = SnakeGame.new(_rules, _model_random, current_mode, current_world_seed)
 	model.reset()
+	_render_all_obstacles()
 
 	snake = SnakeViewScene.instantiate() as SnakeView
 	snake.configure(_rules.cell_size)
@@ -99,13 +110,18 @@ func advance_one_tick() -> SnakeGame.StepResult:
 
 	var previous_body := model.snake.body.duplicate()
 	var eaten_cell := model.food_cell
+	var previous_obstacle_count := model.obstacle_cells.size()
 	var result := model.step()
 
 	if result == SnakeGame.StepResult.WAITING_FOR_INPUT:
 		tick_completed.emit(result)
 		return result
 
-	if result == SnakeGame.StepResult.HIT_WALL or result == SnakeGame.StepResult.HIT_SELF:
+	if (
+		result == SnakeGame.StepResult.HIT_WALL
+		or result == SnakeGame.StepResult.HIT_SELF
+		or result == SnakeGame.StepResult.HIT_OBSTACLE
+	):
 		_finish_round()
 		tick_completed.emit(result)
 		return result
@@ -120,6 +136,7 @@ func advance_one_tick() -> SnakeGame.StepResult:
 		_consume_food_view()
 		score_updated.emit(model.score)
 		snake_grew.emit(_cell_to_pixel(eaten_cell))
+		_render_new_obstacles(previous_obstacle_count)
 		if result == SnakeGame.StepResult.ATE_FOOD:
 			_show_food(model.food_cell)
 		else:
@@ -150,6 +167,7 @@ func is_position_occupied(pixel_position: Vector2) -> bool:
 func cleanup() -> void:
 	_remove_current_snake()
 	_remove_current_food()
+	_remove_obstacle_views()
 	_remove_eaten_food_views()
 	_remove_controls_tutorial()
 
@@ -198,6 +216,10 @@ func get_debug_snapshot() -> Dictionary:
 		"head": model.snake.body[0],
 		"body": model.snake.body.duplicate(),
 		"food": model.food_cell,
+		"mode": GameMode.key(model.mode),
+		"world_seed": model.world_seed,
+		"obstacles": model.obstacle_cells.duplicate(),
+		"obstacle_pattern": model.obstacle_pattern_name,
 		"direction": model.snake.direction,
 		"queued_direction": model.snake.queued_direction,
 		"waiting_for_input": model.snake.waiting_for_input,
@@ -313,6 +335,25 @@ func _remove_eaten_food_views() -> void:
 	for child in game_world.get_children():
 		if child is FoodView:
 			child.queue_free()
+
+func _render_all_obstacles() -> void:
+	_render_new_obstacles(0)
+
+func _render_new_obstacles(start_index: int) -> void:
+	if model == null:
+		return
+	for index in range(start_index, model.obstacle_cells.size()):
+		var obstacle := ObstacleViewScene.instantiate() as ObstacleView
+		obstacle.configure(_rules.cell_size, model.mode == GameMode.Value.PITFALL)
+		obstacle.position = _cell_to_pixel(model.obstacle_cells[index])
+		game_world.add_child(obstacle)
+		obstacle_views.append(obstacle)
+
+func _remove_obstacle_views() -> void:
+	for obstacle in obstacle_views:
+		if is_instance_valid(obstacle):
+			obstacle.queue_free()
+	obstacle_views.clear()
 
 func _create_controls_tutorial() -> void:
 	_remove_controls_tutorial()

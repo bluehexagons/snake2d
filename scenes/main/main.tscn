@@ -147,6 +147,14 @@ offset_right = 116.0
 offset_bottom = 42.0
 text = "Score: 0"
 
+[node name="HUDModeLabel" type="Label" parent="UILayer"]
+unique_name_in_owner = true
+offset_left = 130.0
+offset_top = 16.0
+offset_right = 430.0
+offset_bottom = 42.0
+text = "Classic"
+
 [node name="GameOverPanel" type="CenterContainer" parent="UILayer" unique_id=1277709224]
 unique_name_in_owner = true
 process_mode = 3

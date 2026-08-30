@@ -33,6 +33,13 @@ theme_type_variation = &"TitleLabel"
 text = "HIGH SCORES"
 horizontal_alignment = 1
 
+[node name="ModeSelector" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath("../BackButton")
+focus_neighbor_bottom = NodePath("../BackButton")
+
 [node name="ScoresContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=463625250]
 custom_minimum_size = Vector2(300, 200)
 layout_mode = 2
@@ -52,7 +59,7 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-focus_neighbor_top = NodePath("../ScoresContainer")
+focus_neighbor_top = NodePath("../ModeSelector")
 text = "Back to Menu"
 
 [node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=965546426]

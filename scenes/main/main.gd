@@ -3,7 +3,7 @@ extends Control
 
 @export var game_rules: GameRules
 
-var high_scores: Array[int] = []
+var high_scores_by_mode: Dictionary = {}
 
 var using_mouse := true
 var _game_size_pixels := Vector2i.ZERO
@@ -15,6 +15,7 @@ var _game_size_pixels := Vector2i.ZERO
 @onready var game_session: GameSession = %GameSession
 @onready var ui_background: ColorRect = %UIBackground
 @onready var score_display_label: Label = %HUDScoreLabel
+@onready var mode_display_label: Label = %HUDModeLabel
 
 @onready var game_world: Node2D = %GameWorld
 @onready var gameplay: Gameplay = %Gameplay
@@ -62,7 +63,7 @@ func _ready() -> void:
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.PAUSED, pause_menu.get_default_focus())
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.GAME_OVER, game_over_panel.get_default_focus())
 
-	high_scores = game_session.get_high_scores()
+	high_scores_by_mode = game_session.get_all_high_scores()
 
 	main_menu.start_requested.connect(_on_start_pressed)
 	main_menu.scores_requested.connect(_on_scores_pressed)
@@ -132,8 +133,9 @@ func _toggle_pause() -> void:
 func _on_resume_pressed() -> void:
 	game_session.resume_round()
 
-func _on_start_pressed() -> void:
-	game_session.start_new_round()
+func _on_start_pressed(mode: GameMode.Value, world_seed: int) -> void:
+	game_session.start_new_round(mode, world_seed)
+	_update_mode_label()
 
 func _on_round_ended(final_score: int) -> void:
 	game_over_panel.show_final_score(final_score)
@@ -180,7 +182,8 @@ func is_round_active() -> bool:
 	return game_session.is_round_active()
 
 func start_new_round() -> void:
-	game_session.start_new_round()
+	game_session.start_new_round(game_session.current_mode, game_session.current_world_seed)
+	_update_mode_label()
 
 func get_current_ui_state() -> UIStateManager.UIState:
 	return ui_state_manager.current_state
@@ -270,7 +273,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func _on_scores_pressed() -> void:
-	high_scores_menu.update_scores(high_scores)
+	high_scores_menu.update_scores(high_scores_by_mode)
 	ui_state_manager.change_state(ui_state_manager.UIState.HIGH_SCORES)
 
 func _on_options_pressed() -> void:
@@ -286,7 +289,8 @@ func _on_quit_to_menu_pressed() -> void:
 	game_session.return_to_menu()
 
 func _on_restart_pressed() -> void:
-	game_session.start_new_round()
+	game_session.start_new_round(game_session.current_mode, game_session.current_world_seed)
+	_update_mode_label()
 
 func _on_options_back_pressed() -> void:
 	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
@@ -306,8 +310,16 @@ func reset_high_scores() -> void:
 func _on_score_updated(new_score: int) -> void:
 	score_display_label.text = "Score: " + str(new_score)
 
-func _on_high_scores_updated(new_high_scores: Array[int]) -> void:
-	high_scores = new_high_scores
+func _on_high_scores_updated(mode: GameMode.Value, new_high_scores: Array[int]) -> void:
+	high_scores_by_mode[GameMode.key(mode)] = new_high_scores
+
+func _update_mode_label() -> void:
+	var label_text := GameMode.display_name(game_session.current_mode)
+	if game_session.current_mode == GameMode.Value.OBSTACLES:
+		label_text += "  •  Seed %d" % game_session.current_world_seed
+		if gameplay.model != null and not gameplay.model.obstacle_pattern_name.is_empty():
+			label_text += "  •  %s" % gameplay.model.obstacle_pattern_name
+	mode_display_label.text = label_text
 
 func _on_window_resize() -> void:
 	_update_game_area()

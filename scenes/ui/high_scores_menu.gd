@@ -6,12 +6,17 @@ signal high_scores_closed
 @onready var scores_list: VBoxContainer = %ScoresList
 @onready var back_button: Button = %BackButton
 @onready var scroll_container: ScrollContainer = %ScrollContainer
+@onready var mode_selector: OptionButton = %ModeSelector
 
 const SCROLL_SPEED := 400.0
 var _scroll_position := 0.0
+var _score_tables: Dictionary = {}
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
+	for mode in GameMode.ALL:
+		mode_selector.add_item(GameMode.display_name(mode), mode)
+	mode_selector.item_selected.connect(_on_mode_selected)
 	set_process(false)
 	visibility_changed.connect(_on_visibility_changed)
 
@@ -30,10 +35,20 @@ func _process(delta: float) -> void:
 	else:
 		_scroll_position = float(scroll_container.scroll_vertical)
 
-func update_scores(scores: Array[int]) -> void:
+func update_scores(score_tables: Dictionary) -> void:
+	_score_tables = score_tables.duplicate(true)
+	_show_selected_scores()
+
+func _on_mode_selected(_index: int) -> void:
+	_show_selected_scores()
+
+func _show_selected_scores() -> void:
 	for child in scores_list.get_children():
 		child.queue_free()
 
+	var mode := mode_selector.get_selected_id() as GameMode.Value
+	var scores: Array[int] = []
+	scores.assign(_score_tables.get(GameMode.key(mode), []))
 	if scores.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "No scores yet!"
@@ -52,7 +67,7 @@ func _on_back_pressed() -> void:
 	high_scores_closed.emit()
 
 func get_buttons() -> Array[Button]:
-	return [back_button]
+	return [mode_selector, back_button]
 
 func get_default_focus() -> Button:
 	return back_button
