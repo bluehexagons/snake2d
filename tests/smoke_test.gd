@@ -184,10 +184,34 @@ func _run_smoke_test() -> void:
 
 	main.main_menu.mode_selector.select(GameMode.Value.OBSTACLES)
 	main.main_menu.call("_on_mode_selected", GameMode.Value.OBSTACLES)
-	main.main_menu.world_seed_spin_box.value = 424242
 	if not main.main_menu.seed_row.visible:
 		_fail("Expected Obstacles mode to reveal the world seed input.")
 		return
+	var generated_seed := roundi(main.main_menu.world_seed_spin_box.value)
+	if generated_seed < MainMenu.MIN_WORLD_SEED or generated_seed > MainMenu.MAX_WORLD_SEED:
+		_fail("Expected Obstacles mode to begin with a generated world seed.")
+		return
+	main.main_menu.world_seed_spin_box.value = 424242
+	main.main_menu.mode_selector.grab_focus()
+	var down_event := InputEventKey.new()
+	down_event.keycode = KEY_DOWN
+	down_event.pressed = true
+	main.main_menu.call("_input", down_event)
+	var seed_line_edit := main.main_menu.world_seed_spin_box.get_line_edit()
+	if get_viewport().gui_get_focus_owner() != seed_line_edit:
+		_fail("Expected keyboard navigation to focus the world seed input.")
+		return
+	if not seed_line_edit.is_editing():
+		_fail("Expected focusing the world seed input to enable keyboard editing.")
+		return
+	var right_event := InputEventJoypadButton.new()
+	right_event.button_index = JOY_BUTTON_DPAD_RIGHT
+	right_event.pressed = true
+	main.main_menu.call("_input", right_event)
+	if roundi(main.main_menu.world_seed_spin_box.value) != 424243:
+		_fail("Expected gamepad left/right navigation to adjust the world seed.")
+		return
+	main.main_menu.world_seed_spin_box.value = 424242
 	main.main_menu.start_button.pressed.emit()
 	await get_tree().process_frame
 	if main.game_session.current_mode != GameMode.Value.OBSTACLES:
@@ -195,6 +219,10 @@ func _run_smoke_test() -> void:
 		return
 	if main.game_session.current_world_seed != 424242:
 		_fail("Expected the selected world seed to reach the session.")
+		return
+	var next_generated_seed := roundi(main.main_menu.world_seed_spin_box.value)
+	if next_generated_seed == 424242 or next_generated_seed == generated_seed:
+		_fail("Expected the next Obstacles run to prepare a fresh default seed.")
 		return
 	if main.gameplay.obstacle_views.is_empty():
 		_fail("Expected a seeded Obstacles round to render walls.")

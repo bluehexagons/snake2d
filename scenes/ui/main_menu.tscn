@@ -180,7 +180,7 @@ size_flags_horizontal = 3
 focus_neighbor_top = NodePath("../../ModeRow/ModeSelector")
 focus_neighbor_bottom = NodePath("../../StartButton")
 max_value = 999999999.0
-value = 2026.0
+min_value = 1.0
 allow_greater = true
 update_on_text_changed = true
 
