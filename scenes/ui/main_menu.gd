@@ -40,6 +40,11 @@ func _on_start_pressed() -> void:
 func _on_mode_selected(_index: int) -> void:
 	var mode := mode_selector.get_selected_id() as GameMode.Value
 	seed_row.visible = mode == GameMode.Value.OBSTACLES
+	mode_selector.focus_neighbor_bottom = (
+		mode_selector.get_path_to(world_seed_spin_box)
+		if seed_row.visible
+		else mode_selector.get_path_to(start_button)
+	)
 	start_button.focus_neighbor_top = (
 		start_button.get_path_to(world_seed_spin_box)
 		if seed_row.visible
@@ -47,7 +52,7 @@ func _on_mode_selected(_index: int) -> void:
 	)
 	match mode:
 		GameMode.Value.PITFALL:
-			mode_description.text = "A new pit appears after every few meals. Keep moving carefully."
+			mode_description.text = "Every third meal creates a new pit. Keep moving carefully."
 		GameMode.Value.OBSTACLES:
 			mode_description.text = "Navigate a reproducible world of seeded wall patterns."
 		_:

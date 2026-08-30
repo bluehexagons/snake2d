@@ -49,7 +49,7 @@ The layers have deliberately different responsibilities:
 
 | Layer | Responsibility | Godot dependency |
 | --- | --- | --- |
-| `SnakeState`, `GridBoard`, `SnakeGame` | Grid rules, collision, growth, food, score, timing | `RefCounted`, value types, RNG |
+| `SnakeState`, `GridBoard`, `SnakeGame` | Grid rules, modes, collision, growth, food, obstacles, score, timing | `RefCounted`, value types, RNG |
 | `Gameplay` | Model ticking, scenes, interpolation, pooling, gameplay audio | `Node2D` and scene tree |
 | `GameSession` | Application state, pause ownership, round lifecycle, high scores | `Node` and `SceneTree.paused` |
 | `UIStateManager` | Visibility, focus, and transitions between UI panels | `Control`, signals, tweens |
@@ -81,11 +81,13 @@ The model uses `Vector2i` cells. Presentation converts cells to pixel positions 
 
 `GameRules` is an Inspector-editable `Resource` assigned to `Main`. Board dimensions, score values, tick timing, and camera tuning can be changed without editing scripts.
 
-`SnakeGame` receives a `RandomNumberGenerator`. Normal play randomizes it; tests supply a seed. Presentation uses a different generator for cosmetic tail colors so visual randomness cannot change food placement.
+`SnakeGame` receives a `RandomNumberGenerator`. Normal play randomizes it; tests supply a seed. Presentation uses a different generator for cosmetic tail colors so visual randomness cannot change food placement. Obstacle mode also sends the selected world seed through `ObstaclePatternGenerator`; that independent generator chooses and parameterizes a Gates, Islands, or Ribbons layout, so the same world seed always produces the same walls regardless of food placement.
+
+Pitfall mode adds a blocked cell at the configured food cadence. Its placement tiers prefer cells that are not directly ahead, are outside the snake's safety radius, and are not vertically below any body segment. Those preferences relax only when the remaining free cells make the safer tier impossible. Food selection excludes all blocked cells and is restricted to the connected region reachable from the snake.
 
 ## Persistence and audio
 
-`HighScoreStore` owns the versioned high-score file. It accepts old array-only saves and fails closed on malformed or unsupported data.
+`HighScoreStore` owns the versioned, per-mode high-score file. It migrates old array-only and v1 saves into the Classic table and fails closed on malformed or unsupported data.
 
 `SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, and applies mute, effects volume, fullscreen, and reduced motion. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
 

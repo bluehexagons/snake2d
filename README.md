@@ -17,12 +17,16 @@ A Simple Snake Game is a simple snake game in which you simply snake.
 
 ## Features
 
+- Three game modes:
+  - **Classic**: the original obstacle-free game of eating and growing
+  - **Pitfall**: every third piece of food adds a pit, placed away from the snake whenever space allows
+  - **Obstacles**: seeded worlds built from reproducible Gates, Islands, and Ribbons wall patterns
 - Multiple control schemes:
   - Keyboard (Arrow keys or WASD)
   - Gamepad (D-pad or analog stick)
   - Mouse (click or drag toward the next direction)
   - Touch (tap toward a direction or swipe; swipes resolve as soon as the threshold is crossed)
-- Top 100 high scores system
+- Top 100 high scores tracked separately for each game mode
 - Pause functionality (Space/P/Start button)
 - Full controller support with UI navigation
 - Versioned settings for sound, effects volume, fullscreen, and reduced motion

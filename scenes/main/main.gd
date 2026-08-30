@@ -88,6 +88,7 @@ func _ready() -> void:
 	main_menu.visible = true
 	options_menu.visible = false
 	score_display_label.visible = false
+	mode_display_label.visible = false
 	game_world.visible = false
 	_update_cursor_visibility()
 
@@ -159,11 +160,13 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 		ui_state_manager.UIState.GAMEPLAY:
 			ui_background.visible = false
 			score_display_label.visible = true
+			mode_display_label.visible = true
 			game_world.visible = true
 			_update_cursor_visibility()
 		ui_state_manager.UIState.MAIN_MENU:
 			ui_background.visible = false
 			score_display_label.visible = false
+			mode_display_label.visible = false
 			game_world.visible = false
 			_update_cursor_visibility()
 		ui_state_manager.UIState.PAUSED:
