@@ -76,6 +76,7 @@ func _settings_round_trip_and_reset() -> void:
 	settings.set_effects_volume_db(-8.0)
 	settings.toggle_fullscreen()
 	settings.toggle_reduced_motion()
+	settings.toggle_grid()
 
 	var loaded := SettingsService.new()
 	loaded.settings_path = SETTINGS_PATH
@@ -84,6 +85,7 @@ func _settings_round_trip_and_reset() -> void:
 	check.expect_equal(loaded.effects_volume_db, -8.0, "effects volume round-trips")
 	check.expect_true(loaded.is_fullscreen, "fullscreen state round-trips")
 	check.expect_true(loaded.reduced_motion, "reduced-motion state round-trips")
+	check.expect_false(loaded.grid_enabled, "gameplay-grid state round-trips")
 
 	loaded.reset_settings()
 	var reset := SettingsService.new()
@@ -93,6 +95,7 @@ func _settings_round_trip_and_reset() -> void:
 	check.expect_equal(reset.effects_volume_db, 0.0, "reset restores effects volume")
 	check.expect_false(reset.is_fullscreen, "reset restores windowed mode")
 	check.expect_false(reset.reduced_motion, "reset restores motion")
+	check.expect_true(reset.grid_enabled, "reset restores the gameplay grid")
 
 	settings.free()
 	loaded.free()

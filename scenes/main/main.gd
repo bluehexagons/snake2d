@@ -21,6 +21,7 @@ var _game_size_pixels := Vector2i.ZERO
 @onready var gameplay: Gameplay = %Gameplay
 @onready var snake_input_adapter: SnakeInputAdapter = %SnakeInputAdapter
 @onready var play_area_background: Panel = %PlayAreaBackground
+@onready var gameplay_grid: GameplayGrid = %GameplayGrid
 @onready var camera_node: SnakeCamera = %SnakeCamera
 
 @onready var main_menu: MainMenu = %MainMenu
@@ -39,11 +40,12 @@ func _ready() -> void:
 
 	game_session.configure(gameplay, high_score_store)
 	gameplay.configure(game_rules, audio_service)
+	gameplay_grid.configure(game_rules)
 	snake_input_adapter.configure(gameplay)
 	snake_input_adapter.set_enabled(game_session.state == GameSession.State.PLAYING)
 	snake_input_adapter.direction_requested.connect(gameplay.request_direction)
 	debug_overlay.configure(game_session, gameplay)
-	settings_service.configure(audio_service, ui_state_manager)
+	settings_service.configure(audio_service, ui_state_manager, gameplay_grid)
 	options_menu.set_settings_service(settings_service)
 	camera_node.configure(game_rules, gameplay)
 

@@ -70,14 +70,22 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 focus_neighbor_top = NodePath("../FullscreenButton")
-focus_neighbor_bottom = NodePath("../ResetSettingsButton")
+focus_neighbor_bottom = NodePath("../GridButton")
 text = "Reduced Motion: Off"
+
+[node name="GridButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+focus_neighbor_top = NodePath("../ReducedMotionButton")
+focus_neighbor_bottom = NodePath("../ResetSettingsButton")
+text = "Gameplay Grid: On"
 
 [node name="ResetSettingsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1350304461]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-focus_neighbor_top = NodePath("../ReducedMotionButton")
+focus_neighbor_top = NodePath("../GridButton")
 focus_neighbor_bottom = NodePath("../ResetScoresButton")
 text = "Reset Settings"
 

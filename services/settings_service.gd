@@ -15,13 +15,20 @@ var is_muted := false
 var effects_volume_db := 0.0
 var is_fullscreen := false
 var reduced_motion := false
+var grid_enabled := true
 
 var _audio_service: AudioService
 var _ui_state_manager: UIStateManager
+var _gameplay_grid: GameplayGrid
 
-func configure(audio_service: AudioService, ui_state_manager: UIStateManager) -> void:
+func configure(
+	audio_service: AudioService,
+	ui_state_manager: UIStateManager,
+	gameplay_grid: GameplayGrid = null
+) -> void:
 	_audio_service = audio_service
 	_ui_state_manager = ui_state_manager
+	_gameplay_grid = gameplay_grid
 	load_settings()
 	_apply_settings()
 
@@ -35,6 +42,7 @@ func load_settings() -> void:
 			is_muted = bool(config.get_value("audio", "muted", false))
 			effects_volume_db = clampf(float(config.get_value("audio", "effects_volume_db", 0.0)), -30.0, 0.0)
 			is_fullscreen = bool(config.get_value("display", "fullscreen", false))
+			grid_enabled = bool(config.get_value("display", "grid_enabled", true))
 			reduced_motion = bool(config.get_value("accessibility", "reduced_motion", false))
 		return
 
@@ -48,6 +56,7 @@ func save_settings() -> void:
 	config.set_value("audio", "muted", is_muted)
 	config.set_value("audio", "effects_volume_db", effects_volume_db)
 	config.set_value("display", "fullscreen", is_fullscreen)
+	config.set_value("display", "grid_enabled", grid_enabled)
 	config.set_value("accessibility", "reduced_motion", reduced_motion)
 	var error := config.save(settings_path)
 	if error != OK:
@@ -75,6 +84,11 @@ func toggle_reduced_motion() -> bool:
 	_commit_change()
 	return reduced_motion
 
+func toggle_grid() -> bool:
+	grid_enabled = not grid_enabled
+	_commit_change()
+	return grid_enabled
+
 func reset_settings() -> void:
 	_reset_values()
 	_commit_change()
@@ -84,6 +98,7 @@ func _reset_values() -> void:
 	effects_volume_db = 0.0
 	is_fullscreen = false
 	reduced_motion = false
+	grid_enabled = true
 
 func _commit_change() -> void:
 	_apply_settings()
@@ -96,6 +111,8 @@ func _apply_settings() -> void:
 		_audio_service.set_effects_volume_db(effects_volume_db)
 	if _ui_state_manager:
 		_ui_state_manager.set_reduced_motion(reduced_motion)
+	if _gameplay_grid:
+		_gameplay_grid.set_grid_enabled(grid_enabled)
 	if DisplayServer.get_name() != "headless":
 		DisplayServer.window_set_mode(
 			DisplayServer.WINDOW_MODE_FULLSCREEN

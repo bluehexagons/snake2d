@@ -27,9 +27,10 @@ A Simple Snake Game is a simple snake game in which you simply snake.
   - Mouse (click or drag toward the next direction)
   - Touch (tap toward a direction or swipe; swipes resolve as soon as the threshold is crossed)
 - Top 100 high scores tracked separately for each game mode
+- Subtle cell-aligned gameplay grid, enabled by default and toggleable in Options
 - Pause functionality (Space/P/Start button)
 - Full controller support with UI navigation
-- Versioned settings for sound, effects volume, fullscreen, and reduced motion
+- Versioned settings for sound, effects volume, fullscreen, reduced motion, and the gameplay grid
 - Inspector-editable board, timing, scoring, and camera rules
 - Deterministic model tests and a debug teaching overlay
 

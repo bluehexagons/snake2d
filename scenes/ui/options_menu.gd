@@ -9,6 +9,7 @@ var volume_label: Label
 var volume_slider: HSlider
 var fullscreen_button: Button
 var reduced_motion_button: Button
+var grid_button: Button
 var reset_settings_button: Button
 var reset_scores_button: Button
 var back_button: Button
@@ -21,6 +22,7 @@ func _ready() -> void:
 	volume_slider = %VolumeSlider
 	fullscreen_button = %FullscreenButton
 	reduced_motion_button = %ReducedMotionButton
+	grid_button = %GridButton
 	reset_settings_button = %ResetSettingsButton
 	reset_scores_button = %ResetScoresButton
 	back_button = %BackButton
@@ -29,6 +31,7 @@ func _ready() -> void:
 	volume_slider.value_changed.connect(_on_volume_changed)
 	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
 	reduced_motion_button.pressed.connect(_on_reduced_motion_toggled)
+	grid_button.pressed.connect(_on_grid_toggled)
 	reset_settings_button.pressed.connect(_on_reset_settings_pressed)
 	
 	reset_scores_button.pressed.connect(_on_reset_scores_pressed)
@@ -59,6 +62,10 @@ func _on_reduced_motion_toggled() -> void:
 	_settings_service.toggle_reduced_motion()
 	update_reduced_motion_button()
 
+func _on_grid_toggled() -> void:
+	_settings_service.toggle_grid()
+	update_grid_button()
+
 func _on_reset_settings_pressed() -> void:
 	_show_confirmation_dialog(
 		"Reset Settings",
@@ -84,6 +91,7 @@ func get_buttons() -> Array[Button]:
 		sound_button,
 		fullscreen_button,
 		reduced_motion_button,
+		grid_button,
 		reset_settings_button,
 		reset_scores_button,
 		back_button,
@@ -101,6 +109,7 @@ func update_button_states() -> void:
 	update_volume_label()
 	update_fullscreen_button()
 	update_reduced_motion_button()
+	update_grid_button()
 	_updating_controls = false
 
 func update_sound_button() -> void:
@@ -118,6 +127,9 @@ func update_reduced_motion_button() -> void:
 		"Reduced Motion: ",
 		"On" if _settings_service.reduced_motion else "Off"
 	)
+
+func update_grid_button() -> void:
+	grid_button.text = str("Gameplay Grid: ", "On" if _settings_service.grid_enabled else "Off")
 
 func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable) -> void:
 	var dialog := ConfirmationDialog.new()

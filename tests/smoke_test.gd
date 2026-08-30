@@ -25,6 +25,23 @@ func _run_smoke_test() -> void:
 	if not main.main_menu.visible:
 		_fail("Expected the main menu to be visible after startup.")
 		return
+	if main.gameplay_grid.line_count() != main.game_rules.columns + main.game_rules.rows - 2:
+		_fail("Expected the gameplay grid to draw every interior cell boundary.")
+		return
+	var original_grid_setting := main.settings_service.grid_enabled
+	if main.gameplay_grid.visible != original_grid_setting:
+		_fail("Expected the saved gameplay-grid setting to apply at startup.")
+		return
+	main.options_menu.grid_button.pressed.emit()
+	if main.gameplay_grid.visible == original_grid_setting:
+		_fail("Expected the options toggle to update the gameplay grid immediately.")
+		return
+	if main.options_menu.grid_button.text != (
+		"Gameplay Grid: Off" if original_grid_setting else "Gameplay Grid: On"
+	):
+		_fail("Expected the gameplay-grid button to show its updated state.")
+		return
+	main.options_menu.grid_button.pressed.emit()
 
 	var credits_text := main.get_node_or_null(
 		"UILayer/CreditsScreen/PanelContainer/MarginContainer/VBoxContainer/CreditsRichText"

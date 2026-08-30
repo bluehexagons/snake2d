@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://scenes/ui/game_over_panel.gd" id="16_game_over"]
 [ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="17_debug"]
 [ext_resource type="Script" path="res://services/settings_service.gd" id="18_settings"]
+[ext_resource type="Script" path="res://scenes/main/gameplay_grid.gd" id="19_grid"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a8run"]
 bg_color = Color(0.12549, 0.12549, 0.12549, 1)
@@ -100,6 +101,10 @@ offset_right = 768.0
 offset_bottom = 576.0
 size_flags_horizontal = 4
 theme_override_styles/panel = SubResource("StyleBoxFlat_a8run")
+
+[node name="GameplayGrid" type="Node2D" parent="GameLayer/GameViewport/GameWorld/PlayArea"]
+unique_name_in_owner = true
+script = ExtResource("19_grid")
 
 [node name="SnakeCamera" type="Camera2D" parent="GameLayer/GameViewport/GameWorld" unique_id=993567056]
 unique_name_in_owner = true
