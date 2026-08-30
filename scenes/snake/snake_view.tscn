@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/snake/snake_segment.tscn" id="2_segment"]
 
 [node name="SnakeView" type="Node2D" unique_id=700757401]
+z_index = 1
 script = ExtResource("1_8v03p")
 
 [node name="Head" parent="." unique_id=1609450893 instance=ExtResource("2_segment")]

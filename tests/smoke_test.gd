@@ -119,6 +119,9 @@ func _run_smoke_test() -> void:
 	if main.gameplay.tail_retraction_index != 6:
 		_fail("Expected the old tail cell to remain during a non-growing move.")
 		return
+	if main.gameplay.snake.z_index <= main.gameplay.tail_segments[0].z_index:
+		_fail("Expected the moving head and arrow to render above the first body cell.")
+		return
 	var terminal_tail := main.gameplay.tail_segments[main.gameplay.tail_retraction_index]
 	var expected_half_size := main.game_rules.cell_size * 0.5
 	if not is_equal_approx(terminal_tail.size.x, expected_half_size):
