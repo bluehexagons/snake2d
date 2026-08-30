@@ -85,6 +85,47 @@ func _run_smoke_test() -> void:
 		_fail("Expected a new round to show the controls tutorial.")
 		return
 
+	# A non-growing move keeps the old tail cell visible and retracts it in step
+	# with the extending head, preserving the snake's visual length.
+	var center := expected_spawn_cell
+	main.gameplay.model.snake.body.assign([
+		center,
+		center + Vector2i.LEFT,
+		center + Vector2i.LEFT * 2,
+	])
+	main.gameplay.model.snake.direction = Vector2i.RIGHT
+	main.gameplay.model.snake.queued_direction = Vector2i.RIGHT
+	main.gameplay.model.snake.waiting_for_input = false
+	main.gameplay.model.food_cell = Vector2i.ZERO
+	main.gameplay.advance_one_tick()
+	main.gameplay.time_since_tick = main.gameplay.model.current_tick_seconds() * 0.5
+	main.gameplay.call("_apply_visual_interpolation")
+	if main.gameplay.tail_retraction_index != 2:
+		_fail("Expected the old tail cell to remain during a non-growing move.")
+		return
+	var terminal_tail := main.gameplay.tail_segments[main.gameplay.tail_retraction_index]
+	var expected_half_size := main.game_rules.cell_size * 0.5
+	if not is_equal_approx(terminal_tail.size.x, expected_half_size):
+		_fail("Expected the tail end to shrink by half at half interpolation.")
+		return
+	var old_tail_position := Vector2((center + Vector2i.LEFT * 2) * main.game_rules.cell_size)
+	if not is_equal_approx(terminal_tail.position.x, old_tail_position.x + expected_half_size):
+		_fail("Expected the retracting tail to stay anchored toward the body.")
+		return
+	main.gameplay.call("_snap_presentation_to_targets")
+	if terminal_tail.visible:
+		_fail("Expected the retracted tail cell to disappear at the move target.")
+		return
+
+	main.gameplay.model.food_cell = center + Vector2i.RIGHT * 2
+	main.gameplay.advance_one_tick()
+	if main.gameplay.tail_retraction_index != -1:
+		_fail("Expected a growing move to keep the tail end full-sized.")
+		return
+	if main.gameplay.tail_segments[-1].size != Vector2.ONE * main.game_rules.cell_size:
+		_fail("Expected growth to preserve the complete terminal tail cell.")
+		return
+
 	main.game_session.end_round(0)
 	main.camera_node.position = Vector2.ZERO
 	main.start_new_round()
