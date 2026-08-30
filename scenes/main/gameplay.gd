@@ -15,6 +15,8 @@ const SnakeSegmentScene := preload("res://scenes/snake/snake_segment.tscn")
 const FoodViewScene := preload("res://scenes/food/food.tscn")
 const ObstacleViewScene := preload("res://scenes/obstacle/obstacle.tscn")
 const ControlsTutorial := preload("res://scenes/main/controls_tutorial.tscn")
+const BODY_MID_COLOR := Color(0.075, 0.72, 0.16, 1)
+const TAIL_END_COLOR := Color(0.10, 0.61, 0.18, 1)
 
 var model: SnakeGame
 var snake: SnakeView
@@ -35,15 +37,11 @@ var time_since_tick := 0.0
 var _rules: GameRules
 var _audio_service: AudioService
 var _model_random := RandomNumberGenerator.new()
-var _visual_random := RandomNumberGenerator.new()
 var _randomize_on_start := true
 var current_mode: GameMode.Value = GameMode.Value.CLASSIC
 var current_world_seed := 0
 
 @onready var game_world: Node2D = get_parent()
-
-func _ready() -> void:
-	_visual_random.randomize()
 
 ## Supplies authored dependencies before the first round starts.
 func configure(game_rules: GameRules, audio_service: AudioService) -> void:
@@ -247,6 +245,8 @@ func _sync_tail_presentation(previous_body: Array[Vector2i], grew: bool) -> void
 	tail_previous_positions.clear()
 	tail_target_positions.clear()
 	_clear_tail_retraction()
+	for i in required_segments:
+		tail_segments[i].set_alive_color(_segment_color_for_index(i, required_segments))
 	for i in logical_tail_segments:
 		var position := _cell_to_pixel(model.snake.body[i + 1])
 		tail_previous_positions.append(position)
@@ -263,7 +263,7 @@ func _sync_tail_presentation(previous_body: Array[Vector2i], grew: bool) -> void
 		tail_segments[tail_retraction_index].show_full_size(_rules.cell_size)
 		tail_segments[tail_retraction_index].position = tail_retraction_origin
 
-func _acquire_tail_segment(index: int) -> SnakeSegment:
+func _acquire_tail_segment(_index: int) -> SnakeSegment:
 	var segment: SnakeSegment
 	if tail_segment_pool.is_empty():
 		segment = SnakeSegmentScene.instantiate() as SnakeSegment
@@ -271,20 +271,18 @@ func _acquire_tail_segment(index: int) -> SnakeSegment:
 	else:
 		segment = tail_segment_pool.pop_back()
 
-	var base_color := Color(0.0862745, 0.741176, 0.0862745)
-	var segment_color: Color
-	if index == 0:
-		segment_color = base_color.darkened(0.1)
-	else:
-		var progress := float(index) / 20.0
-		var new_color := base_color.lightened(progress * 0.3)
-		segment_color = Color.from_hsv(
-			fmod(new_color.h + _visual_random.randf_range(-0.02, 0.02), 1.0),
-			new_color.s,
-			new_color.v
-		)
-	segment.configure(_rules.cell_size, segment_color)
+	segment.configure(_rules.cell_size, BODY_MID_COLOR)
 	return segment
+
+func _segment_color_for_index(index: int, segment_count: int) -> Color:
+	if segment_count <= 1:
+		return SnakeView.HEAD_COLOR.lerp(TAIL_END_COLOR, 0.5)
+	var progress := float(index) / float(segment_count - 1)
+	var end_gradient := SnakeView.HEAD_COLOR.lerp(TAIL_END_COLOR, progress)
+	# The sine-shaped center lift keeps both two-segment end bands close to
+	# their endpoint colors while giving the middle a readable, gentle highlight.
+	var center_lift := sin(progress * PI) * 0.75
+	return end_gradient.lerp(BODY_MID_COLOR, center_lift)
 
 func _apply_visual_interpolation() -> void:
 	if model == null or snake == null or model.game_over:

@@ -6,9 +6,12 @@ extends ColorRect
 var alive_color := Color.WHITE
 
 func configure(segment_size: int, segment_color: Color) -> void:
+	set_alive_color(segment_color)
+	show_full_size(segment_size)
+
+func set_alive_color(segment_color: Color) -> void:
 	alive_color = segment_color
 	color = alive_color
-	show_full_size(segment_size)
 
 func show_full_size(segment_size: int) -> void:
 	size = Vector2.ONE * segment_size

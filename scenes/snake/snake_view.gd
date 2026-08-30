@@ -3,7 +3,7 @@ extends Node2D
 
 ## Pixel-space presentation for the model's snake head.
 
-const HEAD_COLOR := Color(0.0509804, 0.521569, 0.0509804, 1)
+const HEAD_COLOR := Color(0.055, 0.56, 0.14, 1)
 
 var cell_size := 32
 var logical_position := Vector2.ZERO

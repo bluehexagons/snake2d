@@ -88,11 +88,10 @@ func _run_smoke_test() -> void:
 	# A non-growing move keeps the old tail cell visible and retracts it in step
 	# with the extending head, preserving the snake's visual length.
 	var center := expected_spawn_cell
-	main.gameplay.model.snake.body.assign([
-		center,
-		center + Vector2i.LEFT,
-		center + Vector2i.LEFT * 2,
-	])
+	var presentation_body: Array[Vector2i] = []
+	for index in 7:
+		presentation_body.append(center + Vector2i.LEFT * index)
+	main.gameplay.model.snake.body.assign(presentation_body)
 	main.gameplay.model.snake.direction = Vector2i.RIGHT
 	main.gameplay.model.snake.queued_direction = Vector2i.RIGHT
 	main.gameplay.model.snake.waiting_for_input = false
@@ -100,7 +99,7 @@ func _run_smoke_test() -> void:
 	main.gameplay.advance_one_tick()
 	main.gameplay.time_since_tick = main.gameplay.model.current_tick_seconds() * 0.5
 	main.gameplay.call("_apply_visual_interpolation")
-	if main.gameplay.tail_retraction_index != 2:
+	if main.gameplay.tail_retraction_index != 6:
 		_fail("Expected the old tail cell to remain during a non-growing move.")
 		return
 	var terminal_tail := main.gameplay.tail_segments[main.gameplay.tail_retraction_index]
@@ -108,13 +107,28 @@ func _run_smoke_test() -> void:
 	if not is_equal_approx(terminal_tail.size.x, expected_half_size):
 		_fail("Expected the tail end to shrink by half at half interpolation.")
 		return
-	var old_tail_position := Vector2((center + Vector2i.LEFT * 2) * main.game_rules.cell_size)
+	var old_tail_position := Vector2((center + Vector2i.LEFT * 6) * main.game_rules.cell_size)
 	if not is_equal_approx(terminal_tail.position.x, old_tail_position.x + expected_half_size):
 		_fail("Expected the retracting tail to stay anchored toward the body.")
 		return
 	main.gameplay.call("_snap_presentation_to_targets")
 	if terminal_tail.visible:
 		_fail("Expected the retracted tail cell to disappear at the move target.")
+		return
+	var head_color := SnakeView.HEAD_COLOR
+	var tail_color := Gameplay.TAIL_END_COLOR
+	var middle_color := main.gameplay.tail_segments[3].color
+	if main.gameplay.tail_segments[0].color != head_color:
+		_fail("Expected the first body piece to match the head color.")
+		return
+	if _color_distance(main.gameplay.tail_segments[1].color, head_color) >= _color_distance(middle_color, head_color):
+		_fail("Expected the second body piece to stay closer to the head color than the middle.")
+		return
+	if terminal_tail.color != tail_color:
+		_fail("Expected the terminal piece to match the tail-end color.")
+		return
+	if _color_distance(main.gameplay.tail_segments[-2].color, tail_color) >= _color_distance(middle_color, tail_color):
+		_fail("Expected the penultimate piece to stay closer to the tail color than the middle.")
 		return
 
 	main.gameplay.model.food_cell = center + Vector2i.RIGHT * 2
@@ -172,3 +186,6 @@ func _run_smoke_test() -> void:
 
 	print("Smoke test passed.")
 	get_tree().quit()
+
+func _color_distance(first: Color, second: Color) -> float:
+	return Vector3(first.r - second.r, first.g - second.g, first.b - second.b).length()
