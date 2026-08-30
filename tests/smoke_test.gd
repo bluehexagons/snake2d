@@ -85,6 +85,23 @@ func _run_smoke_test() -> void:
 		_fail("Expected a new round to show the controls tutorial.")
 		return
 
+	var direction_indicator := main.gameplay.snake.get_node_or_null("DirectionIndicator") as Polygon2D
+	if direction_indicator == null:
+		_fail("Expected the snake head to have a direction indicator.")
+		return
+	if not is_equal_approx(direction_indicator.color.a, 1.0):
+		_fail("Expected the direction indicator to be opaque while moving.")
+		return
+	var stable_arrow_shape := direction_indicator.polygon
+	main.gameplay.snake.show_queued_direction(Vector2i.UP)
+	if direction_indicator.polygon != stable_arrow_shape:
+		_fail("Expected direction changes to rotate rather than rebuild the arrow.")
+		return
+	if not is_equal_approx(direction_indicator.rotation, -PI / 2.0):
+		_fail("Expected the direction indicator to rotate toward the queued direction.")
+		return
+	main.gameplay.snake.show_queued_direction(Vector2i.RIGHT)
+
 	# A non-growing move keeps the old tail cell visible and retracts it in step
 	# with the extending head, preserving the snake's visual length.
 	var center := expected_spawn_cell
