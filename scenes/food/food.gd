@@ -11,6 +11,7 @@ var _scale: float = 0.0
 var _corner_radius: float = 6.0
 var _color: Color = BASE_COLOR
 var _eaten: bool = false
+var _animation: Tween
 
 func _ready() -> void:
 	z_index = 0
@@ -62,7 +63,8 @@ func _play_spawn() -> void:
 	_color = BASE_COLOR
 	_corner_radius = 6.0
 	queue_redraw()
-	var tween := create_tween()
+	_animation = create_tween()
+	var tween := _animation
 	tween.set_parallel(true)
 	tween.tween_method(_set_scale, 0.0, 1.08, SPAWN_DURATION * 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_method(_set_scale, 1.08, 1.0, SPAWN_DURATION * 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -71,13 +73,15 @@ func _play_spawn() -> void:
 # at the end of the animation. Returns the tween so callers can await it if needed.
 func eat() -> Tween:
 	if _eaten:
-		var noop := create_tween()
-		noop.tween_callback(func() -> void: pass)
-		return noop
+		return _animation
 	_eaten = true
+	# Spawn and consumption animate the same properties; only one may own them.
+	if _animation and _animation.is_valid():
+		_animation.kill()
 	# Make sure we draw beneath the snake head so it slides over us.
 	z_index = -1
-	var tween := create_tween()
+	_animation = create_tween()
+	var tween := _animation
 	tween.set_parallel(true)
 	# Round the corners further as we shrink, so it feels like it's being absorbed.
 	tween.tween_method(_set_corner_radius, _corner_radius, _size * 0.5, EAT_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

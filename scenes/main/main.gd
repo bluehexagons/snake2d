@@ -6,6 +6,7 @@ extends Control
 var high_scores_by_mode: Dictionary = {}
 
 var using_mouse := true
+var _button_tweens: Dictionary[Button, Tween] = {}
 var _game_size_pixels := Vector2i.ZERO
 
 @onready var ui_state_manager: UIStateManager = $UIStateManager
@@ -47,6 +48,7 @@ func _ready() -> void:
 	debug_overlay.configure(game_session, gameplay)
 	settings_service.configure(audio_service, ui_state_manager, gameplay_grid)
 	options_menu.set_settings_service(settings_service)
+	settings_service.settings_changed.connect(_settle_button_polish)
 	camera_node.configure(game_rules, gameplay)
 
 	ui_state_manager.state_changed.connect(_on_ui_state_changed)
@@ -210,10 +212,14 @@ func _install_button_polish(btn: Button) -> void:
 		btn.pivot_offset = btn.size * 0.5
 	)
 	var animate_to := func(target_scale: Vector2, duration: float) -> void:
+		if _button_tweens.has(btn):
+			_button_tweens[btn].kill()
+			_button_tweens.erase(btn)
 		if settings_service.reduced_motion:
 			btn.scale = Vector2.ONE
 			return
-		var tween := get_tree().create_tween()
+		var tween := btn.create_tween()
+		_button_tweens[btn] = tween
 		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 		tween.tween_property(btn, "scale", target_scale, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	btn.focus_entered.connect(func() -> void: animate_to.call(Vector2(1.06, 1.06), 0.14))
@@ -233,6 +239,14 @@ func _install_button_polish(btn: Button) -> void:
 		var dest := Vector2(1.06, 1.06) if btn.has_focus() else Vector2.ONE
 		animate_to.call(dest, 0.12)
 	)
+
+func _settle_button_polish() -> void:
+	if not settings_service.reduced_motion:
+		return
+	for button in _button_tweens:
+		_button_tweens[button].kill()
+		button.scale = Vector2.ONE
+	_button_tweens.clear()
 
 func _update_menu_focus() -> void:
 	var current_state = ui_state_manager.current_state

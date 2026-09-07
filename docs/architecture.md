@@ -77,7 +77,7 @@ Only `GameSession` writes `SceneTree.paused`. `Main`, services, session state, a
 
 The model uses `Vector2i` cells. Presentation converts cells to pixel positions using `GameRules.cell_size`. Keeping that conversion at the adapter boundary prevents interpolation or camera motion from affecting collision rules.
 
-`Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions.
+`Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
 
 ## Data and randomness
 

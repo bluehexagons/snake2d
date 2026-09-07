@@ -65,6 +65,7 @@ run_source_smoke() {
     run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --import --quit
     run_and_check_logs "Audio synth test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/audio_synth_test.gd"
     run_and_check_logs "Game session test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/game_session_test.gd"
+    run_and_check_logs "Presentation test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/presentation_test.gd"
     run_and_check_logs "UI state manager test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/ui_state_manager_test.gd"
     run_and_check_logs "Snake game model test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/snake_game_test.gd"
     run_and_check_logs "Input adapter test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_adapter_test.gd"

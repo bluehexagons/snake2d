@@ -23,6 +23,7 @@ var snake: SnakeView
 var food: FoodView
 var obstacle_views: Array[ObstacleView] = []
 var _controls_tutorial: Control
+var _eaten_food_views: Array[FoodView] = []
 
 var tail_segments: Array[SnakeSegment] = []
 var tail_segment_pool: Array[SnakeSegment] = []
@@ -337,6 +338,10 @@ func _consume_food_view() -> void:
 		return
 	var eaten_food := food
 	food = null
+	_eaten_food_views.append(eaten_food)
+	eaten_food.tree_exited.connect(func() -> void:
+		_eaten_food_views.erase(eaten_food)
+	, CONNECT_ONE_SHOT)
 	eaten_food.eat()
 
 func _finish_round() -> void:
@@ -373,9 +378,10 @@ func _remove_current_food() -> void:
 		food = null
 
 func _remove_eaten_food_views() -> void:
-	for child in game_world.get_children():
-		if child is FoodView:
-			child.queue_free()
+	# Only retire views created by this adapter, never unrelated world siblings.
+	for eaten_food in _eaten_food_views:
+		eaten_food.queue_free()
+	_eaten_food_views.clear()
 
 func _render_all_obstacles() -> void:
 	_render_new_obstacles(0)

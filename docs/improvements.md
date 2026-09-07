@@ -88,7 +88,4 @@ The learning value of authored scenes and straightforward pooling currently outw
 ## Audit follow-ups
 
 - Keep the shared `GameRules` resource immutable during a round. Inspector ranges are authoring hints, not runtime validation; an eventual runtime preset editor should validate positive board/timing values and pit cadence before constructing a model.
-- Food spawn and eat tweens can overlap when food is consumed quickly. Give each food view one animation owner when refining that effect, and check it at maximum speed.
-- Button polish creates overlapping tweens under rapid focus/hover changes. A per-button tween owner would also let enabling reduced motion settle existing button animations immediately.
-- `Gameplay` discovers eaten food views by scanning its parent. If the world gains unrelated food-like decorations or multiple gameplay instances, use an owned presentation container or track those transient views explicitly.
 - Round completion currently shares the death cue and game-over panel. A distinct completion presentation would make the meaning of `FILLED_BOARD` clearer.

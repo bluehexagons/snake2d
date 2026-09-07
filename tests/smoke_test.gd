@@ -73,6 +73,20 @@ func _run_smoke_test() -> void:
 		_fail("Expected the credits to show the configured project version.")
 		return
 
+	var polish_button := main.main_menu.get_default_focus()
+	polish_button.focus_entered.emit()
+	var first_polish: Tween = main.get("_button_tweens")[polish_button]
+	polish_button.button_down.emit()
+	if first_polish.is_valid():
+		_fail("Expected new button polish to cancel the previous tween.")
+		return
+	var active_polish: Tween = main.get("_button_tweens")[polish_button]
+	main.settings_service.toggle_reduced_motion()
+	if active_polish.is_valid() or polish_button.scale != Vector2.ONE:
+		_fail("Expected reduced motion to settle existing button polish immediately.")
+		return
+	main.settings_service.toggle_reduced_motion()
+
 	var start_button := main.main_menu.get_default_focus()
 	start_button.button_down.emit()
 	start_button.pressed.emit()
