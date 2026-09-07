@@ -38,13 +38,15 @@ func load_settings() -> void:
 	var config := ConfigFile.new()
 	var error := config.load(settings_path)
 	if error == OK:
-		var version := int(config.get_value("meta", "version", 0))
-		if version == CURRENT_VERSION:
-			is_muted = bool(config.get_value("audio", "muted", false))
-			effects_volume_db = clampf(float(config.get_value("audio", "effects_volume_db", 0.0)), -30.0, 0.0)
-			is_fullscreen = bool(config.get_value("display", "fullscreen", false))
-			grid_enabled = bool(config.get_value("display", "grid_enabled", true))
-			reduced_motion = bool(config.get_value("accessibility", "reduced_motion", false))
+		var version = config.get_value("meta", "version", 0)
+		if version is int and version == CURRENT_VERSION:
+			is_muted = _read_bool(config, "audio", "muted", false)
+			var volume = config.get_value("audio", "effects_volume_db", 0.0)
+			if (volume is float or volume is int) and is_finite(float(volume)):
+				effects_volume_db = clampf(float(volume), -30.0, 0.0)
+			is_fullscreen = _read_bool(config, "display", "fullscreen", false)
+			grid_enabled = _read_bool(config, "display", "grid_enabled", true)
+			reduced_motion = _read_bool(config, "accessibility", "reduced_motion", false)
 		return
 
 	if not FileAccess.file_exists(settings_path) and FileAccess.file_exists(legacy_settings_path):
@@ -69,6 +71,8 @@ func toggle_mute() -> bool:
 	return is_muted
 
 func set_effects_volume_db(volume_db: float) -> void:
+	if not is_finite(volume_db):
+		return
 	var clamped := clampf(volume_db, -30.0, 0.0)
 	if is_equal_approx(clamped, effects_volume_db):
 		return
@@ -123,7 +127,15 @@ func _apply_settings() -> void:
 
 func _load_legacy_settings() -> void:
 	var file := FileAccess.open(legacy_settings_path, FileAccess.READ)
-	if file == null:
+	if file == null or file.get_length() != 2:
 		return
-	is_muted = file.get_8() == 1
-	is_fullscreen = file.get_8() == 1
+	var muted := file.get_8()
+	var fullscreen := file.get_8()
+	if muted not in [0, 1] or fullscreen not in [0, 1]:
+		return
+	is_muted = muted == 1
+	is_fullscreen = fullscreen == 1
+
+func _read_bool(config: ConfigFile, section: String, key: String, fallback: bool) -> bool:
+	var value = config.get_value(section, key, fallback)
+	return value if value is bool else fallback

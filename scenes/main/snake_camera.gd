@@ -37,17 +37,21 @@ func _physics_process(_delta: float) -> void:
 	var food_pos: Vector2 = gameplay.get_food_position()
 	var snake_center: Vector2 = gameplay.get_weighted_snake_center()
 	
+	var total_weight := (
+		_rules.look_ahead_weight + _rules.center_pull_weight
+		+ _rules.food_attraction_weight + _rules.snake_center_weight
+	)
+	# All weights can legitimately be zero in the Inspector.
+	if is_zero_approx(total_weight):
+		target = center
+		return
+
 	var new_target: Vector2 = (
 		look_ahead * _rules.look_ahead_weight +
 		center * _rules.center_pull_weight +
 		food_pos * _rules.food_attraction_weight +
 		snake_center * _rules.snake_center_weight
-	) / (
-		_rules.look_ahead_weight
-		+ _rules.center_pull_weight
-		+ _rules.food_attraction_weight
-		+ _rules.snake_center_weight
-	)
+	) / total_weight
 	
 	target = target.lerp(new_target, _rules.camera_smoothing)
 

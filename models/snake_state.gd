@@ -29,7 +29,7 @@ func reset(start_cell: Vector2i) -> void:
 func request_direction(requested_direction: Vector2i) -> bool:
 	if not alive or requested_direction not in CARDINAL_DIRECTIONS or _turn_queued:
 		return false
-	if not waiting_for_input and requested_direction == -direction:
+	if not waiting_for_input and requested_direction in [direction, -direction]:
 		return false
 
 	queued_direction = requested_direction

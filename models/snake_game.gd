@@ -11,6 +11,7 @@ enum StepResult {
 	HIT_SELF,
 	HIT_OBSTACLE,
 	FILLED_BOARD,
+	NOT_RUNNING,
 }
 
 var rules: GameRules
@@ -27,6 +28,7 @@ var obstacle_pattern_name := ""
 var foods_eaten := 0
 
 var _random: RandomNumberGenerator
+var _terminal_result := StepResult.NOT_RUNNING
 
 func _init(
 	game_rules: GameRules,
@@ -43,6 +45,7 @@ func _init(
 func reset() -> void:
 	score = 0
 	game_over = false
+	_terminal_result = StepResult.NOT_RUNNING
 	tick_count = 0
 	foods_eaten = 0
 	snake.reset(Vector2i(board.size.x / 2, board.size.y / 2))
@@ -53,32 +56,28 @@ func reset() -> void:
 		obstacle_pattern_name = pattern.name
 		obstacle_cells.assign(pattern.cells)
 	food_cell = _choose_food_cell()
+	if food_cell == Vector2i(-1, -1):
+		_complete_round(StepResult.FILLED_BOARD)
 
 func request_direction(direction: Vector2i) -> bool:
-	return snake.request_direction(direction)
+	return not game_over and snake.request_direction(direction)
 
 func step() -> StepResult:
+	if game_over:
+		return _terminal_result
 	if snake.waiting_for_input:
 		return StepResult.WAITING_FOR_INPUT
-	if game_over:
-		return StepResult.HIT_SELF
 	tick_count += 1
 
 	var next_head := snake.next_head_cell()
 	if not board.contains(next_head):
-		snake.mark_dead()
-		game_over = true
-		return StepResult.HIT_WALL
+		return _complete_round(StepResult.HIT_WALL)
 	if next_head in obstacle_cells:
-		snake.mark_dead()
-		game_over = true
-		return StepResult.HIT_OBSTACLE
+		return _complete_round(StepResult.HIT_OBSTACLE)
 
 	var ate_food := next_head == food_cell
 	if snake.would_hit_self(next_head, ate_food):
-		snake.mark_dead()
-		game_over = true
-		return StepResult.HIT_SELF
+		return _complete_round(StepResult.HIT_SELF)
 
 	snake.advance(next_head, ate_food)
 	if not ate_food:
@@ -90,9 +89,15 @@ func step() -> StepResult:
 		_place_pit()
 	food_cell = _choose_food_cell()
 	if food_cell == Vector2i(-1, -1):
-		game_over = true
-		return StepResult.FILLED_BOARD
+		return _complete_round(StepResult.FILLED_BOARD)
 	return StepResult.ATE_FOOD
+
+func _complete_round(result: StepResult) -> StepResult:
+	game_over = true
+	if result != StepResult.FILLED_BOARD:
+		snake.mark_dead()
+	_terminal_result = result
+	return result
 
 func current_tick_seconds() -> float:
 	return rules.tick_seconds_for_length(snake.body.size())

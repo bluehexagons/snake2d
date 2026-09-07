@@ -15,6 +15,9 @@ func _initialize() -> void:
 	_eating_updates_score_length_and_speed()
 	_speed_progress_tracks_the_configured_tick_range()
 	_filling_the_board_completes_the_round()
+	_terminal_results_are_stable()
+	_a_single_cell_board_is_already_complete()
+	_redundant_direction_does_not_consume_a_turn()
 	_reset_restores_initial_state()
 	check.finish(self, "Snake game model test")
 
@@ -164,6 +167,32 @@ func _reset_restores_initial_state() -> void:
 	check.expect_equal(game.snake.body.size(), 1, "reset restores one body cell")
 	check.expect_true(game.snake.waiting_for_input, "reset waits for fresh input")
 	check.expect_false(game.game_over, "reset clears game-over state")
+
+func _terminal_results_are_stable() -> void:
+	var wall := _new_game(Vector2i(3, 3), 3)
+	wall.request_direction(Vector2i.RIGHT)
+	wall.step()
+	wall.step()
+	var ticks := wall.tick_count
+	check.expect_equal(wall.step(), SnakeGame.StepResult.HIT_WALL, "repeated steps retain the wall outcome")
+	check.expect_equal(wall.tick_count, ticks, "terminal steps do not advance time")
+	var full := _new_game(Vector2i(2, 1), 7)
+	full.request_direction(Vector2i.LEFT)
+	full.step()
+	check.expect_false(full.request_direction(Vector2i.UP), "a completed board rejects input")
+	check.expect_equal(full.step(), SnakeGame.StepResult.FILLED_BOARD, "completion never becomes self-collision")
+
+func _a_single_cell_board_is_already_complete() -> void:
+	var game := _new_game(Vector2i.ONE, 7)
+	check.expect_true(game.game_over, "a board with no free cells completes on reset")
+	check.expect_equal(game.step(), SnakeGame.StepResult.FILLED_BOARD, "completion precedes waiting for input")
+
+func _redundant_direction_does_not_consume_a_turn() -> void:
+	var game := _new_game(Vector2i(7, 7), 2)
+	game.request_direction(Vector2i.RIGHT)
+	game.step()
+	check.expect_false(game.request_direction(Vector2i.RIGHT), "continuing straight needs no queued turn")
+	check.expect_true(game.request_direction(Vector2i.UP), "a redundant device event does not block a turn")
 
 func _new_game(
 	board_size: Vector2i,

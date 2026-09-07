@@ -192,6 +192,18 @@ func _run_smoke_test() -> void:
 	main.start_new_round()
 	await get_tree().process_frame
 
+	var camera_rules := main.game_rules.duplicate() as GameRules
+	camera_rules.look_ahead_weight = 0.0
+	camera_rules.center_pull_weight = 0.0
+	camera_rules.food_attraction_weight = 0.0
+	camera_rules.snake_center_weight = 0.0
+	main.camera_node.configure(camera_rules, main.gameplay)
+	main.camera_node.call("_physics_process", 1.0 / 60.0)
+	if main.camera_node.target != Vector2(camera_rules.board_size_pixels()) / 2.0:
+		_fail("Expected zero camera weights to fall back to the board center.")
+		return
+	main.camera_node.configure(main.game_rules, main.gameplay)
+
 	var expected_camera_position := Vector2(main.game_rules.board_size_pixels()) / 2.0
 	if main.camera_node.position != expected_camera_position:
 		_fail("Expected a restarted game to reset the camera.")

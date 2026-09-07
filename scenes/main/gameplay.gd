@@ -80,9 +80,12 @@ func start_game(
 	snake.snap_to_cell(model.snake.body[0])
 	game_world.add_child(snake)
 
-	_show_food(model.food_cell)
+	if not model.game_over:
+		_show_food(model.food_cell)
 	time_since_tick = 0.0
 	score_updated.emit(model.score)
+	if model.game_over:
+		_finish_round()
 
 func _physics_process(delta: float) -> void:
 	if model == null or model.game_over:
@@ -106,8 +109,10 @@ func _physics_process(delta: float) -> void:
 
 ## Advances exactly one model tick. The debug overlay uses this while the tree is paused.
 func advance_one_tick() -> SnakeGame.StepResult:
-	if model == null or model.game_over:
-		return SnakeGame.StepResult.HIT_SELF
+	if model == null:
+		return SnakeGame.StepResult.NOT_RUNNING
+	if model.game_over:
+		return model.step()
 
 	var previous_body := model.snake.body.duplicate()
 	var eaten_cell := model.food_cell
