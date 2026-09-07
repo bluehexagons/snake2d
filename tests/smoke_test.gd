@@ -285,6 +285,11 @@ func _run_smoke_test() -> void:
 		return
 	main.call("_on_quit_to_menu_pressed")
 
+	main.free()
+	if get_tree().paused:
+		_fail("Expected removing Main to release the session's tree pause.")
+		return
+
 	print("Smoke test passed.")
 	get_tree().quit()
 

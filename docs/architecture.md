@@ -69,6 +69,8 @@ MAIN_MENU → PLAYING ⇄ PAUSED
 
 Only `GameSession` writes `SceneTree.paused`. `Main`, services, session state, and UI inherit an always-processing mode so menus continue to work while paused. `GameWorld` explicitly uses the pausable process mode, which stops gameplay, input, and camera callbacks without per-node pause checks.
 
+`GameSession` initializes the model and views before publishing `PLAYING`, so a state observer can inspect the new round immediately. Reconfiguration disconnects the previous gameplay dependency. Removing the session releases `SceneTree.paused`, which would otherwise survive the removed main scene.
+
 `GameSession` commits its game-over state before emitting round notifications. Ordinary signal connections run synchronously, so observers must see the completed state; otherwise a listener can end the same round twice or have its own menu transition overwritten. Starting an already active round, including a paused one, is a no-op.
 
 `UIStateManager` does not own application state. It is a presentation helper that fades registered panels and restores focus after `Main` maps a session transition to the corresponding UI state. Registered panels are `Control` nodes, and a default focus target may be any `Control` (including a slider). Outgoing panels immediately disable processing, recursive mouse input, and recursive focus while their fade finishes. Transition tweens belong to the manager, and enabling reduced motion settles in-flight panel transitions. See the [Control input inheritance reference](https://docs.godotengine.org/en/stable/classes/class_control.html#class-control-property-mouse-behavior-recursive).

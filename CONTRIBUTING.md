@@ -30,3 +30,23 @@ The command imports the project, rejects parse/compile errors, runs deterministi
 ## Exports
 
 `./build.sh` builds Web, Windows, and Linux exports into `out/`. Export templates are not required for source tests.
+
+## Matching export templates on infra-tools VMs
+
+Check the actual engine with `godot --version` and run
+`infra-tools agent doctor --capability development --json`.
+The [infra-tools Godot guidance](https://github.com/bluehexagons/infra_tools/blob/main/docs/GODOT.md#workflow-bundles)
+explains that the managed `web` bundle installs only the matching Web templates.
+A healthy Web capability does not establish Linux or Windows export readiness.
+
+Desktop exports also need the matching official desktop templates in
+`~/.local/share/godot/export_templates/<version>.stable/`. Install them through
+Godot's Export Template Manager, or use the infra-tools range-download implementation
+in `common/godot_steps.py` to select the desktop members of the official matching
+TPZ, as done during this audit. That implementation checks member ZIP CRCs;
+verify `templates/version.txt` against the running engine before installing.
+Stage on the destination filesystem when using an atomic rename. Do not rename
+an older template directory to make it appear compatible with a newer engine.
+
+After an engine update, repeat the check: Web bundle maintenance does not install
+desktop templates. Validate with `./build.sh all` and `./test.sh linux-export`.

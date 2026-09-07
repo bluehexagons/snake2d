@@ -1,6 +1,6 @@
 # Manual interaction checks
 
-Headless tests verify rules and scene behavior, but cannot establish real-device input, rendered layout, or audible quality. These checks are **not yet recorded as passed**. For each run, record commit, Godot version, OS/browser, device, and pass/fail with reproduction steps.
+Headless tests verify rules and scene behavior, but cannot establish real-device input, rendered layout, or audible quality. The matrix describes the full coverage target; the limited recorded run below does not establish native-device coverage. For each run, record commit, Godot version, OS/browser, device, and pass/fail with reproduction steps.
 
 | Area | Steps | Expected result |
 | --- | --- | --- |
@@ -15,3 +15,24 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | Save/reload | Change settings and earn scores in all modes; restart the application | Settings persist and scores remain separated by mode |
 
 Use a temporary OS account or back up saves before manually testing reset actions. Automated persistence and smoke tests already use disposable paths.
+
+## Recorded audit run — 2026-09-07
+
+Engine: Godot 4.7.2 stable. VM-local managed Playwright Chromium on Linux,
+release Web export over a loopback server. Code: `0681a75` plus the session
+lifecycle changes committed with this record.
+
+- Passed: main menu rendering, starting Classic, a short arrow-key movement,
+  Escape pause/resume, quitting to the menu, opening Options, and toggling
+  reduced motion. Two paused-frame captures 700 ms apart were byte-identical.
+- At 1280×720, the inspected menu and options controls fit the viewport.
+- **Usability finding at 390×844:** Options fits, but text and button targets
+  become too small because the UI follows the game's viewport scaling. This
+  needs responsive UI sizing before mobile usability can be considered passed.
+- No browser console errors. Four Chromium GPU `ReadPixels` performance warnings
+  were reported during capture; no context loss or rendering failure occurred.
+- Source suite, all three release exports, and Linux export startup passed.
+  Windows was exported but not executed.
+- Still unverified: native touch/cancellation, physical controllers, audible
+  quality/latency, browser switching between physical mouse and touch, and
+  persistence across a full browser restart.

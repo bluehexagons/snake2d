@@ -26,6 +26,11 @@ var _high_score_store: HighScoreStore
 
 ## Supplies the authored dependencies owned by Main.
 func configure(gameplay: Gameplay, high_score_store: HighScoreStore) -> void:
+	if is_instance_valid(_gameplay) and _gameplay != gameplay:
+		if _gameplay.game_over.is_connected(end_round):
+			_gameplay.game_over.disconnect(end_round)
+		if _gameplay.score_updated.is_connected(_on_gameplay_score_updated):
+			_gameplay.score_updated.disconnect(_on_gameplay_score_updated)
 	_gameplay = gameplay
 	_high_score_store = high_score_store
 	high_scores_by_mode = _high_score_store.load_high_scores_by_mode()
@@ -46,8 +51,14 @@ func start_new_round(
 	current_score = 0
 	current_mode = mode
 	current_world_seed = world_seed
-	_transition_to(State.PLAYING)
+	# Gameplay can report an immediately completed round while it starts. Set
+	# behavior first, but publish PLAYING only once its model and views exist.
+	var previous_state := state
+	state = State.PLAYING
+	_apply_tree_pause()
 	_gameplay.start_game(current_mode, current_world_seed)
+	if state == State.PLAYING:
+		state_changed.emit(previous_state, state)
 
 func pause_round() -> void:
 	if state != State.PLAYING:
@@ -148,3 +159,7 @@ func _transition_to(new_state: State) -> void:
 func _apply_tree_pause() -> void:
 	if is_inside_tree():
 		get_tree().paused = state != State.PLAYING
+
+func _exit_tree() -> void:
+	# The pause flag belongs to SceneTree, so it outlives this scene unless released.
+	get_tree().paused = false

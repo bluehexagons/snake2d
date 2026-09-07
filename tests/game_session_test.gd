@@ -55,6 +55,10 @@ func _initialize() -> void:
 	check.expect_equal(game_session.state, GameSession.State.MAIN_MENU, "a session starts at the main menu")
 	check.expect_equal(game_session.get_high_scores(), [30, 20, 10], "configuration loads saved scores")
 
+	game_session.state_changed.connect(func(_old: GameSession.State, current: GameSession.State) -> void:
+		if current == GameSession.State.PLAYING:
+			check.expect_equal(gameplay.start_count, 1, "PLAYING observers see an initialized round")
+	, CONNECT_ONE_SHOT)
 	game_session.start_new_round()
 	game_session.start_new_round()
 	check.expect_equal(game_session.state, GameSession.State.PLAYING, "starting enters the playing state")
@@ -110,7 +114,13 @@ func _initialize() -> void:
 	game_session.end_round(1)
 	check.expect_equal(game_session.state, GameSession.State.MAIN_MENU, "a listener's menu transition is not overwritten")
 
+	var replacement := FakeGameplay.new()
+	game_session.configure(replacement, high_score_store)
+	game_session.start_new_round()
+	gameplay.game_over.emit(777)
+	check.expect_equal(game_session.state, GameSession.State.PLAYING, "replaced dependencies cannot end the current round")
 	game_session.free()
+	replacement.free()
 	gameplay.free()
 	high_score_store.free()
 	check.finish(self, "Game session test")

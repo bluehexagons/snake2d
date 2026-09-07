@@ -15,7 +15,12 @@ This roadmap reflects the current Godot 4.7.1 project after the architecture and
 - Model, session, persistence, audio, input, input-map, and composed-scene tests run through `./test.sh source` and CI.
 - `docs/architecture.md` and `docs/learning-path.md` describe ownership and a recommended reading order.
 
-## Priority 1 — Validate real-device interaction
+## Priority 1 — Fix mobile UI sizing and validate real-device interaction
+
+The September 2026 Chromium check at 390×844 found that Options renders without
+clipping but shrinks its text and button targets too far. Separate UI sizing from
+the board's viewport scaling, then verify usable touch targets and readable text
+on real phones. See the recorded evidence in [manual testing](manual-testing.md).
 
 Headless tests cover direction translation, tap/swipe classification, threshold scaling, and model validation, but they cannot prove viewport transforms, native touch behavior, controller focus, safe areas, or browser-specific pointer behavior.
 
