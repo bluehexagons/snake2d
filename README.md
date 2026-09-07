@@ -78,7 +78,7 @@ For the built Linux export, run:
 ./test.sh linux-export
 ```
 
-`test.sh all` runs both paths end-to-end. The source suite imports and parses the project, tests audio synthesis, session lifecycle, deterministic rules, input translation, persistence, and input actions, then instantiates the main scene and verifies that a playable round starts without opening a game window.
+`test.sh all` runs both paths end-to-end. The source suite imports and parses the project, tests audio synthesis, session lifecycle, deterministic rules, input translation, persistence, and input actions, then instantiates the main scene and verifies that a playable round starts without opening a game window. Persistence and composed-scene tests inject disposable save paths so they do not read or overwrite player settings or scores.
 
 ## Releasing
 

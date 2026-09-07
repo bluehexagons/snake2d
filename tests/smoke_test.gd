@@ -3,6 +3,11 @@ extends Node
 const MAIN_SCENE := preload("res://scenes/main/main.tscn")
 const UIStateManagerScript := preload("res://scenes/ui/ui_state_manager.gd")
 
+var test_files := TestFiles.new()
+
+func _exit_tree() -> void:
+	test_files.cleanup()
+
 func _ready() -> void:
 	call_deferred("_run_smoke_test")
 
@@ -15,6 +20,11 @@ func _run_smoke_test() -> void:
 	if main == null:
 		_fail("Expected the main scene to use Main.")
 		return
+	# Inject paths before Main._ready() loads settings and scores.
+	(main.get_node("Services/HighScoreStore") as HighScoreStore).save_path = test_files.path("scores.dat")
+	var settings := main.get_node("Services/SettingsService") as SettingsService
+	settings.settings_path = test_files.path("settings.cfg")
+	settings.legacy_settings_path = test_files.path("settings.dat")
 	add_child(main)
 
 	await get_tree().process_frame

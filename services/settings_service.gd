@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS_PATH := "user://settings.cfg"
 const LEGACY_SETTINGS_PATH := "user://settings.dat"
 
 @export var settings_path := DEFAULT_SETTINGS_PATH
+@export var legacy_settings_path := LEGACY_SETTINGS_PATH
 
 var is_muted := false
 var effects_volume_db := 0.0
@@ -46,7 +47,7 @@ func load_settings() -> void:
 			reduced_motion = bool(config.get_value("accessibility", "reduced_motion", false))
 		return
 
-	if not FileAccess.file_exists(settings_path) and FileAccess.file_exists(LEGACY_SETTINGS_PATH):
+	if not FileAccess.file_exists(settings_path) and FileAccess.file_exists(legacy_settings_path):
 		_load_legacy_settings()
 		save_settings()
 
@@ -121,7 +122,7 @@ func _apply_settings() -> void:
 		)
 
 func _load_legacy_settings() -> void:
-	var file := FileAccess.open(LEGACY_SETTINGS_PATH, FileAccess.READ)
+	var file := FileAccess.open(legacy_settings_path, FileAccess.READ)
 	if file == null:
 		return
 	is_muted = file.get_8() == 1

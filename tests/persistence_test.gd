@@ -1,24 +1,24 @@
 extends SceneTree
 
-const SCORE_PATH := "user://snake2d_high_scores_test.dat"
-const SETTINGS_PATH := "user://snake2d_settings_test.cfg"
+var test_files := TestFiles.new()
+var score_path := test_files.path("scores.dat")
+var settings_path := test_files.path("settings.cfg")
 
 var check := TestAssertions.new()
 
 func _initialize() -> void:
-	_remove_test_files()
 	_high_scores_round_trip_in_ranked_order()
 	_mode_score_tables_round_trip_separately()
 	_legacy_score_arrays_are_migrated_on_read()
 	_version_one_scores_are_migrated_to_classic()
 	_malformed_scores_fail_closed()
 	_settings_round_trip_and_reset()
-	_remove_test_files()
+	test_files.cleanup()
 	check.finish(self, "Persistence test")
 
 func _high_scores_round_trip_in_ranked_order() -> void:
 	var store := HighScoreStore.new()
-	store.save_path = SCORE_PATH
+	store.save_path = score_path
 	store.max_scores = 3
 	store.save_high_scores([5, -1, 10, 7, 0])
 	check.expect_equal(store.load_high_scores(), [10, 7, 5], "scores are ranked, filtered, and limited")
@@ -26,7 +26,7 @@ func _high_scores_round_trip_in_ranked_order() -> void:
 
 func _mode_score_tables_round_trip_separately() -> void:
 	var store := HighScoreStore.new()
-	store.save_path = SCORE_PATH
+	store.save_path = score_path
 	store.max_scores = 3
 	store.save_high_scores_by_mode({
 		"classic": [20, 10],
@@ -40,20 +40,20 @@ func _mode_score_tables_round_trip_separately() -> void:
 	store.free()
 
 func _legacy_score_arrays_are_migrated_on_read() -> void:
-	var file := FileAccess.open(SCORE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(score_path, FileAccess.WRITE)
 	file.store_var([3, 8, -2])
 	file = null
 	var store := HighScoreStore.new()
-	store.save_path = SCORE_PATH
+	store.save_path = score_path
 	check.expect_equal(store.load_high_scores(), [8, 3], "legacy score arrays remain readable")
 	store.free()
 
 func _version_one_scores_are_migrated_to_classic() -> void:
-	var file := FileAccess.open(SCORE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(score_path, FileAccess.WRITE)
 	file.store_var({"version": 1, "scores": [9, 4]})
 	file = null
 	var store := HighScoreStore.new()
-	store.save_path = SCORE_PATH
+	store.save_path = score_path
 	var loaded := store.load_high_scores_by_mode()
 	check.expect_equal(loaded.classic, [9, 4], "v1 scores migrate into Classic")
 	check.expect_equal(loaded.pitfall, [], "v1 migration leaves Pitfall empty")
@@ -61,17 +61,17 @@ func _version_one_scores_are_migrated_to_classic() -> void:
 	store.free()
 
 func _malformed_scores_fail_closed() -> void:
-	var file := FileAccess.open(SCORE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(score_path, FileAccess.WRITE)
 	file.store_var("not a score document")
 	file = null
 	var store := HighScoreStore.new()
-	store.save_path = SCORE_PATH
+	store.save_path = score_path
 	check.expect_equal(store.load_high_scores(), [], "malformed score data produces an empty table")
 	store.free()
 
 func _settings_round_trip_and_reset() -> void:
 	var settings := SettingsService.new()
-	settings.settings_path = SETTINGS_PATH
+	settings.settings_path = settings_path
 	settings.toggle_mute()
 	settings.set_effects_volume_db(-8.0)
 	settings.toggle_fullscreen()
@@ -79,7 +79,7 @@ func _settings_round_trip_and_reset() -> void:
 	settings.toggle_grid()
 
 	var loaded := SettingsService.new()
-	loaded.settings_path = SETTINGS_PATH
+	loaded.settings_path = settings_path
 	loaded.load_settings()
 	check.expect_true(loaded.is_muted, "mute state round-trips")
 	check.expect_equal(loaded.effects_volume_db, -8.0, "effects volume round-trips")
@@ -89,7 +89,7 @@ func _settings_round_trip_and_reset() -> void:
 
 	loaded.reset_settings()
 	var reset := SettingsService.new()
-	reset.settings_path = SETTINGS_PATH
+	reset.settings_path = settings_path
 	reset.load_settings()
 	check.expect_false(reset.is_muted, "reset restores sound")
 	check.expect_equal(reset.effects_volume_db, 0.0, "reset restores effects volume")
@@ -100,9 +100,3 @@ func _settings_round_trip_and_reset() -> void:
 	settings.free()
 	loaded.free()
 	reset.free()
-
-func _remove_test_files() -> void:
-	for path in [SCORE_PATH, SETTINGS_PATH]:
-		var absolute_path := ProjectSettings.globalize_path(path)
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(absolute_path)
