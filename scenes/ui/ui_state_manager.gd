@@ -16,8 +16,8 @@ enum UIState {
 var current_state: UIState = UIState.MAIN_MENU
 var previous_state: UIState = UIState.MAIN_MENU
 
-var ui_elements: Dictionary[UIState, Node] = {}
-var focus_targets: Dictionary[UIState, Button] = {}
+var ui_elements: Dictionary[UIState, Control] = {}
+var focus_targets: Dictionary[UIState, Control] = {}
 
 const TRANSITION_DURATION := 0.18
 var _transition_tweens: Dictionary = {}
@@ -25,11 +25,19 @@ var _reduced_motion := false
 
 func set_reduced_motion(enabled: bool) -> void:
 	_reduced_motion = enabled
+	if enabled:
+		for state in ui_elements:
+			var panel := ui_elements[state]
+			_kill_transition(panel)
+			panel.visible = state == current_state
+			panel.modulate.a = 1.0
 
-func register_ui_element(state: UIState, node: Node) -> void:
+func register_ui_element(state: UIState, node: Control) -> void:
 	ui_elements[state] = node
+	node.visible = state == current_state
+	_set_interactive(node, state == current_state)
 
-func register_focus_target(state: UIState, button: Button) -> void:
+func register_focus_target(state: UIState, button: Control) -> void:
 	focus_targets[state] = button
 
 func change_state(new_state: UIState) -> void:
@@ -43,6 +51,7 @@ func change_state(new_state: UIState) -> void:
 		var elem = ui_elements[state]
 		if elem == null:
 			continue
+		_set_interactive(elem, state == current_state)
 		if state == current_state:
 			_fade_in(elem)
 		elif elem.visible:
@@ -52,6 +61,16 @@ func change_state(new_state: UIState) -> void:
 		focus_targets[current_state].grab_focus()
 	
 	state_changed.emit(previous_state, current_state)
+
+func _set_interactive(panel: Control, enabled: bool) -> void:
+	# A fading panel is still visible, but must stop handling input immediately.
+	panel.mouse_behavior_recursive = (
+		Control.MOUSE_BEHAVIOR_ENABLED if enabled else Control.MOUSE_BEHAVIOR_DISABLED
+	)
+	panel.focus_behavior_recursive = (
+		Control.FOCUS_BEHAVIOR_ENABLED if enabled else Control.FOCUS_BEHAVIOR_DISABLED
+	)
+	panel.process_mode = Node.PROCESS_MODE_INHERIT if enabled else Node.PROCESS_MODE_DISABLED
 
 func _kill_transition(elem: CanvasItem) -> void:
 	if _transition_tweens.has(elem):
@@ -75,7 +94,7 @@ func _fade_in(elem: CanvasItem) -> void:
 	var start_mod := elem.modulate
 	start_mod.a = 0.0
 	elem.modulate = start_mod
-	var tween := get_tree().create_tween()
+	var tween := create_tween()
 	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.tween_property(elem, "modulate:a", 1.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	if elem is Control:
@@ -93,7 +112,7 @@ func _fade_out(elem: CanvasItem) -> void:
 		elem.visible = false
 		elem.modulate.a = 1.0
 		return
-	var tween := get_tree().create_tween()
+	var tween := create_tween()
 	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.tween_property(elem, "modulate:a", 0.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	tween.tween_callback(func() -> void:

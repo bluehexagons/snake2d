@@ -22,6 +22,7 @@ class FakeGameplay extends Gameplay:
 		cleanup_count += 1
 
 class FakeHighScoreStore extends HighScoreStore:
+	var save_count := 0
 	var stored_tables := {
 		"classic": [30, 20, 10],
 		"pitfall": [],
@@ -42,6 +43,7 @@ class FakeHighScoreStore extends HighScoreStore:
 		return sanitized
 
 	func save_high_scores_by_mode(score_tables: Dictionary) -> void:
+		save_count += 1
 		stored_tables = score_tables.duplicate(true)
 
 func _initialize() -> void:
@@ -62,13 +64,20 @@ func _initialize() -> void:
 	game_session.pause_round()
 	game_session.pause_round()
 	check.expect_equal(game_session.state, GameSession.State.PAUSED, "pausing enters the paused state")
+	game_session.start_new_round()
+	check.expect_equal(gameplay.start_count, 1, "starting a paused round does not replace it")
 	game_session.resume_round()
 	game_session.resume_round()
 	check.expect_equal(game_session.state, GameSession.State.PLAYING, "resuming returns to playing")
 
 	gameplay.score_updated.emit(25)
 	check.expect_equal(game_session.get_current_score(), 25, "gameplay score updates the session")
+	game_session.round_ended.connect(func(_score: int) -> void:
+		check.expect_equal(game_session.state, GameSession.State.GAME_OVER, "round observers see committed state")
+		game_session.end_round(99)
+	, CONNECT_ONE_SHOT)
 	gameplay.game_over.emit(25)
+	check.expect_equal(high_score_store.save_count, 1, "a synchronous end-round listener cannot record twice")
 	gameplay.game_over.emit(15)
 	check.expect_equal(game_session.state, GameSession.State.GAME_OVER, "game over ends the active round")
 	check.expect_equal(game_session.get_high_scores(), [30, 25, 20], "a final score is ranked and limited")
@@ -78,6 +87,9 @@ func _initialize() -> void:
 	game_session.return_to_menu()
 	check.expect_equal(game_session.state, GameSession.State.MAIN_MENU, "returning ends at the main menu")
 	check.expect_equal(gameplay.cleanup_count, 1, "returning to the menu is idempotent")
+
+	gameplay.score_updated.emit(999)
+	check.expect_equal(game_session.current_score, 0, "late score events cannot update the menu")
 
 	game_session.clear_high_scores()
 	check.expect_equal(game_session.get_high_scores(), [], "clearing removes in-memory scores")
@@ -90,6 +102,13 @@ func _initialize() -> void:
 	gameplay.game_over.emit(5)
 	check.expect_equal(game_session.get_high_scores(GameMode.Value.OBSTACLES), [5], "a score is stored in its selected mode")
 	check.expect_equal(game_session.get_high_scores(GameMode.Value.CLASSIC), [], "other mode tables remain separate")
+
+	game_session.start_new_round()
+	game_session.round_ended.connect(func(_score: int) -> void:
+		game_session.return_to_menu()
+	, CONNECT_ONE_SHOT)
+	game_session.end_round(1)
+	check.expect_equal(game_session.state, GameSession.State.MAIN_MENU, "a listener's menu transition is not overwritten")
 
 	game_session.free()
 	gameplay.free()

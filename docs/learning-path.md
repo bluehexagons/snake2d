@@ -31,6 +31,7 @@ Read `core/game_session.gd`, then `scenes/ui/ui_state_manager.gd`.
 - Break in `GameSession._transition_to()` and start, pause, resume, lose, and return to the menu.
 - Inspect `SceneTree.paused` and the process modes of `Main` and `GameWorld` in the remote scene tree.
 - Compare application state in `GameSession` with panel visibility state in `UIStateManager`.
+- Read the synchronous-listener cases in `tests/game_session_test.gd`: changing state before emitting a notification prevents duplicate round completion.
 
 The important distinction is that session state owns behavior; UI state owns presentation.
 
@@ -115,6 +116,8 @@ Read `HighScoreStore`, `SettingsService`, and `tests/persistence_test.gd`.
 - Settings use sectioned `ConfigFile` data and migrate the old format.
 - The options menu changes services through a typed boundary.
 - Reduced motion changes both panel and button animation behavior.
+- Treat deserialized values as untrusted types: a `ConfigFile` can parse successfully while containing an array where a boolean belongs. Follow the malformed-settings tests.
+- Notice how `TestFiles` and injected legacy/save paths isolate tests from player data before `Main._ready()` runs.
 
 ## 12. Headless tests and exports
 

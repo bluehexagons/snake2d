@@ -34,6 +34,8 @@ if ! GODOT_BIN="$(resolve_godot_bin)"; then
 fi
 
 run_and_check_logs() {
+    local expected_marker="$1"
+    shift
     local log_file
     log_file="$(mktemp)"
 
@@ -50,18 +52,25 @@ run_and_check_logs() {
         return 1
     fi
 
+    if [[ -n "$expected_marker" ]] && ! grep -Fxq "$expected_marker" "$log_file"; then
+        rm -f "$log_file"
+        echo "Error: Godot exited before reporting: $expected_marker"
+        return 1
+    fi
+
     rm -f "$log_file"
 }
 
 run_source_smoke() {
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --import --quit
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/audio_synth_test.gd"
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/game_session_test.gd"
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/snake_game_test.gd"
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_adapter_test.gd"
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_map_test.gd"
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/persistence_test.gd"
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --scene "res://tests/smoke_test.tscn" --quit-after 300
+    run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --import --quit
+    run_and_check_logs "Audio synth test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/audio_synth_test.gd"
+    run_and_check_logs "Game session test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/game_session_test.gd"
+    run_and_check_logs "UI state manager test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/ui_state_manager_test.gd"
+    run_and_check_logs "Snake game model test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/snake_game_test.gd"
+    run_and_check_logs "Input adapter test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_adapter_test.gd"
+    run_and_check_logs "Input map test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_map_test.gd"
+    run_and_check_logs "Persistence test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/persistence_test.gd"
+    run_and_check_logs "Smoke test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --scene "res://tests/smoke_test.tscn" --quit-after 300
 }
 
 run_linux_export_smoke() {
@@ -70,7 +79,7 @@ run_linux_export_smoke() {
         return 1
     fi
 
-    run_and_check_logs "$PROJECT_DIR/out/linux64/snake.x86_64" --headless --quit-after 1
+    run_and_check_logs "" "$PROJECT_DIR/out/linux64/snake.x86_64" --headless --quit-after 1
 }
 
 show_usage() {

@@ -69,7 +69,9 @@ MAIN_MENU → PLAYING ⇄ PAUSED
 
 Only `GameSession` writes `SceneTree.paused`. `Main`, services, session state, and UI inherit an always-processing mode so menus continue to work while paused. `GameWorld` explicitly uses the pausable process mode, which stops gameplay, input, and camera callbacks without per-node pause checks.
 
-`UIStateManager` does not own application state. It is a presentation helper that fades registered panels and restores focus after `Main` maps a session transition to the corresponding UI state.
+`GameSession` commits its game-over state before emitting round notifications. Ordinary signal connections run synchronously, so observers must see the completed state; otherwise a listener can end the same round twice or have its own menu transition overwritten. Starting an already active round, including a paused one, is a no-op.
+
+`UIStateManager` does not own application state. It is a presentation helper that fades registered panels and restores focus after `Main` maps a session transition to the corresponding UI state. Registered panels are `Control` nodes, and a default focus target may be any `Control` (including a slider). Outgoing panels immediately disable processing, recursive mouse input, and recursive focus while their fade finishes. Transition tweens belong to the manager, and enabling reduced motion settles in-flight panel transitions. See the [Control input inheritance reference](https://docs.godotengine.org/en/stable/classes/class_control.html#class-control-property-mouse-behavior-recursive).
 
 ## Coordinates and timing
 
@@ -81,22 +83,23 @@ The model uses `Vector2i` cells. Presentation converts cells to pixel positions 
 
 `GameRules` is an Inspector-editable `Resource` assigned to `Main`. Board dimensions, score values, tick timing, and camera tuning can be changed without editing scripts.
 
-`SnakeGame` receives a `RandomNumberGenerator`. Normal play randomizes it; tests supply a seed. Presentation uses a different generator for cosmetic tail colors so visual randomness cannot change food placement. Obstacle mode also sends the selected world seed through `ObstaclePatternGenerator`; that independent generator chooses and parameterizes a Gates, Islands, or Ribbons layout, so the same world seed always produces the same walls regardless of food placement.
+`SnakeGame` receives a `RandomNumberGenerator`. Normal play randomizes it; tests supply a seed. Tail colors are a deterministic presentation gradient and do not consume model randomness. Obstacle mode also sends the selected world seed through `ObstaclePatternGenerator`; that independent generator chooses and parameterizes a Gates, Islands, or Ribbons layout, so the same world seed always produces the same walls regardless of food placement.
 
-Pitfall mode adds a blocked cell at the configured food cadence. Its placement tiers prefer cells that are not directly ahead, are outside the snake's safety radius, and are not vertically below any body segment. Those preferences relax only when the remaining free cells make the safer tier impossible. Food selection excludes all blocked cells and is restricted to the connected region reachable from the snake.
+Pitfall mode adds a blocked cell at the configured food cadence. Its placement tiers prefer cells that are not directly ahead, are outside the snake's safety radius, and are not vertically below any body segment. Those preferences relax only when the remaining free cells make the safer tier impossible. Food selection excludes all blocked cells and is restricted to the connected region reachable from the snake. This reachability query treats the moving body as traversable and walls as permanent: it prevents food across a sealed wall, but does not promise that a legal sequence of turns can reach it. `FILLED_BOARD` means no free food cell remains in that region, which may be smaller than the whole board. Terminal steps retain their original outcome and reject new direction requests.
 
 ## Persistence and audio
 
 `HighScoreStore` owns the versioned, per-mode high-score file. It migrates old array-only and v1 saves into the Classic table and fails closed on malformed or unsupported data.
 
-`SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
+`SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
 
 ## Verification
 
-The source suite has three levels:
+The source suite covers four boundaries:
 
 - Model specifications cover movement, collisions, growth, deterministic food, board completion, and timing.
-- Service tests cover session idempotency, persistence, migration, settings, and procedural PCM generation.
+- Service tests cover session idempotency and synchronous signal listeners, persistence, migration, malformed settings, and procedural PCM generation.
+- UI tests cover focus ownership, inactive-panel input, and interrupted transitions.
 - The smoke scene instantiates `Main`, starts a round through its public API, and verifies the composed world reaches a playable state.
 
-Run all source checks with `./test.sh source`.
+Run all source checks with `./test.sh source`. Each suite must print its explicit success marker as well as exit without errors; reaching the smoke scene frame limit is not success. Persistence tests and the composed scene use per-process disposable save paths, injected before configuration runs.

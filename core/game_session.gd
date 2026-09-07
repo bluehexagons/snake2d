@@ -40,7 +40,7 @@ func start_new_round(
 	mode: GameMode.Value = GameMode.Value.CLASSIC,
 	world_seed: int = 0
 ) -> void:
-	if state == State.PLAYING:
+	if is_round_active():
 		return
 
 	current_score = 0
@@ -86,9 +86,13 @@ func end_round(final_score: int) -> void:
 	high_scores_by_mode[GameMode.key(current_mode)] = high_scores
 	_high_score_store.save_high_scores_by_mode(high_scores_by_mode)
 
-	round_ended.emit(final_score)
-	high_scores_updated.emit(current_mode, get_high_scores(current_mode))
+	# Signals run synchronously. Commit state before notifying observers so a
+	# listener cannot score this round twice or have its menu transition undone.
+	var finished_mode := current_mode
+	var finished_scores := get_high_scores(finished_mode)
 	_transition_to(State.GAME_OVER)
+	high_scores_updated.emit(finished_mode, finished_scores)
+	round_ended.emit(final_score)
 
 func return_to_menu() -> void:
 	if state == State.MAIN_MENU:
@@ -128,6 +132,8 @@ func get_state_name() -> String:
 	return State.keys()[state]
 
 func _on_gameplay_score_updated(new_score: int) -> void:
+	if not is_round_active():
+		return
 	current_score = new_score
 	score_updated.emit(current_score)
 

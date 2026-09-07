@@ -19,7 +19,7 @@ This roadmap reflects the current Godot 4.7.1 project after the architecture and
 
 Headless tests cover direction translation, tap/swipe classification, threshold scaling, and model validation, but they cannot prove viewport transforms, native touch behavior, controller focus, safe areas, or browser-specific pointer behavior.
 
-Add a short manual test matrix for:
+Use [the manual test matrix](manual-testing.md) to record results for:
 
 - Android/iOS tap, swipe, cancellation, and multi-touch behavior with the active Camera2D
 - Web touch, physical mouse switching, and pointer capture
@@ -80,7 +80,15 @@ The learning value of authored scenes and straightforward pooling currently outw
 
 ## Suggested next order
 
-1. Perform and document the real-device interaction matrix.
+1. Perform and record results in the real-device interaction matrix.
 2. Decide whether runtime rebinding is valuable enough to justify a controls screen.
 3. Improve persistence error reporting when adding the next saved setting or score feature.
 4. Add visual regression tests only in response to recurring visual bugs.
+
+## Audit follow-ups
+
+- Keep the shared `GameRules` resource immutable during a round. Inspector ranges are authoring hints, not runtime validation; an eventual runtime preset editor should validate positive board/timing values and pit cadence before constructing a model.
+- Food spawn and eat tweens can overlap when food is consumed quickly. Give each food view one animation owner when refining that effect, and check it at maximum speed.
+- Button polish creates overlapping tweens under rapid focus/hover changes. A per-button tween owner would also let enabling reduced motion settle existing button animations immediately.
+- `Gameplay` discovers eaten food views by scanning its parent. If the world gains unrelated food-like decorations or multiple gameplay instances, use an owned presentation container or track those transient views explicitly.
+- Round completion currently shares the death cue and game-over panel. A distinct completion presentation would make the meaning of `FILLED_BOARD` clearer.
