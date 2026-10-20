@@ -43,6 +43,12 @@ The main concepts demonstrated are scenes and node lifecycle, typed signals, Res
 ## Building the Game
 
 The game can be built for different platforms using the provided build script.
+Basaltwater on Debian is the reference development environment; its
+[shared standards and skills](https://github.com/bluehexagons/basaltwater/blob/main/docs/agents/project-standards.md)
+provide environment support. Native Godot workflows remain available with manual
+setup, including on CachyOS and Windows 11. Repository scripts require Bash;
+Windows developers can also use the editor's export presets. A Windows export
+from Linux still needs native Windows runtime testing.
 
 ### Requirements
 
@@ -62,6 +68,28 @@ The game can be built for different platforms using the provided build script.
 ```
 
 The exported files will be placed in the `out/` directory.
+
+### Generated output and retention
+
+`.basaltwater/cleanup.json` declares `out/` exports and `dist/` release staging
+as generated output. Retain any build or archive still needed for release or
+review. Stop running exports, tests and packaging jobs before cleanup. With an
+updated Basaltwater installation, preview with:
+
+```bash
+basaltw agent storage project "$PWD" --json
+basaltw agent storage clean-generated "$PWD" --rule generated-exports
+```
+
+Apply requires explicit cleanup authorization, `--apply` and project-root writes
+for isolation. Without Basaltwater, review those exact paths and Git tracking,
+then remove only authorized output with native filesystem tools. Preserve source,
+export presets and player settings/scores (`user://`), which are not build output.
+Use the shared [artifact curation guidance](https://github.com/bluehexagons/basaltwater/blob/main/docs/agents/project-cleanup.md)
+for future screenshots or videos: keep selected originals and provenance in an
+ignored `artifacts/archive/`, with uncurated captures in `artifacts/review/`.
+Keep `artifacts/.gdignore` so Godot does not import local evidence.
+Archiving on this disk does not free space. No cleanup script is duplicated here.
 
 ## Testing from the CLI
 

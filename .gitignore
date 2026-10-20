@@ -6,3 +6,8 @@
 
 # Build directory
 out
+/dist/
+/artifacts/*
+!/artifacts/.gdignore
+/.basaltwater/*
+!/.basaltwater/cleanup.json

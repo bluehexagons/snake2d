@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "instructions": "Read README.md and CONTRIBUTING.md. Retain native Godot/Bash workflows. Stop running exports, tests and packaging jobs before cleanup. These rules authorize no deletion.",
+  "preserve": ["core", "models", "resources", "scenes", "services", "themes", "tests", "export_presets.cfg", "artifacts/.gdignore", "artifacts/archive"],
+  "rules": [
+    {
+      "name": "generated-exports",
+      "strategy": "generated",
+      "paths": ["out", "dist"],
+      "instructions": "build.sh reproduces platform exports in out; release workflows stage archives in dist. Confirm no release/review or running export needs these files. Preview the shared remover before an authorized apply with project-root writes for isolation. Player settings and scores are user data outside this scope."
+    },
+    {
+      "name": "review-evidence",
+      "strategy": "agent",
+      "paths": ["artifacts/review"],
+      "archive": "artifacts/archive",
+      "instructions": "Preserve useful original screenshots/videos with source path, known revision, caption and checksum. Use bounded Luna high/standard classification for large inventories when available. Propose exact removals only after curation; no blanket media deletion."
+    }
+  ]
+}
