@@ -1,4 +1,4 @@
-This is a learning-oriented Snake clone targeting Godot 4.7.1 and typed GDScript.
+This is a learning-oriented Snake clone targeting Godot 4.7.2 and typed GDScript.
 
 - `Main` is the explicit composition root; the project intentionally has no Autoloads.
 - `GameSession` alone owns application state and `SceneTree.paused`.

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Godot 4.7.1 available as `godot`, `godot4`, `GODOT`, or `GODOT4`
+- Godot 4.7.2 available as `godot`, `godot4`, `GODOT`, or `GODOT4`
 - Bash for the repository scripts
 - Export templates when building release artifacts
 

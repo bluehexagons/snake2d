@@ -52,7 +52,7 @@ from Linux still needs native Windows runtime testing.
 
 ### Requirements
 
-- Godot Engine (version 4.7.1 or later) and matching export templates installed
+- Godot Engine (version 4.7.2) and matching export templates installed
 - The Godot executable available in your PATH
 - The build script auto-detects `godot`, `godot4`, and the `GODOT`/`GODOT4` paths exported by `setup-godot`
 
