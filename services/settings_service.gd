@@ -50,8 +50,8 @@ func load_settings() -> void:
 		return
 
 	if not FileAccess.file_exists(settings_path) and FileAccess.file_exists(legacy_settings_path):
-		_load_legacy_settings()
-		save_settings()
+		if _load_legacy_settings():
+			save_settings()
 
 func save_settings() -> void:
 	var config := ConfigFile.new()
@@ -125,16 +125,17 @@ func _apply_settings() -> void:
 			else DisplayServer.WINDOW_MODE_WINDOWED
 		)
 
-func _load_legacy_settings() -> void:
+func _load_legacy_settings() -> bool:
 	var file := FileAccess.open(legacy_settings_path, FileAccess.READ)
 	if file == null or file.get_length() != 2:
-		return
+		return false
 	var muted := file.get_8()
 	var fullscreen := file.get_8()
 	if muted not in [0, 1] or fullscreen not in [0, 1]:
-		return
+		return false
 	is_muted = muted == 1
 	is_fullscreen = fullscreen == 1
+	return true
 
 func _read_bool(config: ConfigFile, section: String, key: String, fallback: bool) -> bool:
 	var value = config.get_value(section, key, fallback)
