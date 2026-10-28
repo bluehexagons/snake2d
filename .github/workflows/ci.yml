@@ -49,3 +49,31 @@ jobs:
         name: godot-build
         path: dist/
         retention-days: 3
+
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup Godot
+      uses: chickensoft-games/setup-godot@v2
+      with:
+        version: 4.7.2
+        use-dotnet: false
+        include-templates: true
+
+    - name: Test native script failure handling
+      shell: powershell
+      run: .\tests\Run-ScriptTests.ps1
+
+    - name: Source tests, Windows export and packaged startup
+      shell: powershell
+      run: .\test.ps1 all
+
+    - name: Upload Windows build
+      uses: actions/upload-artifact@v7
+      with:
+        name: godot-windows
+        path: out/win64/
+        retention-days: 3
