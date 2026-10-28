@@ -34,6 +34,19 @@ tooling and settings-migration changes committed with this record:
   save/reload result is established by this automated run. The interaction
   matrix above remains open for those boundaries.
 
+The local workload was repeated at commit
+`d44b43bf0430fdccdc0a8799e538211487dc0193` using `test.ps1 all`:
+all eight source suites, composed-scene smoke, Windows release export and
+headless exported startup outside the checkout passed again. The matching
+template archive still hashes to
+`f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011`;
+the self-contained editor kept those templates separate from account settings.
+The host operator reported successful reboots. This rerun adds no manual
+interaction or fresh-machine installation evidence; retain those checks above.
+Use the shared
+[local Windows qualification report](https://github.com/bluehexagons/basaltwater/blob/main/docs/workstations/windows-qualification.md)
+to record host and workload results separately.
+
 ## Recorded audit run — 2026-09-07
 
 Engine: Godot 4.7.2 stable. VM-local managed Playwright Chromium on Linux,
