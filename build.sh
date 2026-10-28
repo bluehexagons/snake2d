@@ -20,7 +20,7 @@ resolve_godot_bin() {
             return 0
         fi
 
-        echo "Error: $requested_bin command not found. Please ensure Godot is installed and in your PATH."
+        echo "Error: $requested_bin command not found. Please ensure Godot is installed and in your PATH." >&2
         return 1
     fi
 
@@ -31,7 +31,7 @@ resolve_godot_bin() {
         fi
     done
 
-    echo "Error: Could not find a Godot executable. Tried GODOT_BIN, GODOT, GODOT4, godot, and godot4."
+    echo "Error: Could not find a Godot executable. Tried GODOT_BIN, GODOT, GODOT4, godot, and godot4." >&2
     return 1
 }
 

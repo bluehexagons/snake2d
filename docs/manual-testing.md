@@ -16,6 +16,24 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 
 Use a temporary OS account or back up saves before manually testing reset actions. Automated persistence and smoke tests already use disposable paths.
 
+## Recorded Windows automated qualification — 2026-10-28
+
+Windows 11 Home (10.0.26100), standard Godot 4.7.2 stable, with the Windows
+tooling and settings-migration changes committed with this record:
+
+- PowerShell and Git Bash source suites passed, including all eight script
+  suites and the composed-scene smoke. Native script failure-contract fixtures
+  passed, including a deadline and paths with literal percent expressions.
+- The native Windows release export passed headless startup from outside the
+  checkout. Its GUI process was explicitly awaited. Removing the `.pck` caused
+  a bounded failure; it was not accepted as a successful launch.
+- Official 4.7.2 export templates were verified against the release SHA-256
+  digest and used through an isolated self-contained editor under ignored
+  `artifacts/review/windows-qualification/`, without replacing account templates.
+- No rendered desktop, physical controller/touch, audible audio, or manual
+  save/reload result is established by this automated run. The interaction
+  matrix above remains open for those boundaries.
+
 ## Recorded audit run — 2026-09-07
 
 Engine: Godot 4.7.2 stable. VM-local managed Playwright Chromium on Linux,

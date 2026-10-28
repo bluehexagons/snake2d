@@ -14,7 +14,7 @@ resolve_godot_bin() {
             return 0
         fi
 
-        echo "Error: $requested_bin command not found. Please ensure Godot is installed and in your PATH."
+        echo "Error: $requested_bin command not found. Please ensure Godot is installed and in your PATH." >&2
         return 1
     fi
 
@@ -25,7 +25,7 @@ resolve_godot_bin() {
         fi
     done
 
-    echo "Error: Could not find a Godot executable. Tried GODOT_BIN, GODOT, GODOT4, godot, and godot4."
+    echo "Error: Could not find a Godot executable. Tried GODOT_BIN, GODOT, GODOT4, godot, and godot4." >&2
     return 1
 }
 
@@ -63,14 +63,15 @@ run_and_check_logs() {
 
 run_source_smoke() {
     run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --import --quit
-    run_and_check_logs "Audio synth test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/audio_synth_test.gd"
-    run_and_check_logs "Game session test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/game_session_test.gd"
-    run_and_check_logs "Presentation test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/presentation_test.gd"
-    run_and_check_logs "UI state manager test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/ui_state_manager_test.gd"
-    run_and_check_logs "Snake game model test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/snake_game_test.gd"
-    run_and_check_logs "Input adapter test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_adapter_test.gd"
-    run_and_check_logs "Input map test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/input_map_test.gd"
-    run_and_check_logs "Persistence test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/persistence_test.gd"
+    local script marker
+    while IFS='|' read -r script marker; do
+        [[ -n "$script" ]] || continue
+        if [[ ! "$script" =~ ^[a-z_]+_test\.gd$ || -z "$marker" ]]; then
+            echo "Error: Invalid source suite: $script|$marker" >&2
+            return 1
+        fi
+        run_and_check_logs "$marker" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/$script"
+    done < "$PROJECT_DIR/tests/source-suites.txt"
     run_and_check_logs "Smoke test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --scene "res://tests/smoke_test.tscn" --quit-after 300
 }
 

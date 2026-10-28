@@ -95,6 +95,10 @@ Pitfall mode adds a blocked cell at the configured food cadence. Its placement t
 
 `SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
 
+Settings migration writes the new format only after validating a complete
+legacy record. Invalid or truncated legacy files retain defaults without
+creating a new config, so a repaired legacy file can be migrated on the next load.
+
 ## Verification
 
 The source suite covers four boundaries:
@@ -105,3 +109,8 @@ The source suite covers four boundaries:
 - The smoke scene instantiates `Main`, starts a round through its public API, and verifies the composed world reaches a playable state.
 
 Run all source checks with `./test.sh source`. Each suite must print its explicit success marker as well as exit without errors; reaching the smoke scene frame limit is not success. Persistence tests and the composed scene use per-process disposable save paths, injected before configuration runs.
+
+On Windows, `test.ps1 source` runs the same suite catalog. Its native process
+runner waits for GUI exports, checks captured errors and exit codes, and bounds
+each engine process with a deadline. `test.ps1 all` additionally builds and
+starts the Windows export outside the checkout.

@@ -46,8 +46,8 @@ The game can be built for different platforms using the provided build script.
 Basaltwater on Debian is the reference development environment; its
 [shared standards and skills](https://github.com/bluehexagons/basaltwater/blob/main/docs/agents/project-standards.md)
 provide environment support. Native Godot workflows remain available with manual
-setup, including on CachyOS and Windows 11. Repository scripts require Bash;
-Windows developers can also use the editor's export presets. A Windows export
+setup, including on CachyOS and Windows 11. POSIX scripts use Bash; native
+Windows has PowerShell entry points and the editor's export presets. A Windows export
 from Linux still needs native Windows runtime testing.
 
 ### Requirements
@@ -68,6 +68,40 @@ from Linux still needs native Windows runtime testing.
 ```
 
 The exported files will be placed in the `out/` directory.
+
+### Native Windows
+
+Run from PowerShell with the matching standard Godot engine. Basaltwater's
+optional `-Godot` selection supplies the engine; matching export templates
+remain a project prerequisite. These commands also work without Basaltwater:
+
+```powershell
+godot --headless --version
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1 source
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 windows
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1 windows-export
+```
+
+`test.ps1 all` runs those source/build/export checks together. The source suite
+needs no export templates. `build.ps1` accepts `web`, `windows`, `linux`, or
+`all`, defaulting to Windows; it uses the same presets/output paths as Bash.
+The export smoke starts the packaged executable outside the checkout, so the
+source project cannot mask missing package data. The runner waits for GUI
+executables explicitly and enforces a 120-second deadline per engine process,
+including process-tree cleanup on timeout. Use `-TimeoutSeconds N` for a
+deliberate per-command budget. It establishes headless
+startup, not controller, graphics or audio quality; use the
+[manual interaction checklist](docs/manual-testing.md).
+
+Set `$env:GODOT_BIN = 'C:\path to Godot\Godot_v4.7.2-stable_win64_console.exe'`
+to choose a specific engine. Resolution honors that explicit selection first,
+then `GODOT`, `GODOT4`, Basaltwater's `BASALTWATER_GODOT_EXE`, and commands on
+PATH. A missing explicit `GODOT_BIN` fails instead of using another version.
+Use an actual `.exe`, not a batch shim, for native process supervision.
+The native scripts prefer the real executable over a `.cmd` launcher so
+literal percent signs in project paths survive argument forwarding. For Git
+Bash with a Basaltwater launcher, set `GODOT_BIN` to the real executable too;
+Bash does not discover `godot.cmd` as `godot`.
 
 ### Generated output and retention
 
@@ -106,7 +140,7 @@ For the built Linux export, run:
 ./test.sh linux-export
 ```
 
-`test.sh all` runs both paths end-to-end. The source suite imports and parses the project, tests audio synthesis, session lifecycle, deterministic rules, input translation, persistence, and input actions, then instantiates the main scene and verifies that a playable round starts without opening a game window. Persistence and composed-scene tests inject disposable save paths so they do not read or overwrite player settings or scores.
+`test.sh all` runs both paths end-to-end. The source suite imports and parses the project, tests audio synthesis, session lifecycle, deterministic rules, input translation, persistence, and input actions, then instantiates the main scene and verifies that a playable round starts without opening a game window. Persistence and composed-scene tests inject disposable save paths so they do not read or overwrite player settings or scores. Bash and PowerShell share the source suite list in `tests/source-suites.txt` and require each success marker, not just exit code zero.
 
 ## Releasing
 
