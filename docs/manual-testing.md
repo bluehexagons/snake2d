@@ -67,3 +67,34 @@ lifecycle changes committed with this record.
 - Still unverified: native touch/cancellation, physical controllers, audible
   quality/latency, browser switching between physical mouse and touch, and
   persistence across a full browser restart.
+
+## Recorded CachyOS automated qualification — 2026-11-09
+
+Maintenance revision `92d55df`, standard Godot 4.7.2 stable on CachyOS:
+
+- All eight source suites and the composed-scene headless smoke passed through
+  `./test.sh all`, followed by Linux release export and packaged startup.
+- `./build.sh all` produced Web, Windows and Linux release exports using the
+  matching official standard templates, verified against the upstream SHA-512
+  checksum and template version before installation. This resolved the initial
+  missing-template failure without changing the project's engine pin.
+- Linux packaged startup passed outside the checkout. Temporarily removing
+  its `.pck` produced the missing-project-data error and hit the deliberately
+  shortened three-second deadline; it was rejected. Restoring the package
+  restored successful startup.
+- All eight Bash tooling contract tests passed, including process deadlines,
+  errors reported with exit zero, required markers, Basaltwater engine
+  discovery and paths with spaces/non-ASCII characters. Bash syntax checks and
+  Git whitespace checks passed.
+- The composed-scene smoke also passed as a rendered Basaltwater native
+  development task in the KDE Wayland session. The engine reported OpenGL 4.6,
+  Mesa 26.2.6, Compatibility renderer and Intel Arc graphics. This checks scene
+  behavior with a graphics context; no screenshot/layout review, physical input
+  or audible audio qualification is established.
+- Basaltwater's project prerequisite and cleanup-policy inspection succeeded.
+  Generated-output cleanup preview reported incomplete open-file inspection
+  for non-dumpable account processes; no cleanup was applied.
+
+Windows was exported here but not executed. Browser execution, controller,
+physical touch, audio quality and the known narrow-screen sizing issue remain
+covered by the open manual interaction matrix, not this automated run.
