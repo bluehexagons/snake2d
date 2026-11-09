@@ -48,6 +48,9 @@ Read the input actions in `project.godot`, followed by `TouchGesture`, `SnakeInp
 - `GameSession` enables the gameplay adapter only while a round is playing; menu navigation keeps its own focus handling.
 - The adapter does not reject reversals or rapid turns; the model does.
 - Observe how `_unhandled_input()` lets UI controls consume events before gameplay.
+- Only a tracked press can produce a touch drag; pause/cancellation must not
+  allow an orphan drag to recreate a gesture. Neutral joystick motion likewise
+  does not indicate that the player has switched away from the mouse.
 
 Change `drag_threshold_window_ratio` and `minimum_drag_threshold_pixels` in the Inspector to see how touch interpretation changes independently of the rules. Compare the pure gesture tests with the node-level coordinate conversion in the adapter.
 
@@ -124,6 +127,8 @@ or grid settings change.
 - High scores use a versioned variant document with legacy support.
 - Settings use sectioned `ConfigFile` data and migrate the old format.
 - The options menu changes services through a typed boundary.
+- Minimizing a fullscreen window must preserve its saved preference until a
+  real visible mode change can be observed.
 - Reduced motion changes both panel and button animation behavior.
 - Treat deserialized values as untrusted types: a `ConfigFile` can parse successfully while containing an array where a boolean belongs. Follow the malformed-settings tests.
 - Notice how `TestFiles` and injected legacy/save paths isolate tests from player data before `Main._ready()` runs.
@@ -148,3 +153,5 @@ and engine-routed pointer/keyboard events with disposable settings and score
 files. Follow `ResponsiveMenuLayout` to see how two authored groups switch
 between vertical and horizontal arrangements without recreating controls or
 losing seed input and focus. Its breakpoint uses the compensated menu size.
+`tests/menu_input_test.gd` covers keyboard seed entry and oversized typed/pasted
+values, including bounding numeric values before conversion into integer seeds.

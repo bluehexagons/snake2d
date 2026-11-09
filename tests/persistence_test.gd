@@ -15,6 +15,7 @@ func _initialize() -> void:
 	_truncated_scores_fail_closed()
 	_settings_round_trip_and_reset()
 	_external_window_mode_is_saved()
+	_minimizing_keeps_fullscreen_preference()
 	_malformed_settings_keep_safe_defaults()
 	_legacy_settings_migrate_only_complete_records()
 	test_files.cleanup()
@@ -139,13 +140,41 @@ func _external_window_mode_is_saved() -> void:
 	# The headless display is windowed, just as a browser is after Escape.
 	settings.is_fullscreen = true
 	settings.save_settings()
-	settings._sync_window_mode()
+	settings._sync_window_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	check.expect_false(settings.is_fullscreen, "external fullscreen exit updates live settings")
 	settings.toggle_grid()
 	var loaded := SettingsService.new()
 	loaded.settings_path = settings.settings_path
 	loaded.load_settings()
 	check.expect_false(loaded.is_fullscreen, "external exit remains saved after another setting changes")
+	settings.free()
+	loaded.free()
+
+func _minimizing_keeps_fullscreen_preference() -> void:
+	var settings := SettingsService.new()
+	settings.settings_path = test_files.path("minimized.cfg")
+	settings.is_fullscreen = true
+	settings.save_settings()
+	var saved_bytes := FileAccess.get_file_as_bytes(settings.settings_path)
+	var notifications := [0]
+	settings.settings_changed.connect(func() -> void: notifications[0] += 1)
+	settings._sync_window_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
+	check.expect_true(settings.is_fullscreen, "minimizing retains fullscreen preference")
+	check.expect_equal(notifications[0], 0, "minimizing does not notify a preference change")
+	check.expect_equal(FileAccess.get_file_as_bytes(settings.settings_path), saved_bytes, "minimizing does not rewrite saved mode")
+	settings.toggle_grid()
+	var loaded := SettingsService.new()
+	loaded.settings_path = settings.settings_path
+	loaded.load_settings()
+	check.expect_true(loaded.is_fullscreen, "another setting change while minimized preserves fullscreen")
+	settings._sync_window_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	check.expect_equal(notifications[0], 1, "restoring fullscreen does not report a spurious mode change")
+	settings._sync_window_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	loaded.load_settings()
+	check.expect_false(loaded.is_fullscreen, "a real fullscreen exit still persists windowed mode")
+	check.expect_equal(notifications[0], 2, "a real fullscreen exit notifies once")
+	settings._sync_window_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
+	check.expect_false(settings.is_fullscreen, "minimizing a windowed game keeps it windowed")
 	settings.free()
 	loaded.free()
 

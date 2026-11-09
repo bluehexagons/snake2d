@@ -111,5 +111,24 @@ func _expect_engine_event_translation() -> void:
 	adapter.set_enabled(false)
 	adapter._unhandled_input(touch_drag)
 	check.expect_equal(emitted_directions.size(), 2, "disabled gameplay input ignores events behind menus")
+	adapter.set_enabled(true)
+	adapter._unhandled_input(touch_drag)
+	check.expect_equal(emitted_directions.size(), 2, "resumed input ignores a drag without a fresh touch press")
+	adapter._unhandled_input(touch_release)
+	check.expect_equal(emitted_directions.size(), 2, "an orphan drag cannot become a tap on release")
+	adapter._unhandled_input(touch_press)
+	adapter._unhandled_input(touch_drag)
+	check.expect_equal(emitted_directions.size(), 3, "a fresh touch can swipe after resume")
+	adapter._unhandled_input(touch_release)
+
+	# Cancellation also ends ownership of a gesture, even if more drags arrive.
+	touch_press.index = 3
+	adapter._unhandled_input(touch_press)
+	touch_release.index = 3
+	touch_release.canceled = true
+	adapter._unhandled_input(touch_release)
+	touch_drag.index = 3
+	adapter._unhandled_input(touch_drag)
+	check.expect_equal(emitted_directions.size(), 3, "a canceled gesture cannot be revived by a late drag")
 
 	world.free()

@@ -28,6 +28,8 @@ func _ready() -> void:
 	_seed_random.randomize()
 	_seed_line_edit = world_seed_spin_box.get_line_edit()
 	_seed_line_edit.focus_mode = Control.FOCUS_ALL
+	# Bound text before SpinBox parses it; very long integers overflow first.
+	_seed_line_edit.max_length = str(MAX_WORLD_SEED).length()
 	_prepare_next_world_seed()
 	var version_label: Label = $Content/PanelContainer/MarginContainer/Label
 	version_label.text = "v" + ProjectSettings.get_setting("application/config/version", "?")
@@ -67,7 +69,7 @@ func _input(event: InputEvent) -> void:
 
 func _on_start_pressed() -> void:
 	var mode := mode_selector.get_selected_id() as GameMode.Value
-	var selected_seed := roundi(world_seed_spin_box.value)
+	var selected_seed := _selected_world_seed()
 	start_requested.emit(
 		mode,
 		selected_seed
@@ -100,12 +102,19 @@ func _on_mode_selected(_index: int) -> void:
 			mode_description.text = "No obstacles — grab food, grow, and chase your best score."
 
 func _prepare_next_world_seed() -> void:
-	var current_seed := roundi(world_seed_spin_box.value)
+	var current_seed := _selected_world_seed()
 	var next_seed := _seed_random.randi_range(MIN_WORLD_SEED, MAX_WORLD_SEED)
 	while next_seed == current_seed or next_seed == _last_generated_seed:
 		next_seed = _seed_random.randi_range(MIN_WORLD_SEED, MAX_WORLD_SEED)
 	_last_generated_seed = next_seed
 	world_seed_spin_box.set_value_no_signal(next_seed)
+
+func _selected_world_seed() -> int:
+	var value := world_seed_spin_box.value
+	if not is_finite(value):
+		return MIN_WORLD_SEED
+	# Clamp as a float before converting, including externally assigned values.
+	return roundi(clampf(value, MIN_WORLD_SEED, MAX_WORLD_SEED))
 
 func _move_focus_to(control: Control, select_seed_text := false) -> void:
 	if control != _seed_line_edit and _seed_line_edit.is_editing():
@@ -118,7 +127,7 @@ func _move_focus_to(control: Control, select_seed_text := false) -> void:
 
 func _adjust_world_seed(amount: int) -> void:
 	world_seed_spin_box.value = clampi(
-		roundi(world_seed_spin_box.value) + amount,
+		_selected_world_seed() + amount,
 		MIN_WORLD_SEED,
 		MAX_WORLD_SEED
 	)

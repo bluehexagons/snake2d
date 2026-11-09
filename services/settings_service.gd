@@ -33,7 +33,7 @@ func configure(
 	load_settings()
 	# Browsers require a fresh input gesture to enter fullscreen after a reload.
 	if OS.has_feature("web"):
-		_sync_window_mode()
+		_sync_window_mode(DisplayServer.window_get_mode())
 	else:
 		_apply_window_mode()
 	_apply_settings()
@@ -41,10 +41,13 @@ func configure(
 
 func _process(_delta: float) -> void:
 	# Escape/browser chrome and the compositor can change mode outside our UI.
-	_sync_window_mode()
+	_sync_window_mode(DisplayServer.window_get_mode())
 
-func _sync_window_mode() -> void:
-	var mode := DisplayServer.window_get_mode()
+func _sync_window_mode(mode: DisplayServer.WindowMode) -> void:
+	# Minimized is a temporary state shared by fullscreen and windowed windows.
+	# Keep the last visible mode until restoration reveals the real preference.
+	if mode == DisplayServer.WINDOW_MODE_MINIMIZED:
+		return
 	var actual := mode in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
 	if actual == is_fullscreen:
 		return

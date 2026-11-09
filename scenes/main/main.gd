@@ -111,6 +111,8 @@ func _ready() -> void:
 	_on_window_resize()
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventJoypadMotion and not _has_active_joypad_action(event):
+		return
 	if (
 		(event is InputEventMouseButton or event is InputEventMouseMotion)
 		and event.device != InputEvent.DEVICE_ID_EMULATION
@@ -124,6 +126,13 @@ func _input(event: InputEvent) -> void:
 		if using_mouse:
 			using_mouse = false
 			_update_cursor_visibility()
+
+func _has_active_joypad_action(event: InputEventJoypadMotion) -> bool:
+	# Neutral axes and stick drift must not hide a mouse-controlled cursor.
+	for action in [&"up", &"down", &"left", &"right", &"ui_up", &"ui_down", &"ui_left", &"ui_right"]:
+		if event.is_action_pressed(action):
+			return true
+	return false
 
 func _update_cursor_visibility() -> void:
 	var active_gameplay: bool = ui_state_manager.current_state == UIStateManager.UIState.GAMEPLAY

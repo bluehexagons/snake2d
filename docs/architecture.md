@@ -73,6 +73,10 @@ Only `GameSession` writes `SceneTree.paused`. `Main`, services, session state, a
 Alt-Tab and minimizing therefore freeze an active round and clear pending touch
 gestures through the existing input-adapter state transition. Regaining focus
 does not resume automatically; the player resumes through the pause menu.
+Touch drags require a tracked press: a late drag after pause, cancellation or
+scene changes cannot recreate a cleared gesture. Input modality changes from
+joypad motion only when it activates a mapped navigation/gameplay action, so
+neutral axes and stick drift do not hide a mouse-controlled cursor.
 
 `GameSession` initializes the model and views before publishing `PLAYING`, so a state observer can inspect the new round immediately. Reconfiguration disconnects the previous gameplay dependency. Removing the session releases `SceneTree.paused`, which would otherwise survive the removed main scene.
 
@@ -93,6 +97,12 @@ in the compensated coordinate space; the game layer, camera, grid and input
 adapter retain their existing transforms. The HUD mode label wraps within the
 remaining width. The font uses distance-field rendering to stay crisp when
 canvas and viewport scales differ.
+
+The world-seed field accepts at most nine characters and bounds values to the
+declared seed range. `MainMenu` also clamps the floating-point value before
+integer conversion at launch, generation and gamepad-adjustment boundaries.
+This prevents oversized typed/pasted values from overflowing inside `SpinBox`
+or leaking an invalid seed into the session.
 
 Each menu is a `ScrollContainer` with a centering `Content` child and its authored
 panel. Short windows scroll vertically and follow keyboard/controller focus;
@@ -145,6 +155,9 @@ Options label and persistence synchronized with browser Escape or compositor
 changes. Web startup adopts the actual mode instead of restoring fullscreen
 without the fresh input gesture browsers require; native startup still applies
 the saved display preference.
+Minimization preserves the last visible fullscreen preference: it is a temporary
+window state, not an exit from fullscreen. Observing a real windowed/fullscreen
+mode after restoration still synchronizes and saves normally.
 
 ## Verification
 

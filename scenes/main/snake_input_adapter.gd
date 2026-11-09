@@ -66,14 +66,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		consume_touch_event = true
 		var gesture: TouchGesture = _touch_gestures.get(event.index)
-		if gesture == null:
-			gesture = TouchGesture.new(event.position - event.relative)
-			_touch_gestures[event.index] = gesture
-		requested = gesture.update_drag(
-			event.position,
-			event.screen_relative,
-			get_drag_threshold_pixels()
-		)
+		# A drag after pause/cancellation must not revive an ended gesture.
+		# Only a press received while enabled can begin a new one.
+		if gesture != null:
+			requested = gesture.update_drag(
+				event.position,
+				event.screen_relative,
+				get_drag_threshold_pixels()
+			)
 
 	if requested != Vector2i.ZERO:
 		direction_requested.emit(requested)
