@@ -3,7 +3,9 @@
 Basaltwater supplies optional environment tooling; the project owns its Godot
 4.7.2 pin, export presets and native checks. Debian is the reference build
 profile; CachyOS KDE supports native development/testing and Windows has native
-PowerShell entry points. Follow [CONTRIBUTING.md](../CONTRIBUTING.md) for manual
+PowerShell entry points. Windows CI copies setup-godot's extensionless engine
+hard link to a temporary `.exe` and sets `GODOT_BIN`, so the native runner can
+launch it through Windows process APIs. Follow [CONTRIBUTING.md](../CONTRIBUTING.md) for manual
 setup without Basaltwater. No service, portal or account setup is required by
 `build.sh`, `test.sh`, `build.ps1` or `test.ps1`.
 

@@ -66,6 +66,15 @@ jobs:
         use-dotnet: false
         include-templates: true
 
+    # setup-godot exposes an extensionless hard link on Windows. Keep the
+    # native runner on an .exe path so Windows can launch and supervise it.
+    - name: Select native Windows executable
+      shell: powershell
+      run: |
+        $engine = Join-Path $env:RUNNER_TEMP 'godot-ci.exe'
+        Copy-Item -LiteralPath $env:GODOT -Destination $engine
+        "GODOT_BIN=$engine" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
     - name: Test native script failure handling
       shell: powershell
       run: .\tests\Run-ScriptTests.ps1
