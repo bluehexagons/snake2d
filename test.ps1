@@ -5,9 +5,9 @@ param([ValidateSet('source', 'windows-export', 'all')][string]$Mode = 'source',
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'scripts\Godot.Common.ps1')
-$godot = Resolve-GodotCommand
 
 if ($Mode -in @('source', 'all')) {
+    $godot = Resolve-GodotCommand
     Invoke-GodotCommand $godot @('--headless', '--path', $PSScriptRoot, '--import', '--quit') -TimeoutSeconds $TimeoutSeconds
     foreach ($suite in Get-Content -LiteralPath (Join-Path $PSScriptRoot 'tests\source-suites.txt')) {
         if (-not $suite) { continue }
@@ -27,8 +27,16 @@ if ($Mode -in @('windows-export', 'all')) {
     if (-not (Test-Path -LiteralPath $export -PathType Leaf)) {
         throw 'Windows export not found. Run build.ps1 windows first.'
     }
-    # Do not let a source project in the caller's CWD mask a broken package.
-    Push-Location -LiteralPath ([IO.Path]::GetTempPath())
-    try { Invoke-GodotCommand $export @('--headless', '--quit-after', '1') -TimeoutSeconds $TimeoutSeconds }
-    finally { Pop-Location }
+    # An empty working directory prevents source files from masking bad packages.
+    # APPDATA isolates Godot's user:// saves (including legacy migration) and logs.
+    $smokeDirectory = Join-Path ([IO.Path]::GetTempPath()) ('snake export ' + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $smokeDirectory | Out-Null
+    Push-Location -LiteralPath $smokeDirectory
+    try {
+        Invoke-GodotCommand $export @('--headless', '--quit-after', '1') -TimeoutSeconds $TimeoutSeconds -Environment @{ APPDATA = $smokeDirectory }
+    } finally {
+        Pop-Location
+        # Only this invocation's newly created directory is disposable.
+        Remove-Item -LiteralPath $smokeDirectory -Recurse -Force
+    }
 }

@@ -12,9 +12,12 @@ function Resolve-GodotCommand {
 }
 
 function Invoke-GodotCommand([string]$Command, [string[]]$Arguments, [string]$ExpectedMarker = '',
-                             [ValidateRange(1, 3600)][int]$TimeoutSeconds = 120) {
+                             [ValidateRange(1, 3600)][int]$TimeoutSeconds = 120,
+                             [hashtable]$Environment = @{}) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $start.FileName = $Command
+    # Push-Location changes PowerShell's location, not the process-wide CWD.
+    $start.WorkingDirectory = (Get-Location).ProviderPath
     # Quote for the native Windows argv parser, without a cmd.exe boundary.
     $start.Arguments = (@($Arguments | ForEach-Object {
         '"' + [regex]::Replace([regex]::Replace($_, '(\\*)"', '$1$1\"'), '(\\+)$', '$1$1') + '"'
@@ -25,6 +28,7 @@ function Invoke-GodotCommand([string]$Command, [string[]]$Arguments, [string]$Ex
     $start.RedirectStandardError = $true
     $start.StandardOutputEncoding = [Text.Encoding]::UTF8
     $start.StandardErrorEncoding = [Text.Encoding]::UTF8
+    foreach ($name in $Environment.Keys) { $start.EnvironmentVariables[$name] = $Environment[$name] }
     $process = New-Object Diagnostics.Process
     $process.StartInfo = $start
     try {

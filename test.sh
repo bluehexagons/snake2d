@@ -33,7 +33,8 @@ run_linux_export_smoke() (
     smoke_dir="$(mktemp -d)"
     trap 'rm -rf -- "$smoke_dir"' EXIT
     cd "$smoke_dir"
-    run_and_check_logs "" "$PROJECT_DIR/out/linux64/snake.x86_64" --headless --quit-after 1
+    # Godot uses XDG_DATA_HOME for user:// on Linux; isolate migration and logs.
+    XDG_DATA_HOME="$smoke_dir/data" run_and_check_logs "" "$PROJECT_DIR/out/linux64/snake.x86_64" --headless --quit-after 1
 )
 
 show_usage() {

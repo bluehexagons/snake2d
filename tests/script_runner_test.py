@@ -7,6 +7,13 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+BASH = os.environ.get("BASH_BIN", "bash")
+
+
+def write_fixture(path, text):
+    # Native Python translates newlines on Windows; Bash fixtures require LF.
+    with path.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(text)
 
 
 class RunnerTests(unittest.TestCase):
@@ -18,9 +25,9 @@ class RunnerTests(unittest.TestCase):
             shutil.copy2(ROOT / name, self.project / name)
         shutil.copytree(ROOT / "scripts", self.project / "scripts")
         (self.project / "tests").mkdir()
-        (self.project / "tests/source-suites.txt").write_text("fixture_test.gd|Fixture passed.\n")
+        write_fixture(self.project / "tests/source-suites.txt", "fixture_test.gd|Fixture passed.\n")
         self.engine = self.project / "fake engine"
-        self.engine.write_text('''#!/bin/bash
+        write_fixture(self.engine, '''#!/bin/bash
 case "${FIXTURE_MODE:-pass}" in
     fail) echo 'fixture failed' >&2; exit 7;;
     error) echo 'SCRIPT ERROR: fixture' >&2; exit 0;;
@@ -48,13 +55,14 @@ done
         self.env["GODOT_BIN"] = str(self.engine)
 
     def run_script(self, script="test.sh", mode="source", **env):
-        return subprocess.run(["bash", str(self.project / script), mode],
+        return subprocess.run([BASH, str(self.project / script), mode],
                               env=self.env | env, cwd=self.project,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              text=True, timeout=12)
+                              text=True, encoding="utf-8", timeout=12)
 
     def test_source_success(self):
-        self.assertEqual(self.run_script().returncode, 0)
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_failure_contracts(self):
         for mode, message in (("fail", "fixture failed"), ("error", "SCRIPT ERROR"),
@@ -78,7 +86,8 @@ done
 
     def test_basaltwater_engine_discovery(self):
         self.env.pop("GODOT_BIN")
-        self.assertEqual(self.run_script(BASALTWATER_GODOT_EXE=str(self.engine)).returncode, 0)
+        result = self.run_script(BASALTWATER_GODOT_EXE=str(self.engine))
+        self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_explicit_missing_engine_does_not_fall_back(self):
         result = self.run_script(GODOT_BIN=str(self.project / "missing"))
@@ -95,10 +104,23 @@ done
         export = self.project / "out/linux64/snake.x86_64"
         export.parent.mkdir(parents=True)
         (self.project / "project.godot").touch()
-        export.write_text('#!/bin/bash\n[[ ! -e project.godot ]] || exit 9\n')
+        write_fixture(export, '''#!/bin/bash
+[[ ! -e project.godot ]] || exit 9
+[[ "$XDG_DATA_HOME" == "$PWD/data" ]] || exit 10
+[[ "$XDG_DATA_HOME" != "$FIXTURE_PLAYER_DATA" ]] || exit 11
+mkdir -p "$XDG_DATA_HOME"
+echo 'disposable settings' > "$XDG_DATA_HOME/settings.cfg"
+''')
         export.chmod(0o755)
-        self.assertEqual(self.run_script(mode="linux-export", GODOT_BIN="/missing").returncode, 0)
-        export.write_text('#!/bin/bash\necho "ERROR: missing package" >&2\nexit 0\n')
+        player_data = self.project / "player data"
+        player_data.mkdir()
+        sentinel = player_data / "settings.cfg"
+        sentinel.write_text("player settings")
+        self.assertEqual(self.run_script(mode="linux-export", GODOT_BIN="/missing",
+                                         XDG_DATA_HOME=str(player_data),
+                                         FIXTURE_PLAYER_DATA=str(player_data)).returncode, 0)
+        self.assertEqual(sentinel.read_text(), "player settings")
+        write_fixture(export, '#!/bin/bash\necho "ERROR: missing package" >&2\nexit 0\n')
         self.assertNotEqual(self.run_script(mode="linux-export").returncode, 0)
 
 

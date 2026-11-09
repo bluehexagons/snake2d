@@ -158,3 +158,7 @@ On Windows, `test.ps1 source` runs the same suite catalog. Its native process
 runner waits for GUI exports, checks captured errors and exit codes, and bounds
 each engine process with a deadline. `test.ps1 all` additionally builds and
 starts the Windows export outside the checkout.
+The runner sets the child working directory explicitly, because PowerShell's
+location can differ from the process-wide directory. Export smoke data/logs use
+temporary child-only `APPDATA` (Windows) or `XDG_DATA_HOME` (Linux) overrides;
+packaged startup requires no installed editor and cannot migrate player saves.

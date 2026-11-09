@@ -76,8 +76,8 @@ first, then `GODOT`, `GODOT4`, `BASALTWATER_GODOT_EXE`, `godot`, and `godot4`.
 A missing explicit `GODOT_BIN` fails instead of selecting another engine.
 
 See [Basaltwater integration](docs/basaltwater.md) for optional CachyOS checks.
-The Linux export smoke runs from an empty temporary directory and requires no
-installed editor.
+The Linux export smoke runs from an empty temporary directory, isolates Godot's
+data through `XDG_DATA_HOME`, and requires no installed editor.
 
 ### Native Windows
 
@@ -95,8 +95,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1 windows-expor
 `test.ps1 all` runs those source/build/export checks together. The source suite
 needs no export templates. `build.ps1` accepts `web`, `windows`, `linux`, or
 `all`, defaulting to Windows; it uses the same presets/output paths as Bash.
-The export smoke starts the packaged executable outside the checkout, so the
-source project cannot mask missing package data. The runner waits for GUI
+The export smoke needs no installed editor and starts the packaged executable
+in a fresh temporary directory, with a child-only `APPDATA` override for Godot's
+saves and logs. Source files cannot mask missing package data, and startup
+cannot migrate player settings. The runner waits for GUI
 executables explicitly and enforces a 120-second deadline per engine process,
 including process-tree cleanup on timeout. Use `-TimeoutSeconds N` for a
 deliberate per-command budget. It establishes headless

@@ -26,10 +26,16 @@ export-template and native runtime checks.
 
 On Windows use `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1 source`.
 Run `tests\Run-ScriptTests.ps1` with the same PowerShell options after tooling
-changes; its temporary command fixtures check failure exit codes, Godot script
-errors reported with exit zero, early exits without suite markers, and stderr
-diagnostics, with a deadline for hung processes. Fixture paths include spaces
-and literal percent expressions. It installs nothing. Add new script suites to
+changes; repeat with `pwsh.exe` when available. Its temporary command and compiled
+GUI executable fixtures check failure exit codes, Godot script errors reported
+with exit zero, early exits without suite markers, stderr diagnostics, and
+deadlines. Export fixtures also verify an empty working directory, isolated
+player data, and startup without an installed editor. Fixture paths include
+spaces, non-ASCII characters and literal percent expressions. It installs nothing.
+For Bash fixtures with native Windows Python, set
+`$env:BASH_BIN = 'C:\Program Files\Git\bin\bash.exe'` before running
+`python3 tests/script_runner_test.py`, to select Git Bash instead of WSL.
+Add new script suites to
 `tests/source-suites.txt` so both native and Bash runners execute them.
 
 ## Project conventions
@@ -50,6 +56,9 @@ On Windows, `build.ps1 windows` builds the native preset and `test.ps1 all`
 runs source tests, builds it and checks packaged startup. Use the explicit
 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File` form above when
 account script policy blocks direct execution; no saved policy change is needed.
+`test.ps1 windows-export` requires only the built package, without resolving an
+editor. Both export smoke runners use fresh temporary working/data directories
+to keep source files and player saves out of qualification runs.
 
 ## Matching export templates on Basaltwater systems
 
