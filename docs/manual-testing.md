@@ -16,6 +16,53 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 
 Use a temporary OS account or back up saves before manually testing reset actions. Automated persistence and smoke tests already use disposable paths.
 
+## Recorded Windows compatibility review — 2026-11-09
+
+Revision `2562297`, standard Godot 4.7.2 stable on native Windows 11:
+
+- `test.ps1 all` passed all nine source suites, composed-scene smoke, Windows
+  release export and packaged headless startup. Git Bash source checks also
+  passed. Matching official Windows templates came from an existing isolated
+  self-contained editor; the archive matched its previously verified SHA-256
+  digest and the template version matched the engine. Account templates were
+  not replaced.
+- PowerShell 5.1 and 7 script contracts passed, including a compiled GUI
+  executable fixture, nonzero exits, errors on stderr with exit zero,
+  deadlines, Unicode/space/literal-percent paths, and missing-editor startup.
+  All eight Bash tooling contracts passed with native Windows Python and Git
+  Bash. Fixtures now write LF explicitly instead of Windows-translated newlines.
+- Review found that PowerShell's location did not reliably set the child CWD,
+  so the earlier export check could inherit the source directory. The runner
+  now sets `ProcessStartInfo.WorkingDirectory` explicitly. It also resolves
+  Godot only for source/build checks, allowing export-only qualification
+  without an installed editor.
+- Packaged smoke now isolates Godot saves/logs with a child-only `APPDATA`
+  override; the Linux runner uses `XDG_DATA_HOME`. Real Windows startup and
+  legacy migration were verified inside a disposable profile. A relocated
+  real Windows package passed from a path with spaces, non-ASCII text and
+  literal `%TEMP%`. Removing its `.pck` produced the missing-data error and
+  was rejected at a deliberately shortened three-second deadline.
+- Basaltwater's supervised native rendered composition and UI layout suites
+  passed without engine errors. Layout coverage includes narrow, short and
+  wide windows, synthetic 1×/1.35×/2× densities, pointer hit testing, focus,
+  confirmation resizing and keyboard pause/resume with frozen ticks.
+- The release executable was also inspected on a 100% scale desktop using a
+  disposable profile. Captures confirmed rendered main/options/gameplay,
+  pause and game-over screens. Injected native pointer/keyboard input opened
+  Options, toggled fullscreen on/off with the correct saved state, returned
+  to the menu, started Classic, paused, and resumed into a normal game-over
+  transition. The owned window closed cleanly.
+- GitHub CI passed for this revision, including Linux source/build/package
+  checks and Windows source/export/startup plus PowerShell 5.1/7 fixtures.
+
+Still open: actual Windows display scales above 100% and mixed-DPI monitor
+moves, physical controller/touch devices, audible quality/latency, and manual
+save/reload across modes. Synthetic density cases do not establish Windows DPI
+detection. Native Linux execution was not repeated on this Windows host; CI
+covered the Linux export runner. The optional local cross-platform build also
+reported absent Web templates; this did not block Windows qualification.
+Raw logs, receipts, profiles and captures remain outside Git.
+
 ## Recorded Windows automated qualification — 2026-10-28
 
 Windows 11 Home (10.0.26100), standard Godot 4.7.2 stable, with the Windows

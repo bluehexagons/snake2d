@@ -46,6 +46,36 @@ Use the installed `basaltwater-cachyos-desktop` skill for that session workflow.
 A rendered smoke does not establish physical input or audible quality: use the
 [manual testing matrix](manual-testing.md) for interaction qualification.
 
+## Native Windows checks
+
+Use the installed Windows workspace skill for host operation. The native
+Basaltwater doctor checks tool discovery, not matching templates or game
+behavior. Project-owned checks work without Basaltwater:
+
+```powershell
+basaltw doctor --json
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-ScriptTests.ps1
+pwsh.exe -NoProfile -File .\tests\Run-ScriptTests.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1 all
+```
+
+For a bounded rendered composition check in the enabled interactive session:
+
+```powershell
+basaltw desktop develop run --project (Get-Location).Path --timeout 45 -- --scene res://tests/smoke_test.tscn --quit-after 300
+basaltw desktop develop wait TASK_ID --timeout 45
+basaltw desktop develop logs TASK_ID
+```
+
+Literal engine arguments follow `--`. Retain the returned task ID through
+completion; inspect the exit status and `Smoke test passed.` marker. The scene
+injects disposable saves before composition. For rendered layout/input coverage,
+use `--script res://tests/ui_layout_test.gd` with a longer task deadline.
+Use the native desktop observation/input workflow for export interaction checks,
+with a disposable child `APPDATA` profile. Headless startup and synthetic density
+tests do not establish audible quality, physical devices or Windows DPI behavior.
+See the [recorded qualification and open checks](manual-testing.md).
+
 ## Artifacts
 
 Inspect `.basaltwater/cleanup.json` through `basaltw agent storage project
