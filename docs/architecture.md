@@ -82,7 +82,8 @@ The model uses `Vector2i` cells. Presentation converts cells to pixel positions 
 `Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
 
 `ResponsiveUILayer` compensates only when the project's canvas stretch would
-shrink the UI below its authored pixel size. It sizes full-screen menu controls
+shrink the UI below its authored pixel size (CSS pixels on Web, accounting for
+device pixel density). It sizes full-screen menu controls
 in the compensated coordinate space; the game layer, camera, grid and input
 adapter retain their existing transforms. The HUD mode label wraps within the
 remaining width. The font uses distance-field rendering to stay crisp when
@@ -93,6 +94,13 @@ panel. Short windows scroll vertically and follow keyboard/controller focus;
 buttons and seed/volume controls have 44-unit minimum heights. The main title
 wraps on narrow screens. Keep new panels in this layout so input coordinates,
 focus scrolling and board scaling remain independent.
+Full-screen controls grow toward their bottom/right edges so asynchronous
+minimum-size changes from wrapped text cannot move the menu origin on resize.
+
+Options confirmations are embedded `Window` nodes, so they explicitly use the
+menu's theme and scale. Their text wraps, their buttons retain 44-unit heights,
+and placement uses the embedded viewport's coordinates rather than mixing them
+with physical screen dimensions.
 
 ## Data and randomness
 
@@ -119,7 +127,8 @@ The source suite covers four boundaries:
 - Model specifications cover movement, collisions, growth, deterministic food, board completion, and timing.
 - Service tests cover session idempotency and synchronous signal listeners, persistence, migration, malformed settings, and procedural PCM generation.
 - UI tests cover focus ownership, inactive-panel input, interrupted transitions,
-  narrow/short-window layout, target sizes, scaled pointer hit testing and
+  narrow/short-window layout at 1×/1.35×/2× density, dialog size/centering,
+  target sizes, scaled pointer hit testing and
   keyboard pause/resume with frozen ticks and interpolation.
 - The smoke scene instantiates `Main`, starts a round through its public API, and verifies the composed world reaches a playable state.
 

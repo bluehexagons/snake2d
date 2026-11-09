@@ -10,12 +10,21 @@ func _ready() -> void:
 		if child is Control and child.anchor_right == 1.0 and child.anchor_bottom == 1.0:
 			_full_rect_controls.append(child)
 			child.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			# Minimum sizes settle asynchronously as title/description text wraps.
+			# Growing toward the end keeps the full-screen origin fixed meanwhile.
+			child.grow_horizontal = Control.GROW_DIRECTION_END
+			child.grow_vertical = Control.GROW_DIRECTION_END
 	get_viewport().size_changed.connect(_update_layout)
 	_update_layout()
 
 func _update_layout() -> void:
+	# Web canvas dimensions include devicePixelRatio; target CSS pixels there.
+	var density := DisplayServer.screen_get_scale() if OS.has_feature("web") else 1.0
+	fit_to_viewport(density)
+
+func fit_to_viewport(pixel_density: float) -> void:
 	var stretch := get_viewport().get_stretch_transform().get_scale().x
-	var compensation := 1.0 / minf(1.0, maxf(stretch, 0.01))
+	var compensation := maxf(1.0, pixel_density / maxf(stretch, 0.01))
 	scale = Vector2.ONE * compensation
 	var available := get_viewport().get_visible_rect().size / compensation
 	# Keep the title on one line on desktop, while allowing a narrow menu to wrap.

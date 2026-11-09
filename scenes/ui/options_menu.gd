@@ -135,8 +135,21 @@ func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable
 	var dialog := ConfirmationDialog.new()
 	dialog.title = title
 	dialog.dialog_text = text
+	dialog.dialog_autowrap = true
+	dialog.theme = theme
+	# Embedded Windows do not inherit the CanvasLayer's scale like Controls do.
+	dialog.content_scale_factor = get_canvas_transform().get_scale().x
 	dialog.confirmed.connect(func() -> void: on_confirm.call(); dialog.queue_free())
 	dialog.close_requested.connect(dialog.queue_free)
 	dialog.canceled.connect(dialog.queue_free)
 	add_child(dialog)
-	dialog.popup_centered()
+	var viewport_size := get_viewport_rect().size
+	# Autowrapped text can adjust the minimum height after the popup appears.
+	dialog.size_changed.connect(func() -> void:
+		dialog.position = Vector2i((get_viewport_rect().size - Vector2(dialog.size)) / 2.0)
+	)
+	dialog.size = Vector2i((Vector2(360.0, 180.0) * dialog.content_scale_factor).min(viewport_size * 0.9))
+	dialog.position = Vector2i((viewport_size - Vector2(dialog.size)) / 2.0)
+	# A zero popup rect preserves these embedded viewport coordinates. Passing a
+	# rect to popup_centered_clamped also caps it against physical screen pixels.
+	dialog.popup()

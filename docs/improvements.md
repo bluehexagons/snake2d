@@ -20,8 +20,9 @@ This roadmap reflects the current Godot 4.7.2 project after the architecture and
 The narrow-screen sizing issue identified in September is addressed by an
 independently scaled menu layer, distance-field text, larger targets and
 focus-following scrolling. Automated geometry and rendered native checks cover
-320×568, 390×844, 844×390 and 1280×720. This does not qualify real phones or a
-browser: verify touch targets, scrolling and readable text on those platforms.
+320×568, 390×844, 844×390 and 1280×720. Chromium Web checks also cover these CSS
+viewport sizes and high-DPI menu/dialog sizing. Real phones and other browser
+engines still need touch, scrolling and readable-text qualification.
 See the recorded evidence in [manual testing](manual-testing.md).
 
 Headless tests cover direction translation, tap/swipe classification, threshold scaling, and model validation, but they cannot prove viewport transforms, native touch behavior, controller focus, safe areas, or browser-specific pointer behavior.

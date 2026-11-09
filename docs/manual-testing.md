@@ -125,3 +125,40 @@ this record:
 The September narrow-screen sizing finding is addressed in the native layout.
 Real-phone touch/scrolling, browser rendering, physical controllers and audible
 quality remain unverified by this follow-up.
+
+## Chromium Web follow-up — 2026-11-09
+
+Godot 4.7.2 release Web export on the CachyOS workstation, served on loopback
+HTTP and exercised through T3 Code 0.1.7 preview in an isolated incognito
+profile. The observed engine was Chromium 152/Electron 44, WebGL 2 Compatibility,
+single-threaded WebAssembly, with device pixel ratio 1.35. This record accompanies
+the Web density, dialog and resize fixes:
+
+- Reviewed 1280×720, 390×844, 320×568 and 844×390 CSS viewports. Menus retain
+  their authored CSS text/button sizes on high-DPI screens. Portrait/landscape
+  changes retain the full-screen origin and panel centering after wrapped
+  text changes its minimum size. Short menus are reachable through keyboard
+  focus scrolling and pointer-operated scrollbars.
+- Classic: pointer Start, arrow-key movement to wall collision, P pause/resume,
+  game over, Play Again, Escape pause and pointer return to menu passed. Two
+  paused PNG captures taken more than 30 seconds apart were byte-identical.
+- Obstacles: opened the mode popup, incremented the seed through the spin
+  control, started the round and verified the selected seed in the HUD;
+  Escape pause and pointer return passed at 320×568.
+- Options: volume, reduced motion and grid changes survived a full page reload.
+  Reset Settings Cancel preserved those values; Confirm restored the defaults.
+  The confirmation inherits the shared theme, wraps text, stays centered and
+  keeps 44-pixel button heights. Credits and High Scores render, and the
+  Credits scrollbar exposes its Back button in the short viewport.
+- No application console errors or warnings were observed. Export resources
+  loaded successfully. Raw browser diagnostics/captures remain outside Git.
+- All nine source suites and composed-scene smoke passed; geometry checks now
+  cover all four sizes at 1×, 1.35× and 2× density, including modal scale,
+  centering and menu origins. The native rendered layout suite, all three
+  exports and Linux packaged startup also passed.
+
+Viewport resizing retains the desktop user agent; it does not establish phone
+coverage. Physical touch, wheel/touch scrolling, canvas text entry, physical
+controllers, audible audio, browser-restart persistence and Firefox/Safari
+remain unverified by this run. The preview typing helper requires a DOM editable
+target, so the seed check used the canvas spin buttons instead.
