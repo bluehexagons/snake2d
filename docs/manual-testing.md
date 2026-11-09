@@ -7,6 +7,8 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | Desktop keyboard | Start, turn, pause, resume, lose, restart, return to menu | Exactly one legal turn per tick; paused rounds retain their board and score |
 | Focus loss | Start moving, Alt-Tab or minimize, return to the window, then resume | Focus loss pauses immediately; returning keeps the pause menu up; an old touch cannot turn after resume |
 | Controller | Navigate all menus, select each mode, edit a seed, adjust volume, cancel and accept reset dialogs | Focus stays in the active panel; sliders and seed input remain usable |
+| Controller at rest | Move the mouse during a round with a controller connected and untouched | Neutral/deadzone/unmapped axes do not hide the mouse cursor; mapped stick movement still switches to controller input |
+| World seed bounds | Type or paste an oversized integer in Obstacles, then start with keyboard/controller | Input stays within nine characters and launches a seed in 1–999999999 without engine errors |
 | Fast menu changes | Open Options and immediately go back; press Start then immediately move or pause | Fading panels cannot take focus, activate buttons, or swallow gameplay input |
 | Native touch | Tap, swipe, cancel a touch, add a second finger, pause/resume mid-gesture | One direction per gesture; no duplicate emulated mouse turn; old gestures are cleared |
 | Web pointer | Switch between touch and mouse, drag outside the canvas and release, return to the game | No stuck drag or duplicate turn; direction matches the visible snake |
@@ -103,6 +105,47 @@ Actual mixed-DPI/above-100% Windows displays and physical devices remain open.
 Godot's `screen_get_scale()` is not implemented on Windows, so the earlier Web
 density handling cannot simply be extended by removing its platform guard.
 See the [DisplayServer reference](https://docs.godotengine.org/en/stable/classes/class_displayserver.html#class-displayserver-method-screen-get-scale).
+
+### Fullscreen, controller noise and seed bounds follow-up
+
+Runtime revision `dd9c4a2`, native Windows Godot 4.7.2:
+
+- A rendered fullscreen/minimize probe reproduced the saved fullscreen
+  preference changing to false while minimized. The settings observer now
+  preserves the last visible mode during minimization. Headless persistence
+  tests cover notification/save behavior; the rendered window lifecycle suite
+  enters fullscreen, minimizes, checks memory and disk, then restores windowed.
+- A touch drag arriving after pause/resume or cancellation recreated a cleared
+  gesture and emitted a turn. The adapter now ignores drags without a fresh
+  tracked press. Regressions cover stale drag/release and a valid new swipe.
+- Neutral, drifting and unmapped joystick motion previously selected controller
+  input and could hide the mouse cursor. Routed engine-event tests now verify
+  those events retain mouse input while mapped movement still switches modes.
+- Typing twenty digits as a world seed reproduced integer-conversion engine
+  errors and a negative overflowed seed. Text length/range limits and clamping
+  before conversion now protect entry, launch, generation and gamepad adjustment.
+  The new menu-input suite covers normal keyboard entry, twenty-digit typing,
+  a thousand-character insertion through the text-edit path, zero and an
+  externally assigned oversized numeric value.
+- All eleven source suites and composed smoke passed through PowerShell and
+  Git Bash. `test.ps1 all` also built and started the Windows release package.
+  The menu-input and window-lifecycle suites both passed with native rendering,
+  including actual fullscreen/minimize behavior, without engine errors.
+- [CI passed for `dd9c4a2`](https://github.com/bluehexagons/snake2d/actions/runs/42705756978),
+  including Linux source/exports, native Windows source/export checks and
+  startup of the Linux-built Windows archive on a separate Windows runner.
+- A disposable deterministic playout probe covered 300 runs across all three
+  modes, with small boards, varied pit cadence and seeds including 999999999.
+  Across 30,795 steps and 3,820 meals, paired models stayed deterministic and
+  score, growth, body occupancy and food placement invariants held.
+- A rendered native audio-bus recording probe mixed a burst of general cues
+  with the reserved death cue. Its post-limiter PCM peak remained below
+  clipping; recording after mute produced silent samples. This checks engine
+  mixing/output and mute behavior, not speaker quality or perceived latency.
+
+Joystick/touch events here were injected; this does not qualify physical
+controllers or touch hardware. Higher/mixed display scales and audible quality
+remain outside this machine's completed checks. Evidence stays outside Git.
 
 ## Recorded Windows automated qualification — 2026-10-28
 
