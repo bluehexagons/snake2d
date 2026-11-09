@@ -79,6 +79,17 @@ exit 0
         Assert-Throws { & $runner windows-export } 'reported an error'
         $env:SNAKE_FIXTURE_MODE = 'hang'
         Assert-Throws { & $runner windows-export -TimeoutSeconds 1 } 'timed out after 1 seconds'
+        # Downloaded packages may be relocated outside the source/build tree.
+        $relocated = Join-Path $temporary 'downloaded package'
+        New-Item -ItemType Directory -Path $relocated | Out-Null
+        $relocatedExport = Join-Path $relocated 'snake.exe'
+        Move-Item -LiteralPath $export -Destination $relocatedExport
+        $env:SNAKE_FIXTURE_MODE = 'pass'
+        & $runner windows-export -WindowsExportPath '..\downloaded package\snake.exe'
+        $env:SNAKE_FIXTURE_MODE = 'error'
+        Assert-Throws { & $runner windows-export -WindowsExportPath $relocatedExport } 'reported an error'
+        Assert-Throws { & $runner source -WindowsExportPath $relocatedExport } 'applies only to windows-export'
+        Move-Item -LiteralPath $relocatedExport -Destination $export
         Remove-Item -LiteralPath $export -Force
         Assert-Throws { & $runner windows-export } 'Windows export not found'
     } finally { Pop-Location }

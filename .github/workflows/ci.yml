@@ -42,9 +42,9 @@ jobs:
     - name: Create Build Archives
       run: |
         mkdir -p dist
-        zip -r dist/snake-web.zip out/html/
-        zip -r dist/snake-windows.zip out/win64/
-        zip -r dist/snake-linux.zip out/linux64/
+        (cd out/html && zip -r ../../dist/snake-web.zip .)
+        (cd out/win64 && zip -r ../../dist/snake-windows.zip .)
+        (cd out/linux64 && zip -r ../../dist/snake-linux.zip .)
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v7
@@ -93,3 +93,9 @@ jobs:
         name: godot-windows
         path: out/win64/
         retention-days: 3
+
+  windows-package:
+    needs: build
+    uses: ./.github/workflows/windows-package.yml
+    with:
+      artifact-name: godot-build

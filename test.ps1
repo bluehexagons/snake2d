@@ -1,10 +1,14 @@
 <# Windows PowerShell 5.1 source tests and native export startup. #>
 [CmdletBinding()]
 param([ValidateSet('source', 'windows-export', 'all')][string]$Mode = 'source',
-      [ValidateRange(1, 3600)][int]$TimeoutSeconds = 120)
+      [ValidateRange(1, 3600)][int]$TimeoutSeconds = 120,
+      [string]$WindowsExportPath = '')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'scripts\Godot.Common.ps1')
+if ($WindowsExportPath -and $Mode -ne 'windows-export') {
+    throw '-WindowsExportPath applies only to windows-export mode.'
+}
 
 if ($Mode -in @('source', 'all')) {
     $godot = Resolve-GodotCommand
@@ -23,10 +27,11 @@ if ($Mode -eq 'all') {
     & (Join-Path $PSScriptRoot 'build.ps1') windows -TimeoutSeconds $TimeoutSeconds
 }
 if ($Mode -in @('windows-export', 'all')) {
-    $export = Join-Path $PSScriptRoot 'out\win64\snake.exe'
+    $export = if ($WindowsExportPath) { $WindowsExportPath } else { Join-Path $PSScriptRoot 'out\win64\snake.exe' }
     if (-not (Test-Path -LiteralPath $export -PathType Leaf)) {
-        throw 'Windows export not found. Run build.ps1 windows first.'
+        throw "Windows export not found: $export. Run build.ps1 windows or pass -WindowsExportPath."
     }
+    $export = (Resolve-Path -LiteralPath $export).ProviderPath
     # An empty working directory prevents source files from masking bad packages.
     # APPDATA isolates Godot's user:// saves (including legacy migration) and logs.
     $smokeDirectory = Join-Path ([IO.Path]::GetTempPath()) ('snake export ' + [guid]::NewGuid())

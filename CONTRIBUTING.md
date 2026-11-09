@@ -59,6 +59,12 @@ account script policy blocks direct execution; no saved policy change is needed.
 `test.ps1 windows-export` requires only the built package, without resolving an
 editor. Both export smoke runners use fresh temporary working/data directories
 to keep source files and player saves out of qualification runs.
+To qualify an extracted Windows archive, use `test.ps1 windows-export
+-WindowsExportPath 'C:\release candidate\snake.exe'`. Relative paths resolve
+against the caller's location before the child moves into its empty directory.
+CI and release workflows run this check against the Linux-built Windows ZIP on
+a separate Windows runner without installing Godot. Release publication depends
+on that archive check and publishes the same retained build artifacts.
 
 ## Matching export templates on Basaltwater systems
 

@@ -29,6 +29,7 @@ A Simple Snake Game is a simple snake game in which you simply snake.
 - Top 100 high scores tracked separately for each game mode
 - Subtle cell-aligned gameplay grid, enabled by default and toggleable in Options
 - Pause functionality (Space/P/Start button)
+- Automatic pause when the game window loses focus; resume explicitly when ready
 - Full controller support with UI navigation
 - Versioned settings for sound, effects volume, fullscreen, reduced motion, and the gameplay grid
 - Inspector-editable board, timing, scoring, and camera rules
@@ -105,6 +106,10 @@ deliberate per-command budget. It establishes headless
 startup, not controller, graphics or audio quality; use the
 [manual interaction checklist](docs/manual-testing.md).
 
+For an extracted Windows ZIP, pass its executable explicitly:
+`test.ps1 windows-export -WindowsExportPath 'C:\release candidate\snake.exe'`.
+CI tests the Linux-built archive on Windows as well as building natively.
+
 Set `$env:GODOT_BIN = 'C:\path to Godot\Godot_v4.7.2-stable_win64_console.exe'`
 to choose a specific engine. Resolution honors that explicit selection first,
 then `GODOT`, `GODOT4`, Basaltwater's `BASALTWATER_GODOT_EXE`, and commands on
@@ -163,6 +168,11 @@ Releases are created from a clean, up-to-date `main` branch:
 ```
 
 The helper runs the source test suite, increments `application/config/version`, creates the version commit and matching `v*` tag, then atomically pushes both. Pushing the tag triggers the GitHub release workflow, which tests and exports the Web, Windows, and Linux builds before publishing their archives.
+
+Publication waits for a separate Windows runner to extract and start the actual
+Windows archive without an installed editor. The tested archives are retained
+as one immutable build artifact and downloaded again for publication; the publish
+job does not rebuild them. CI uses the same flat archive layout and package check.
 
 ## Technical Details
 

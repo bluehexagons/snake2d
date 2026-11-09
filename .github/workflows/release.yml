@@ -5,11 +5,13 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 15
 
     steps:
     - uses: actions/checkout@v7
@@ -39,10 +41,36 @@ jobs:
         (cd out/win64 && zip -r ../../dist/snake-windows.zip .)
         (cd out/linux64 && zip -r ../../dist/snake-linux.zip .)
 
+    - name: Retain release candidates for native qualification
+      uses: actions/upload-artifact@v7
+      with:
+        name: release-build
+        path: dist/
+        retention-days: 3
+
+  windows-package:
+    needs: build
+    uses: ./.github/workflows/windows-package.yml
+    with:
+      artifact-name: release-build
+
+  publish:
+    needs: [build, windows-package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/download-artifact@v8
+      with:
+        name: release-build
+        path: dist/
+
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v3
       with:
+        fail_on_unmatched_files: true
         name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false

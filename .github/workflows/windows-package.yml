@@ -1,0 +1,33 @@
+name: Validate Windows package
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Artifact containing the release-shaped snake-windows.zip
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@v7
+
+    - uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ runner.temp }}/snake-archives
+
+    # Exercise the Linux-built package, without installing Godot on this runner.
+    - name: Extract and start the Windows archive
+      shell: powershell
+      run: |
+        $package = Join-Path $env:RUNNER_TEMP ('snake package caf' + [char]0xe9 + ' %TEMP% ! ' + [guid]::NewGuid())
+        Expand-Archive -LiteralPath (Join-Path $env:RUNNER_TEMP 'snake-archives\snake-windows.zip') -DestinationPath $package
+        $env:GODOT_BIN = Join-Path $env:RUNNER_TEMP 'missing-editor.exe'
+        .\test.ps1 windows-export -WindowsExportPath (Join-Path $package 'snake.exe') -TimeoutSeconds 30
