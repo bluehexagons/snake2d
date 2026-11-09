@@ -32,6 +32,9 @@ Read `core/game_session.gd`, then `scenes/ui/ui_state_manager.gd`.
 - Inspect `SceneTree.paused` and the process modes of `Main` and `GameWorld` in the remote scene tree.
 - Compare application state in `GameSession` with panel visibility state in `UIStateManager`.
 - Read the synchronous-listener cases in `tests/game_session_test.gd`: changing state before emitting a notification prevents duplicate round completion.
+- Follow the window's `focus_exited` signal from `Main` into the session's pause API.
+  `tests/window_lifecycle_test.gd` checks that losing focus freezes the round,
+  clears old touch gestures, and waits for an explicit resume.
 
 The important distinction is that session state owns behavior; UI state owns presentation.
 

@@ -16,7 +16,15 @@ func load_high_scores_by_mode() -> Dictionary:
 	var file := FileAccess.open(save_path, FileAccess.READ)
 	if not file:
 		return tables
-	
+	# store_var prefixes the Variant with its byte length. Interrupted writes
+	# can leave either part incomplete; get_var would emit an engine error.
+	var file_length := file.get_length()
+	if file_length < 8:
+		return tables
+	var payload_length := file.get_32()
+	if payload_length < 4 or payload_length > file_length - 4:
+		return tables
+	file.seek(0)
 	var loaded = file.get_var()
 	# Array-only and v1 documents predate modes, so their scores belong to Classic.
 	if loaded is Array:

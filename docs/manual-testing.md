@@ -5,6 +5,7 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | Area | Steps | Expected result |
 | --- | --- | --- |
 | Desktop keyboard | Start, turn, pause, resume, lose, restart, return to menu | Exactly one legal turn per tick; paused rounds retain their board and score |
+| Focus loss | Start moving, Alt-Tab or minimize, return to the window, then resume | Focus loss pauses immediately; returning keeps the pause menu up; an old touch cannot turn after resume |
 | Controller | Navigate all menus, select each mode, edit a seed, adjust volume, cancel and accept reset dialogs | Focus stays in the active panel; sliders and seed input remain usable |
 | Fast menu changes | Open Options and immediately go back; press Start then immediately move or pause | Fading panels cannot take focus, activate buttons, or swallow gameplay input |
 | Native touch | Tap, swipe, cancel a touch, add a second finger, pause/resume mid-gesture | One direction per gesture; no duplicate emulated mouse turn; old gestures are cleared |

@@ -40,6 +40,9 @@ func _ready() -> void:
 	_game_size_pixels = game_rules.board_size_pixels()
 
 	game_session.configure(gameplay, high_score_store)
+	# Alt-Tab/minimize must not advance a round the player cannot control.
+	# Focus returning leaves the pause menu up for an explicit resume.
+	get_window().focus_exited.connect(game_session.pause_round)
 	gameplay.configure(game_rules, audio_service)
 	gameplay_grid.configure(game_rules)
 	snake_input_adapter.configure(gameplay)

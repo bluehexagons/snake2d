@@ -12,6 +12,7 @@ func _initialize() -> void:
 	_legacy_score_arrays_are_migrated_on_read()
 	_version_one_scores_are_migrated_to_classic()
 	_malformed_scores_fail_closed()
+	_truncated_scores_fail_closed()
 	_settings_round_trip_and_reset()
 	_external_window_mode_is_saved()
 	_malformed_settings_keep_safe_defaults()
@@ -70,6 +71,34 @@ func _malformed_scores_fail_closed() -> void:
 	var store := HighScoreStore.new()
 	store.save_path = score_path
 	check.expect_equal(store.load_high_scores(), [], "malformed score data produces an empty table")
+	store.free()
+
+func _truncated_scores_fail_closed() -> void:
+	var store := HighScoreStore.new()
+	store.save_path = score_path
+	var valid := var_to_bytes({"version": 2, "scores_by_mode": {"classic": [10]}})
+	# store_var writes a four-byte payload length before the encoded Variant.
+	for length in [0, 1, 3, 4, 5, valid.size() + 3]:
+		var record := PackedByteArray()
+		record.resize(4)
+		record.encode_u32(0, valid.size())
+		record.append_array(valid)
+		record.resize(length)
+		var file := FileAccess.open(score_path, FileAccess.WRITE)
+		file.store_buffer(record)
+		file.close()
+		check.expect_equal(store.load_high_scores(), [], "truncated score records fail closed at %d bytes" % length)
+		check.expect_equal(FileAccess.get_file_as_bytes(score_path), record, "loading damaged scores does not rewrite player data")
+	for declared_length in [0, 3, 0xffffffff]:
+		var record := PackedByteArray()
+		record.resize(8)
+		record.encode_u32(0, declared_length)
+		var file := FileAccess.open(score_path, FileAccess.WRITE)
+		file.store_buffer(record)
+		file.close()
+		check.expect_equal(store.load_high_scores(), [], "invalid score payload lengths fail closed")
+	store.save_high_scores([15])
+	check.expect_equal(store.load_high_scores(), [15], "a new complete score record can replace a damaged save")
 	store.free()
 
 func _settings_round_trip_and_reset() -> void:

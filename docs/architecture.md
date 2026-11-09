@@ -69,6 +69,11 @@ MAIN_MENU → PLAYING ⇄ PAUSED
 
 Only `GameSession` writes `SceneTree.paused`. `Main`, services, session state, and UI inherit an always-processing mode so menus continue to work while paused. `GameWorld` explicitly uses the pausable process mode, which stops gameplay, input, and camera callbacks without per-node pause checks.
 
+`Main` connects its owning window's focus loss to `GameSession.pause_round()`.
+Alt-Tab and minimizing therefore freeze an active round and clear pending touch
+gestures through the existing input-adapter state transition. Regaining focus
+does not resume automatically; the player resumes through the pause menu.
+
 `GameSession` initializes the model and views before publishing `PLAYING`, so a state observer can inspect the new round immediately. Reconfiguration disconnects the previous gameplay dependency. Removing the session releases `SceneTree.paused`, which would otherwise survive the removed main scene.
 
 `GameSession` commits its game-over state before emitting round notifications. Ordinary signal connections run synchronously, so observers must see the completed state; otherwise a listener can end the same round twice or have its own menu transition overwritten. Starting an already active round, including a paused one, is a no-op.
@@ -124,6 +129,8 @@ Pitfall mode adds a blocked cell at the configured food cadence. Its placement t
 ## Persistence and audio
 
 `HighScoreStore` owns the versioned, per-mode high-score file. It migrates old array-only and v1 saves into the Classic table and fails closed on malformed or unsupported data.
+It checks the serialized record's length before decoding, so truncated writes
+produce empty tables without engine errors or rewriting the damaged file.
 
 `SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
 
