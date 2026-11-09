@@ -4,64 +4,11 @@ set -euo pipefail
 
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-resolve_godot_bin() {
-    local requested_bin="${GODOT_BIN:-}"
-    local candidate
-
-    if [[ -n "$requested_bin" ]]; then
-        if command -v "$requested_bin" &> /dev/null; then
-            printf '%s\n' "$requested_bin"
-            return 0
-        fi
-
-        echo "Error: $requested_bin command not found. Please ensure Godot is installed and in your PATH." >&2
-        return 1
-    fi
-
-    for candidate in "${GODOT:-}" "${GODOT4:-}" godot godot4; do
-        if [[ -n "$candidate" ]] && command -v "$candidate" &> /dev/null; then
-            printf '%s\n' "$candidate"
-            return 0
-        fi
-    done
-
-    echo "Error: Could not find a Godot executable. Tried GODOT_BIN, GODOT, GODOT4, godot, and godot4." >&2
-    return 1
-}
-
-if ! GODOT_BIN="$(resolve_godot_bin)"; then
-    exit 1
-fi
-
-run_and_check_logs() {
-    local expected_marker="$1"
-    shift
-    local log_file
-    log_file="$(mktemp)"
-
-    if ! "$@" >"$log_file" 2>&1; then
-        cat "$log_file"
-        rm -f "$log_file"
-        return 1
-    fi
-
-    cat "$log_file"
-    if grep -Eq 'SCRIPT ERROR:|Parse Error:|Compile Error:|(^|[[:space:]])ERROR:' "$log_file"; then
-        rm -f "$log_file"
-        echo "Error: Godot reported an error."
-        return 1
-    fi
-
-    if [[ -n "$expected_marker" ]] && ! grep -Fxq "$expected_marker" "$log_file"; then
-        rm -f "$log_file"
-        echo "Error: Godot exited before reporting: $expected_marker"
-        return 1
-    fi
-
-    rm -f "$log_file"
-}
+source "$PROJECT_DIR/scripts/godot-common.sh"
 
 run_source_smoke() {
+    GODOT_BIN="$(resolve_godot_bin)"
+    echo "Using Godot executable: $GODOT_BIN"
     run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --import --quit
     local script marker
     while IFS='|' read -r script marker; do
@@ -75,14 +22,19 @@ run_source_smoke() {
     run_and_check_logs "Smoke test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --scene "res://tests/smoke_test.tscn" --quit-after 300
 }
 
-run_linux_export_smoke() {
+run_linux_export_smoke() (
     if [[ ! -x "$PROJECT_DIR/out/linux64/snake.x86_64" ]]; then
         echo "Error: Linux export not found at out/linux64/snake.x86_64. Run ./build.sh linux first."
         return 1
     fi
 
+    # Keep the caller's source project from masking missing package data.
+    local smoke_dir
+    smoke_dir="$(mktemp -d)"
+    trap 'rm -rf -- "$smoke_dir"' EXIT
+    cd "$smoke_dir"
     run_and_check_logs "" "$PROJECT_DIR/out/linux64/snake.x86_64" --headless --quit-after 1
-}
+)
 
 show_usage() {
     echo "Usage: $0 [source|linux-export|all]"
@@ -92,8 +44,6 @@ show_usage() {
 }
 
 MODE="${1:-all}"
-
-echo "Using Godot executable: $GODOT_BIN"
 
 case "$MODE" in
     source)

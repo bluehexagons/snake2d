@@ -1,4 +1,4 @@
-# Godot 4.7.1 Learning Path
+# Godot 4.7.2 Learning Path
 
 This project is intended to be read from ownership outward: begin with the main scene, follow one state transition into gameplay, then study the pure rules beneath the scene adapter.
 

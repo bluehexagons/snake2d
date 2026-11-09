@@ -29,6 +29,9 @@ jobs:
       run: |
         ./build.sh all
 
+    - name: Smoke Linux export
+      run: ./test.sh linux-export
+
     - name: Create Release Archives
       run: |
         mkdir -p dist

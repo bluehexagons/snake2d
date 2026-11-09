@@ -14,7 +14,7 @@
       "strategy": "agent",
       "paths": ["artifacts/review"],
       "archive": "artifacts/archive",
-      "instructions": "Preserve useful original screenshots/videos with source path, known revision, caption and checksum. Use bounded Luna high/standard classification for large inventories when available. Propose exact removals only after curation; no blanket media deletion."
+      "instructions": "Preserve useful original screenshots/videos with source path, known revision, caption and checksum. Propose exact removals only after curation; no blanket media deletion."
     }
   ]
 }

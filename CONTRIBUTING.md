@@ -3,7 +3,7 @@
 ## Requirements
 
 - Godot 4.7.2 available as `godot`, `godot4`, `GODOT`, or `GODOT4`
-- Bash for POSIX scripts, or Windows PowerShell 5.1+ for native Windows scripts
+- Bash and GNU coreutils (`timeout`) for POSIX scripts, or Windows PowerShell 5.1+ for native Windows scripts
 - Export templates when building release artifacts
 
 ## Feedback loop
@@ -15,6 +15,14 @@ Run the complete source suite before submitting a change:
 ```
 
 The command imports the project, rejects parse/compile errors, runs deterministic model and service tests, and finishes with the composed-scene smoke test.
+
+After Bash tooling changes, run `python3 tests/script_runner_test.py` (Python 3,
+standard library only). It checks missing engines, failure exit codes, stderr
+errors, missing success markers, deadlines, output validation, and packaged
+startup outside the checkout using paths with spaces and non-ASCII characters.
+
+See [Basaltwater integration](docs/basaltwater.md) for CachyOS prerequisite,
+export-template and native runtime checks.
 
 On Windows use `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1 source`.
 Run `tests\Run-ScriptTests.ps1` with the same PowerShell options after tooling

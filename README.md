@@ -54,6 +54,7 @@ from Linux still needs native Windows runtime testing.
 
 - Godot Engine (version 4.7.2) and matching export templates installed
 - The Godot executable available in your PATH
+- Bash and GNU coreutils (`timeout`) for the Bash scripts
 - The build script auto-detects `godot`, `godot4`, and the `GODOT`/`GODOT4` paths exported by `setup-godot`
 
 ### Usage
@@ -67,7 +68,16 @@ from Linux still needs native Windows runtime testing.
 ./build.sh linux
 ```
 
-The exported files will be placed in the `out/` directory.
+The exported files will be placed in the `out/` directory. Bash commands enforce
+a 120-second deadline per engine process; set `GODOT_TIMEOUT_SECONDS` (1–3600)
+for a deliberate override. A timed-out process group receives TERM, then KILL
+if it has not exited within five seconds. Engine discovery honors `GODOT_BIN`
+first, then `GODOT`, `GODOT4`, `BASALTWATER_GODOT_EXE`, `godot`, and `godot4`.
+A missing explicit `GODOT_BIN` fails instead of selecting another engine.
+
+See [Basaltwater integration](docs/basaltwater.md) for optional CachyOS checks.
+The Linux export smoke runs from an empty temporary directory and requires no
+installed editor.
 
 ### Native Windows
 

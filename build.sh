@@ -9,57 +9,9 @@ set -euo pipefail
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Building project in: $PROJECT_DIR"
 
-# Resolve the Godot executable from explicit configuration first, then common CI defaults.
-resolve_godot_bin() {
-    local requested_bin="${GODOT_BIN:-}"
-    local candidate
-
-    if [[ -n "$requested_bin" ]]; then
-        if command -v "$requested_bin" &> /dev/null; then
-            printf '%s\n' "$requested_bin"
-            return 0
-        fi
-
-        echo "Error: $requested_bin command not found. Please ensure Godot is installed and in your PATH." >&2
-        return 1
-    fi
-
-    for candidate in "${GODOT:-}" "${GODOT4:-}" godot godot4; do
-        if [[ -n "$candidate" ]] && command -v "$candidate" &> /dev/null; then
-            printf '%s\n' "$candidate"
-            return 0
-        fi
-    done
-
-    echo "Error: Could not find a Godot executable. Tried GODOT_BIN, GODOT, GODOT4, godot, and godot4." >&2
-    return 1
-}
-
-if ! GODOT_BIN="$(resolve_godot_bin)"; then
-    exit 1
-fi
-
+source "$PROJECT_DIR/scripts/godot-common.sh"
+GODOT_BIN="$(resolve_godot_bin)"
 echo "Using Godot executable: $GODOT_BIN"
-
-run_and_check_logs() {
-    local log_file
-    log_file="$(mktemp)"
-
-    if ! "$@" >"$log_file" 2>&1; then
-        cat "$log_file"
-        rm -f "$log_file"
-        return 1
-    fi
-
-    cat "$log_file"
-    if grep -Eq 'SCRIPT ERROR:|Parse Error:|Compile Error:|(^|[[:space:]])ERROR:' "$log_file"; then
-        rm -f "$log_file"
-        echo "Error: Godot reported an error."
-        return 1
-    fi
-
-    rm -f "$log_file"
-}
 
 export_build() {
     local preset_name="$1"
@@ -68,7 +20,7 @@ export_build() {
     echo "Exporting ${preset_name} version..."
     mkdir -p "$(dirname "$output_path")"
     rm -f -- "$output_path"
-    run_and_check_logs "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "$preset_name" "$output_path"
+    run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "$preset_name" "$output_path"
 
     if [[ ! -s "$output_path" ]]; then
         echo "Error: Expected export output was not created: $output_path"

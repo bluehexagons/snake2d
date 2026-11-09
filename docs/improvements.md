@@ -1,6 +1,6 @@
 # snake2d — Remaining Improvement Roadmap
 
-This roadmap reflects the current Godot 4.7.1 project after the architecture and learning-environment refinement. Completed historical findings have been removed rather than retained as an ever-growing checklist.
+This roadmap reflects the current Godot 4.7.2 project after the architecture and learning-environment refinement. Completed historical findings have been removed rather than retained as an ever-growing checklist.
 
 ## Current baseline
 

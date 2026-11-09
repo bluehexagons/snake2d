@@ -24,6 +24,9 @@ jobs:
         use-dotnet: false
         include-templates: true
 
+    - name: Test Bash script failure handling
+      run: python3 tests/script_runner_test.py
+
     - name: Source tests
       run: |
         ./test.sh source
