@@ -64,6 +64,46 @@ covered the Linux export runner. The optional local cross-platform build also
 reported absent Web templates; this did not block Windows qualification.
 Raw logs, receipts, profiles and captures remain outside Git.
 
+### Focus, damaged saves and release archives follow-up
+
+Runtime revision `4049270` and package workflow revision `0d2bc49`:
+
+- Reproduced focus loss advancing the round and retaining an unfinished touch.
+  The new window lifecycle suite failed before the fix, then passed with the
+  window wired to the session's pause API. It covers menu/game-over stability,
+  frozen ticks and interpolation, explicit resume, and clearing old gestures.
+- Reproduced engine errors from empty, header-truncated and payload-truncated
+  score records. Length validation now rejects those records before decoding.
+  Persistence tests include invalid payload lengths, preservation of damaged
+  files during reads, and recovery by saving a complete new record.
+  The Windows release executable also started without errors with a one-byte
+  score file in a disposable profile; its hash remained unchanged.
+- All ten source suites, composed smoke, native Windows release export and
+  packaged startup passed. PowerShell 5.1/7 contracts and all eight Python/Git
+  Bash tooling contracts passed. The lifecycle suite also passed as a rendered
+  Basaltwater native task.
+- Minimized and restored the real release executable through the native desktop
+  adapter. Captures confirmed gameplay before minimizing and the pause menu
+  after restoring. The restored window remained paused, then closed with exit
+  zero and no engine errors. Its saves/logs used a disposable profile.
+- A locally archived/extracted Windows package passed the explicit
+  `-WindowsExportPath` runner from a Unicode/space/literal-percent path with a
+  deliberately missing editor. Actionlint passed for the changed workflows.
+  CI and release now share a Windows archive check; release publication depends
+  on that check and downloads the same retained archives for publishing.
+  [CI passed for `0d2bc49`](https://github.com/bluehexagons/snake2d/actions/runs/42702409798),
+  including the Linux-built archive's startup on a separate Windows runner.
+- A disposable two-process source probe wrote settings and distinct scores for
+  all three modes, then restarted Godot and composed `Main` again. Scores, mute,
+  volume, reduced motion and grid visibility reloaded correctly. This adds
+  automated application-restart coverage; physical play/save/reload remains a
+  separate manual check.
+
+Actual mixed-DPI/above-100% Windows displays and physical devices remain open.
+Godot's `screen_get_scale()` is not implemented on Windows, so the earlier Web
+density handling cannot simply be extended by removing its platform guard.
+See the [DisplayServer reference](https://docs.godotengine.org/en/stable/classes/class_displayserver.html#class-displayserver-method-screen-get-scale).
+
 ## Recorded Windows automated qualification — 2026-10-28
 
 Windows 11 Home (10.0.26100), standard Godot 4.7.2 stable, with the Windows
