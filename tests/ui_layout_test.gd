@@ -66,8 +66,25 @@ func _run() -> void:
 						check.expect_true(dialog_scale >= 0.99, "dialog text retains CSS pixel size")
 						check.expect_true(dialog.size.x * root.get_stretch_transform().get_scale().x / density <= dimensions.x, "dialog fits narrow viewport")
 						check.expect_true(dialog.get_cancel_button().size.y * dialog_scale >= 43.9, "dialog cancel has 44px target")
+						check.expect_true(dialog.get_ok_button().size.x * dialog_scale >= 43.9, "dialog OK has 44px width")
+						var resized := Vector2i(320, 568) if dimensions.x > 600 else Vector2i(1280, 720)
+						root.size = Vector2i(Vector2(resized) * density)
+						for frame in 5:
+							await process_frame
+						layer.fit_to_viewport(density)
+						for frame in 5:
+							await process_frame
+						check.expect_true(is_equal_approx(dialog.content_scale_factor, layer.scale.x), "open dialog follows menu scale after resize")
+						check.expect_true(dialog.size.x <= root.get_visible_rect().size.x, "open dialog fits after resize")
+						check.expect_true((Vector2(dialog.position) + Vector2(dialog.size) / 2.0).distance_to(root.get_visible_rect().size / 2.0) <= 2.0, "open dialog recenters after resize")
 						dialog.canceled.emit()
 						await process_frame
+						root.size = Vector2i(Vector2(dimensions) * density)
+						for frame in 5:
+							await process_frame
+						layer.fit_to_viewport(density)
+						for frame in 5:
+							await process_frame
 
 			main.ui_state_manager.change_state(UIStateManager.UIState.MAIN_MENU)
 			for frame in 5:

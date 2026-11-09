@@ -100,7 +100,9 @@ minimum-size changes from wrapped text cannot move the menu origin on resize.
 Options confirmations are embedded `Window` nodes, so they explicitly use the
 menu's theme and scale. Their text wraps, their buttons retain 44-unit heights,
 and placement uses the embedded viewport's coordinates rather than mixing them
-with physical screen dimensions.
+with physical screen dimensions. `OptionsMenu` retains its active confirmation
+and recalculates that layout when the menu resizes, including while the dialog
+is open.
 
 ## Data and randomness
 
@@ -119,6 +121,14 @@ Pitfall mode adds a blocked cell at the configured food cadence. Its placement t
 Settings migration writes the new format only after validating a complete
 legacy record. Invalid or truncated legacy files retain defaults without
 creating a new config, so a repaired legacy file can be migrated on the next load.
+
+Display mode changes are separate from applying audio, motion and grid settings.
+`SettingsService` observes the real display mode while rendered, saving and
+emitting `settings_changed` only when fullscreen state differs. This keeps the
+Options label and persistence synchronized with browser Escape or compositor
+changes. Web startup adopts the actual mode instead of restoring fullscreen
+without the fresh input gesture browsers require; native startup still applies
+the saved display preference.
 
 ## Verification
 

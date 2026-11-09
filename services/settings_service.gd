@@ -31,7 +31,26 @@ func configure(
 	_ui_state_manager = ui_state_manager
 	_gameplay_grid = gameplay_grid
 	load_settings()
+	# Browsers require a fresh input gesture to enter fullscreen after a reload.
+	if OS.has_feature("web"):
+		_sync_window_mode()
+	else:
+		_apply_window_mode()
 	_apply_settings()
+	set_process(DisplayServer.get_name() != "headless")
+
+func _process(_delta: float) -> void:
+	# Escape/browser chrome and the compositor can change mode outside our UI.
+	_sync_window_mode()
+
+func _sync_window_mode() -> void:
+	var mode := DisplayServer.window_get_mode()
+	var actual := mode in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
+	if actual == is_fullscreen:
+		return
+	is_fullscreen = actual
+	save_settings()
+	settings_changed.emit()
 
 func load_settings() -> void:
 	_reset_values()
@@ -81,6 +100,7 @@ func set_effects_volume_db(volume_db: float) -> void:
 
 func toggle_fullscreen() -> bool:
 	is_fullscreen = not is_fullscreen
+	_apply_window_mode()
 	_commit_change()
 	return is_fullscreen
 
@@ -96,6 +116,7 @@ func toggle_grid() -> bool:
 
 func reset_settings() -> void:
 	_reset_values()
+	_apply_window_mode()
 	_commit_change()
 
 func _reset_values() -> void:
@@ -118,6 +139,8 @@ func _apply_settings() -> void:
 		_ui_state_manager.set_reduced_motion(reduced_motion)
 	if _gameplay_grid:
 		_gameplay_grid.set_grid_enabled(grid_enabled)
+
+func _apply_window_mode() -> void:
 	if DisplayServer.get_name() != "headless":
 		DisplayServer.window_set_mode(
 			DisplayServer.WINDOW_MODE_FULLSCREEN

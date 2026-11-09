@@ -15,6 +15,7 @@ var reset_scores_button: Button
 var back_button: Button
 var _settings_service: SettingsService
 var _updating_controls := false
+var _confirmation_dialog: ConfirmationDialog
 
 func _ready() -> void:
 	sound_button = %SoundButton
@@ -37,11 +38,16 @@ func _ready() -> void:
 	reset_scores_button.pressed.connect(_on_reset_scores_pressed)
 	
 	back_button.pressed.connect(_on_back_pressed)
+	resized.connect(_update_confirmation_layout)
 	update_button_states()
 
 ## Supplies the versioned settings boundary this menu edits.
 func set_settings_service(service: SettingsService) -> void:
+	if is_instance_valid(_settings_service):
+		_settings_service.settings_changed.disconnect(update_button_states)
 	_settings_service = service
+	if _settings_service != null:
+		_settings_service.settings_changed.connect(update_button_states)
 	update_button_states()
 
 func _on_sound_toggled() -> void:
@@ -132,24 +138,33 @@ func update_grid_button() -> void:
 	grid_button.text = str("Gameplay Grid: ", "On" if _settings_service.grid_enabled else "Off")
 
 func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable) -> void:
+	if is_instance_valid(_confirmation_dialog):
+		return
 	var dialog := ConfirmationDialog.new()
+	_confirmation_dialog = dialog
 	dialog.title = title
 	dialog.dialog_text = text
 	dialog.dialog_autowrap = true
 	dialog.theme = theme
-	# Embedded Windows do not inherit the CanvasLayer's scale like Controls do.
-	dialog.content_scale_factor = get_canvas_transform().get_scale().x
 	dialog.confirmed.connect(func() -> void: on_confirm.call(); dialog.queue_free())
 	dialog.close_requested.connect(dialog.queue_free)
 	dialog.canceled.connect(dialog.queue_free)
 	add_child(dialog)
-	var viewport_size := get_viewport_rect().size
 	# Autowrapped text can adjust the minimum height after the popup appears.
 	dialog.size_changed.connect(func() -> void:
 		dialog.position = Vector2i((get_viewport_rect().size - Vector2(dialog.size)) / 2.0)
 	)
-	dialog.size = Vector2i((Vector2(360.0, 180.0) * dialog.content_scale_factor).min(viewport_size * 0.9))
-	dialog.position = Vector2i((viewport_size - Vector2(dialog.size)) / 2.0)
+	_update_confirmation_layout()
 	# A zero popup rect preserves these embedded viewport coordinates. Passing a
 	# rect to popup_centered_clamped also caps it against physical screen pixels.
 	dialog.popup()
+
+func _update_confirmation_layout() -> void:
+	if not is_instance_valid(_confirmation_dialog):
+		return
+	var dialog := _confirmation_dialog
+	# Embedded Windows do not inherit the CanvasLayer's scale like Controls do.
+	dialog.content_scale_factor = get_canvas_transform().get_scale().x
+	var viewport_size := get_viewport_rect().size
+	dialog.size = Vector2i((Vector2(360.0, 180.0) * dialog.content_scale_factor).min(viewport_size * 0.9))
+	dialog.position = Vector2i((viewport_size - Vector2(dialog.size)) / 2.0)

@@ -112,6 +112,12 @@ Read `services/audio_service.gd` and `tests/audio_synth_test.gd`.
 
 Read `HighScoreStore`, `SettingsService`, and `tests/persistence_test.gd`.
 
+Trace fullscreen separately from other settings: a browser or compositor can
+change display mode outside the Options menu, and Web startup needs a fresh
+user gesture before entering fullscreen. The settings service observes that
+runtime state and notifies the menu without reapplying display mode when volume
+or grid settings change.
+
 - High scores use a versioned variant document with legacy support.
 - Settings use sectioned `ConfigFile` data and migrate the old format.
 - The options menu changes services through a typed boundary.

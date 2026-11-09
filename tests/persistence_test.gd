@@ -13,6 +13,7 @@ func _initialize() -> void:
 	_version_one_scores_are_migrated_to_classic()
 	_malformed_scores_fail_closed()
 	_settings_round_trip_and_reset()
+	_external_window_mode_is_saved()
 	_malformed_settings_keep_safe_defaults()
 	_legacy_settings_migrate_only_complete_records()
 	test_files.cleanup()
@@ -102,6 +103,22 @@ func _settings_round_trip_and_reset() -> void:
 	settings.free()
 	loaded.free()
 	reset.free()
+
+func _external_window_mode_is_saved() -> void:
+	var settings := SettingsService.new()
+	settings.settings_path = test_files.path("window.cfg")
+	# The headless display is windowed, just as a browser is after Escape.
+	settings.is_fullscreen = true
+	settings.save_settings()
+	settings._sync_window_mode()
+	check.expect_false(settings.is_fullscreen, "external fullscreen exit updates live settings")
+	settings.toggle_grid()
+	var loaded := SettingsService.new()
+	loaded.settings_path = settings.settings_path
+	loaded.load_settings()
+	check.expect_false(loaded.is_fullscreen, "external exit remains saved after another setting changes")
+	settings.free()
+	loaded.free()
 
 func _malformed_settings_keep_safe_defaults() -> void:
 	var config := ConfigFile.new()

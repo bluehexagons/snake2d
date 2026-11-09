@@ -162,3 +162,34 @@ coverage. Physical touch, wheel/touch scrolling, canvas text entry, physical
 controllers, audible audio, browser-restart persistence and Firefox/Safari
 remain unverified by this run. The preview typing helper requires a DOM editable
 target, so the seed check used the canvas spin buttons instead.
+
+## Display transitions and native mixer follow-up — 2026-11-09
+
+Further CachyOS checks found and fixed two transition defects: an open
+confirmation kept its previous scale after resizing, and fullscreen state
+stayed enabled after an external exit, causing unrelated settings changes to
+re-enter fullscreen.
+
+- Chromium 152: entering fullscreen through Options worked. External browser
+  exit now updates the label to Off, and toggling the grid retains windowed
+  mode. Reloading with a previously saved fullscreen preference starts without
+  a fullscreen permission error. The original failure was reproduced with
+  browser Escape; the final external-exit check used the browser's
+  `document.exitFullscreen()` API because preview Escape delivery did not
+  consistently leave fullscreen. Game state was not changed through that API.
+- Open reset confirmations remain centered, fit the viewport and update their
+  text/button scale across 390×844, 320×568 and 844×390 browser resizes. The OK
+  button now has both a 44-unit width and height. Browser resources loaded
+  successfully and no new application console errors or warnings appeared.
+- A disposable native fixture exercised KDE fullscreen entry and an external
+  return to windowed mode, checked the live Options label and saved config,
+  then changed grid/volume without changing display mode. All assertions passed.
+- The same native process played the death cue through the configured synth
+  bus: observed peak was approximately −18.6 dB, below clipping; mute reduced
+  it to approximately −200 dB. This verifies the native mixer path, not physical
+  speaker output, audible quality or end-to-end latency.
+- All nine source suites, composed-scene smoke, the expanded native rendered
+  layout suite, Web/Windows/Linux exports and Linux packaged startup passed.
+  Native verbose runs completed without script errors or ObjectDB leak warnings.
+
+The physical-device and other-browser gaps listed above remain open.
