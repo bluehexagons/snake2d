@@ -98,3 +98,30 @@ Maintenance revision `92d55df`, standard Godot 4.7.2 stable on CachyOS:
 Windows was exported here but not executed. Browser execution, controller,
 physical touch, audio quality and the known narrow-screen sizing issue remain
 covered by the open manual interaction matrix, not this automated run.
+
+## Responsive UI and native input follow-up — 2026-11-09
+
+Godot 4.7.2 on CachyOS, with the responsive menu changes committed alongside
+this record:
+
+- All nine source suites and the composed-scene smoke passed. The new layout
+  suite covers 320×568, 390×844, 844×390 and 1280×720. It checks panel widths,
+  authored pixel scale, 44-pixel button/seed targets, focus-following scroll,
+  mode popup opening, scaled pointer hits and P/Escape pause/resume. Paused
+  frames retain the model tick and interpolation accumulator. All saves use
+  disposable injected paths.
+- The same layout suite passed with the native Compatibility renderer and
+  Intel Arc OpenGL context. Rendered captures were inspected for portrait
+  Options, main menu/seed, Credits, mode popup, short-landscape scrolling and
+  desktop main-menu layout. Distance-field fonts resolve the blur exposed by
+  independent menu scaling. Raw captures remain private and outside Git.
+- A separate desktop loop through existing owner-approved KDE portal access
+  verified pointer Start, keyboard movement to wall collision, P pause/resume,
+  Escape pause and pointer return to menu. A disposable fixture checked that
+  tick/interpolation values survive pause/resume; it did not use player saves.
+- Web, Windows and Linux exports and Linux packaged startup passed after the
+  changes. Exporting establishes packaging, not native Windows/browser input.
+
+The September narrow-screen sizing finding is addressed in the native layout.
+Real-phone touch/scrolling, browser rendering, physical controllers and audible
+quality remain unverified by this follow-up.

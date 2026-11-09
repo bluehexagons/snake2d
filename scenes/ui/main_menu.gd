@@ -1,5 +1,5 @@
 class_name MainMenu
-extends CenterContainer
+extends ScrollContainer
 
 signal start_requested(mode: GameMode.Value, world_seed: int)
 signal scores_requested
@@ -29,7 +29,7 @@ func _ready() -> void:
 	_seed_line_edit = world_seed_spin_box.get_line_edit()
 	_seed_line_edit.focus_mode = Control.FOCUS_ALL
 	_prepare_next_world_seed()
-	var version_label: Label = $PanelContainer/MarginContainer/Label
+	var version_label: Label = $Content/PanelContainer/MarginContainer/Label
 	version_label.text = "v" + ProjectSettings.get_setting("application/config/version", "?")
 	for mode in GameMode.ALL:
 		mode_selector.add_item(GameMode.display_name(mode), mode)

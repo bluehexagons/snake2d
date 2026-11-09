@@ -1,5 +1,5 @@
 class_name HighScoresMenu
-extends CenterContainer
+extends ScrollContainer
 
 signal high_scores_closed
 

@@ -20,6 +20,8 @@
 [ext_resource type="Script" path="res://services/settings_service.gd" id="18_settings"]
 [ext_resource type="Script" path="res://scenes/main/gameplay_grid.gd" id="19_grid"]
 
+[ext_resource type="Script" path="res://scenes/ui/responsive_ui_layer.gd" id="20_ui_layout"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a8run"]
 bg_color = Color(0.12549, 0.12549, 0.12549, 1)
 border_width_left = 4
@@ -113,6 +115,7 @@ script = ExtResource("3_yyfjg")
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=106770468]
 layer = 2
+script = ExtResource("20_ui_layout")
 
 [node name="UIBackground" type="ColorRect" parent="UILayer" unique_id=1867130892]
 unique_name_in_owner = true
@@ -160,7 +163,7 @@ offset_right = 430.0
 offset_bottom = 42.0
 text = "Classic"
 
-[node name="GameOverPanel" type="CenterContainer" parent="UILayer" unique_id=1277709224]
+[node name="GameOverPanel" type="ScrollContainer" parent="UILayer" unique_id=1277709224]
 unique_name_in_owner = true
 process_mode = 3
 visible = false
@@ -170,57 +173,64 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("10_theme")
+horizontal_scroll_mode = 0
+follow_focus = true
 script = ExtResource("16_game_over")
 
-[node name="PanelContainer" type="PanelContainer" parent="UILayer/GameOverPanel" unique_id=1051949774]
+[node name="Content" type="CenterContainer" parent="UILayer/GameOverPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="UILayer/GameOverPanel/Content" unique_id=1051949774]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="UILayer/GameOverPanel/PanelContainer" unique_id=484072893]
+[node name="MarginContainer" type="MarginContainer" parent="UILayer/GameOverPanel/Content/PanelContainer" unique_id=484072893]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 32
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UILayer/GameOverPanel/PanelContainer/MarginContainer" unique_id=795622238]
+[node name="VBoxContainer" type="VBoxContainer" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer" unique_id=795622238]
 layout_mode = 2
 focus_mode = 2
 theme_override_constants/separation = 24
 
-[node name="GameOverLabel" type="Label" parent="UILayer/GameOverPanel/PanelContainer/MarginContainer/VBoxContainer" unique_id=360653660]
+[node name="GameOverLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=360653660]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
 text = "GAME OVER"
 horizontal_alignment = 1
 
-[node name="FinalScoreLabel" type="Label" parent="UILayer/GameOverPanel/PanelContainer/MarginContainer/VBoxContainer" unique_id=1394019066]
+[node name="FinalScoreLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1394019066]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Final Score: 0"
 horizontal_alignment = 1
 
-[node name="RestartButton" type="Button" parent="UILayer/GameOverPanel/PanelContainer/MarginContainer/VBoxContainer" unique_id=908194941]
+[node name="RestartButton" type="Button" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=908194941]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../GameOverMenuButton")
 focus_neighbor_bottom = NodePath("../GameOverMenuButton")
 text = "Play Again"
 
-[node name="GameOverMenuButton" type="Button" parent="UILayer/GameOverPanel/PanelContainer/MarginContainer/VBoxContainer" unique_id=74369341]
+[node name="GameOverMenuButton" type="Button" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=74369341]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../RestartButton")
 focus_neighbor_bottom = NodePath("../RestartButton")
 theme_type_variation = &"QuitButton"
 text = "Quit to Menu"
 
-[node name="ButtonHints" type="HBoxContainer" parent="UILayer/GameOverPanel/PanelContainer/MarginContainer/VBoxContainer" unique_id=1211534793]
+[node name="ButtonHints" type="HBoxContainer" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1211534793]
 layout_mode = 2
 alignment = 1
 
-[node name="Label" type="Label" parent="UILayer/GameOverPanel/PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=118663127]
+[node name="Label" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=118663127]
 layout_mode = 2
 theme_type_variation = &"HintLabel"
 text = "[A] Select   [B] Back"

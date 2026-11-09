@@ -54,7 +54,7 @@ func _run_smoke_test() -> void:
 	main.options_menu.grid_button.pressed.emit()
 
 	var credits_text := main.get_node_or_null(
-		"UILayer/CreditsScreen/PanelContainer/MarginContainer/VBoxContainer/CreditsRichText"
+		"UILayer/CreditsScreen/Content/PanelContainer/MarginContainer/VBoxContainer/CreditsRichText"
 	) as RichTextLabel
 	if credits_text == null:
 		_fail("Expected the credits text to exist.")

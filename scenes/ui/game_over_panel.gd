@@ -1,5 +1,5 @@
 class_name GameOverPanel
-extends CenterContainer
+extends ScrollContainer
 
 signal restart_requested
 signal menu_requested

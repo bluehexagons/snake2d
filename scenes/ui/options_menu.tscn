@@ -3,53 +3,60 @@
 [ext_resource type="Script" uid="uid://bpu7027233q5e" path="res://scenes/ui/options_menu.gd" id="1_5exto"]
 [ext_resource type="Theme" uid="uid://c3mk77g6ame25" path="res://themes/snake_ui_theme.tres" id="2_theme"]
 
-[node name="OptionsMenu" type="CenterContainer" unique_id=2146193194]
+[node name="OptionsMenu" type="ScrollContainer" unique_id=2146193194]
 process_mode = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+horizontal_scroll_mode = 0
+follow_focus = true
 theme = ExtResource("2_theme")
 script = ExtResource("1_5exto")
 
-[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1933406886]
+[node name="Content" type="CenterContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="Content" unique_id=1933406886]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=1581295918]
+[node name="MarginContainer" type="MarginContainer" parent="Content/PanelContainer" unique_id=1581295918]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 32
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=225798257]
+[node name="VBoxContainer" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer" unique_id=225798257]
 layout_mode = 2
 focus_mode = 2
 
-[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1418642603]
+[node name="TitleLabel" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1418642603]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
 text = "OPTIONS"
 horizontal_alignment = 1
 
-[node name="SoundButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=53595102]
+[node name="SoundButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=53595102]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../BackButton")
 focus_neighbor_bottom = NodePath("../VolumeSlider")
 text = "Sound: On"
 
-[node name="VolumeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="VolumeLabel" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Effects Volume: 100%"
 horizontal_alignment = 1
 
-[node name="VolumeSlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="VolumeSlider" type="HSlider" parent="Content/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../SoundButton")
 focus_neighbor_bottom = NodePath("../FullscreenButton")
@@ -57,59 +64,59 @@ min_value = -30.0
 max_value = 0.0
 step = 1.0
 
-[node name="FullscreenButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1644145211]
+[node name="FullscreenButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1644145211]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../VolumeSlider")
 focus_neighbor_bottom = NodePath("../ReducedMotionButton")
 text = "Fullscreen: Off"
 
-[node name="ReducedMotionButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ReducedMotionButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../FullscreenButton")
 focus_neighbor_bottom = NodePath("../GridButton")
 text = "Reduced Motion: Off"
 
-[node name="GridButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="GridButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ReducedMotionButton")
 focus_neighbor_bottom = NodePath("../ResetSettingsButton")
 text = "Gameplay Grid: On"
 
-[node name="ResetSettingsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1350304461]
+[node name="ResetSettingsButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1350304461]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../GridButton")
 focus_neighbor_bottom = NodePath("../ResetScoresButton")
 text = "Reset Settings"
 
-[node name="ResetScoresButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=390442626]
+[node name="ResetScoresButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=390442626]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ResetSettingsButton")
 focus_neighbor_bottom = NodePath("../BackButton")
 text = "Reset High Scores"
 
-[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=16760885]
+[node name="BackButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=16760885]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ResetScoresButton")
 focus_neighbor_bottom = NodePath("../SoundButton")
 text = "Back to Menu"
 
-[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1708904172]
+[node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1708904172]
 layout_mode = 2
 alignment = 1
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=614638540]
+[node name="Label" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=614638540]
 layout_mode = 2
 theme_type_variation = &"HintLabel"
 text = "[A] Select   [B] Back"

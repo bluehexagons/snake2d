@@ -1,5 +1,5 @@
 class_name PauseMenu
-extends CenterContainer
+extends ScrollContainer
 
 signal resume_requested
 signal menu_requested

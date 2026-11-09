@@ -1,5 +1,5 @@
 class_name OptionsMenu
-extends CenterContainer
+extends ScrollContainer
 
 signal options_closed
 signal reset_scores_requested

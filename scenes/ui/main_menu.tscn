@@ -101,33 +101,40 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="MainMenu" type="CenterContainer" unique_id=747250186]
+[node name="MainMenu" type="ScrollContainer" unique_id=747250186]
 process_mode = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+horizontal_scroll_mode = 0
+follow_focus = true
 theme = ExtResource("1_sl1te")
 script = ExtResource("2_mainmenu")
 
-[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1981040175]
+[node name="Content" type="CenterContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="Content" unique_id=1981040175]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_bg2hj")
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=556860189]
+[node name="MarginContainer" type="MarginContainer" parent="Content/PanelContainer" unique_id=556860189]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=695413260]
+[node name="VBoxContainer" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer" unique_id=695413260]
 layout_mode = 2
 focus_mode = 2
 theme_override_constants/separation = 12
 
-[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1574374115]
+[node name="TitleLabel" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1574374115]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.443137, 1, 0.764706, 1)
 theme_override_colors/font_shadow_color = Color(0.215686, 0.215686, 0.215686, 0.729412)
@@ -135,46 +142,49 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_constants/shadow_outline_size = 2
 theme_override_font_sizes/font_size = 40
+autowrap_mode = 2
 text = "A Simple Snake Game"
 horizontal_alignment = 1
 
-[node name="ModeRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(400, 0)
+[node name="ModeRow" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ModeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ModeRow"]
+[node name="ModeLabel" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer/ModeRow"]
 layout_mode = 2
 text = "Game Mode"
 
-[node name="ModeSelector" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/ModeRow"]
+[node name="ModeSelector" type="OptionButton" parent="Content/PanelContainer/MarginContainer/VBoxContainer/ModeRow"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 focus_neighbor_top = NodePath("../../QuitButton")
 focus_neighbor_bottom = NodePath("../../StartButton")
 
-[node name="ModeDescription" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ModeDescription" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(400, 38)
+custom_minimum_size = Vector2(240, 38)
 layout_mode = 2
 theme_type_variation = &"HintLabel"
 text = "No obstacles — grab food, grow, and chase your best score."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="SeedRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="SeedRow" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="SeedLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/SeedRow"]
+[node name="SeedLabel" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer/SeedRow"]
 layout_mode = 2
 text = "World Seed"
 
-[node name="WorldSeedSpinBox" type="SpinBox" parent="PanelContainer/MarginContainer/VBoxContainer/SeedRow"]
+[node name="WorldSeedSpinBox" type="SpinBox" parent="Content/PanelContainer/MarginContainer/VBoxContainer/SeedRow"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 focus_neighbor_top = NodePath("../../ModeRow/ModeSelector")
@@ -184,9 +194,9 @@ min_value = 1.0
 allow_greater = true
 update_on_text_changed = true
 
-[node name="StartButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1231305015]
+[node name="StartButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1231305015]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ModeRow/ModeSelector")
 focus_neighbor_bottom = NodePath("../ScoresButton")
@@ -201,9 +211,9 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_focus")
 text = "Start Game"
 
-[node name="ScoresButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1041650606]
+[node name="ScoresButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=1041650606]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../StartButton")
 focus_neighbor_bottom = NodePath("../OptionsButton")
@@ -218,9 +228,9 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_focus")
 text = "High Scores"
 
-[node name="OptionsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=726941253]
+[node name="OptionsButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=726941253]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ScoresButton")
 focus_neighbor_bottom = NodePath("../CreditsButton")
@@ -235,9 +245,9 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_focus")
 text = "Options"
 
-[node name="CreditsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=671159671]
+[node name="CreditsButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=671159671]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../OptionsButton")
 focus_neighbor_bottom = NodePath("../QuitButton")
@@ -252,9 +262,9 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_focus")
 text = "Credits"
 
-[node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=37271308]
+[node name="QuitButton" type="Button" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=37271308]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../CreditsButton")
 focus_neighbor_bottom = NodePath("../ModeRow/ModeSelector")
@@ -269,18 +279,18 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover_red")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_focus_red")
 text = "Quit Game"
 
-[node name="ButtonHints" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=351248812]
+[node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/VBoxContainer" unique_id=351248812]
 layout_mode = 2
 alignment = 1
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=327194930]
+[node name="Label" type="Label" parent="Content/PanelContainer/MarginContainer/VBoxContainer/ButtonHints" unique_id=327194930]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.752941, 0.752941, 0.752941, 0.752941)
 theme_override_font_sizes/font_size = 14
 text = "[A] Select   [B] Back"
 horizontal_alignment = 1
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer" unique_id=267574698]
+[node name="Label" type="Label" parent="Content/PanelContainer/MarginContainer" unique_id=267574698]
 layout_mode = 2
 size_flags_vertical = 8
 theme_override_colors/font_color = Color(0.752941, 0.752941, 0.752941, 0.752941)

@@ -6,3 +6,4 @@ snake_game_test.gd|Snake game model test passed.
 input_adapter_test.gd|Input adapter test passed.
 input_map_test.gd|Input map test passed.
 persistence_test.gd|Persistence test passed.
+ui_layout_test.gd|UI layout test passed.

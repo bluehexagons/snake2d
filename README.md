@@ -169,7 +169,7 @@ The helper runs the source test suite, increments `application/config/version`, 
 - Inspector-editable `GameRules` Resource
 - Owned and injected audio service with speed-aware movement tones, reusable swept PCM cues, click-safe voice pooling, and four waveforms
 - Reusable, pooled snake segment scenes and a custom-drawn food view
-- Responsive UI design
+- Responsive menus with readable text, 44-pixel minimum targets, and focus-aware scrolling in short windows
 - Versioned high-score and settings persistence with legacy migration
 - Explicit keyboard, gamepad, mouse, tap, and scale-aware swipe translation
 - Weighted Camera2D system

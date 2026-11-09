@@ -1,5 +1,5 @@
 class_name CreditsScreen
-extends CenterContainer
+extends ScrollContainer
 
 signal credits_screen_closed
 

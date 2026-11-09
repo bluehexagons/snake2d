@@ -144,6 +144,7 @@ HintLabel/font_sizes/font_size = 14
 Label/colors/font_color = Color(0.85098, 0.847059, 0.843137, 1)
 Label/font_sizes/font_size = 16
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_bg")
+PopupMenu/constants/v_separation = 24
 QuitButton/base_type = &"Button"
 QuitButton/colors/font_color = Color(0.85098, 0.847059, 0.843137, 1)
 QuitButton/colors/font_focus_color = Color(0.670859, 0.216267, 0.223286, 1)
