@@ -193,3 +193,36 @@ re-enter fullscreen.
   Native verbose runs completed without script errors or ObjectDB leak warnings.
 
 The physical-device and other-browser gaps listed above remain open.
+
+## Horizontal menu follow-up — 2026-11-09
+
+Godot 4.7.2 on CachyOS, with the horizontal menu changes accompanying this
+record:
+
+- All six menus use two columns at aspect ratios of at least 2:1 and 720 UI
+  units of available width. Other windows retain the stacked arrangement.
+  Source checks cover eight viewport shapes, including both sides of the
+  breakpoint, 1280×480 and 2560×1080, at 1×/1.35×/2× density. They verify
+  non-overlapping groups, short-landscape fit, focus paths, navigation and
+  retention of mode, seed and seed-editor focus across resize.
+- The native Compatibility-renderer suite passed with seven viewport shapes
+  at all three densities. Full 2560×1080 density simulations remain headless:
+  KDE constrains oversized native windows and changes their requested aspect
+  ratio. Inspected native captures show all six menus fitting at 844×390,
+  with the portrait main menu still stacked. The final native run exited
+  without script errors or ObjectDB warnings.
+- Chromium 152 through T3 preview, release Web export over loopback HTTP,
+  device pixel ratio 1.35: inspected all six menus in short landscape and
+  the main/pause layout at 1280×480. Selected Obstacles, resized through
+  portrait and ultrawide, and confirmed the unchanged seed in the next round's
+  HUD. Pointer Start, Escape pause/resume, game over and menu actions worked.
+  Reset Settings Cancel and an open confirmation's portrait resize worked.
+- The browser reported the full 2560×1080 CSS viewport and 3456×1458 canvas,
+  but the preview screenshot cropped that large surface. Full-frame geometry
+  at this size is covered by the headless suite, not a complete browser capture.
+  No application console warnings/errors or failed resource requests appeared.
+- All nine source suites, composed-scene smoke, Web/Windows/Linux release
+  exports and Linux packaged startup passed. Windows was exported, not run.
+
+Physical-device and other-browser coverage remains as listed above. Raw logs
+and captures remain private and outside Git.

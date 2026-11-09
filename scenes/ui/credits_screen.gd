@@ -19,8 +19,9 @@ func _ready() -> void:
 	var project_version := str(ProjectSettings.get_setting("application/config/version", "unknown"))
 	credits_text.text = credits_text.text.format({
 		"godot_version": godot_version,
-		"project_version": project_version,
 	})
+	var license_text: RichTextLabel = %LicenseText
+	license_text.text = license_text.text.format({"project_version": project_version})
 
 func _on_back_pressed() -> void:
 	credits_screen_closed.emit()

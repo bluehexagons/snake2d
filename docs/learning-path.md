@@ -140,5 +140,8 @@ Run:
 The same source checks run in CI before platform exports are built. Read
 `ResponsiveUILayer` and `tests/ui_layout_test.gd` to see how menu coordinates
 compensate for viewport stretch while the board retains its scale. The layout
-suite checks narrow portrait, short landscape, focus scrolling and engine-routed
-pointer/keyboard events with disposable settings and score files.
+suite checks narrow portrait, short landscape, ultrawide windows, focus scrolling
+and engine-routed pointer/keyboard events with disposable settings and score
+files. Follow `ResponsiveMenuLayout` to see how two authored groups switch
+between vertical and horizontal arrangements without recreating controls or
+losing seed input and focus. Its breakpoint uses the compensated menu size.

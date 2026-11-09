@@ -27,10 +27,11 @@ func fit_to_viewport(pixel_density: float) -> void:
 	var compensation := maxf(1.0, pixel_density / maxf(stretch, 0.01))
 	scale = Vector2.ONE * compensation
 	var available := get_viewport().get_visible_rect().size / compensation
-	# Keep the title on one line on desktop, while allowing a narrow menu to wrap.
-	var main_panel := get_node("MainMenu/Content/PanelContainer") as Control
-	main_panel.custom_minimum_size.x = minf(448.0, maxf(0.0, available.x - 24.0))
 	for control in _full_rect_controls:
+		if control is ScrollContainer:
+			# Release the previous panel minimum before shrinking its scroll root.
+			var layout := control.get_node("Content/PanelContainer/MarginContainer/MenuLayout") as ResponsiveMenuLayout
+			layout.fit_to_size(available)
 		control.position = Vector2.ZERO
 		control.size = available
 	var mode_label := get_node("HUDModeLabel") as Label

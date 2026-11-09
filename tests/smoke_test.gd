@@ -53,9 +53,7 @@ func _run_smoke_test() -> void:
 		return
 	main.options_menu.grid_button.pressed.emit()
 
-	var credits_text := main.get_node_or_null(
-		"UILayer/CreditsScreen/Content/PanelContainer/MarginContainer/VBoxContainer/CreditsRichText"
-	) as RichTextLabel
+	var credits_text := main.credits_screen.get_node_or_null("%CreditsRichText") as RichTextLabel
 	if credits_text == null:
 		_fail("Expected the credits text to exist.")
 		return
@@ -69,7 +67,8 @@ func _run_smoke_test() -> void:
 	if not credits_text.text.contains("Godot Engine " + godot_version):
 		_fail("Expected the credits to show the runtime Godot version.")
 		return
-	if not credits_text.text.contains("Version: " + project_version):
+	var license_text := main.credits_screen.get_node_or_null("%LicenseText") as RichTextLabel
+	if license_text == null or not license_text.text.contains("Version: " + project_version):
 		_fail("Expected the credits to show the configured project version.")
 		return
 

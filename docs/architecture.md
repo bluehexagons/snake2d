@@ -94,6 +94,15 @@ panel. Short windows scroll vertically and follow keyboard/controller focus;
 buttons and seed/volume controls have 44-unit minimum heights. The main title
 wraps on narrow screens. Keep new panels in this layout so input coordinates,
 focus scrolling and board scaling remain independent.
+
+`ResponsiveMenuLayout` arranges each panel's authored `Primary` and `Actions`
+groups side by side at aspect ratios of at least 2:1 with at least 720 units of
+available UI width. It caps the wide panel at a 760-unit target width and uses
+compact spacing; other windows stack the groups. The same nodes and focus paths
+survive reflow, retaining the selected mode, seed and keyboard focus. Before
+resizing a menu root, `ResponsiveUILayer` updates its layout using the new
+available size so a stale wide-panel minimum cannot prevent portrait resizing.
+
 Full-screen controls grow toward their bottom/right edges so asynchronous
 minimum-size changes from wrapped text cannot move the menu origin on resize.
 
@@ -137,7 +146,8 @@ The source suite covers four boundaries:
 - Model specifications cover movement, collisions, growth, deterministic food, board completion, and timing.
 - Service tests cover session idempotency and synchronous signal listeners, persistence, migration, malformed settings, and procedural PCM generation.
 - UI tests cover focus ownership, inactive-panel input, interrupted transitions,
-  narrow/short-window layout at 1×/1.35×/2× density, dialog size/centering,
+  narrow/short/ultrawide layout at 1×/1.35×/2× density, breakpoint transitions,
+  retained seed/focus across reflow, dialog size/centering,
   target sizes, scaled pointer hit testing and
   keyboard pause/resume with frozen ticks and interpolation.
 - The smoke scene instantiates `Main`, starts a round through its public API, and verifies the composed world reaches a playable state.
