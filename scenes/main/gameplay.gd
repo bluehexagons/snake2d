@@ -194,6 +194,9 @@ func cleanup() -> void:
 func get_snake_position() -> Vector2:
 	return snake.position if snake else Vector2.ZERO
 
+func get_snake_center() -> Vector2:
+	return snake.position + Vector2.ONE * (snake.cell_size / 2.0) if snake else Vector2.ZERO
+
 func get_food_position() -> Vector2:
 	return food.position if food else Vector2.ZERO
 

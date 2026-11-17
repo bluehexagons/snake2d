@@ -48,6 +48,7 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 theme = ExtResource("10_theme")
 script = ExtResource("1_tyq8r")
 game_rules = ExtResource("14_rules")
@@ -81,6 +82,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="GameWorld" type="Node2D" parent="GameLayer/GameViewport" unique_id=1603200358]
 unique_name_in_owner = true
@@ -103,6 +105,7 @@ unique_name_in_owner = true
 offset_right = 768.0
 offset_bottom = 576.0
 size_flags_horizontal = 4
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_a8run")
 
 [node name="GameplayGrid" type="Node2D" parent="GameLayer/GameViewport/GameWorld/PlayArea"]

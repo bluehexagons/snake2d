@@ -99,4 +99,4 @@ func _direction_toward_screen_position(screen_position: Vector2) -> Vector2i:
 	if _gameplay == null:
 		return Vector2i.ZERO
 	var local_pointer := get_global_transform_with_canvas().affine_inverse() * screen_position
-	return cardinal_direction(local_pointer - _gameplay.get_snake_position())
+	return cardinal_direction(local_pointer - _gameplay.get_snake_center())

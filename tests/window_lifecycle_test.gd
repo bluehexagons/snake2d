@@ -20,6 +20,7 @@ func _run() -> void:
 		await _expect_minimized_fullscreen(settings)
 	root.focus_exited.emit()
 	check.expect_equal(main.game_session.state, GameSession.State.MAIN_MENU, "unfocused menus remain menus")
+	await _expect_pointer_gameplay_input(main)
 	main.start_new_round()
 	_expect_mouse_mode_ignores_idle_controller(main)
 	main.gameplay.request_direction(Vector2i.RIGHT)
@@ -56,6 +57,55 @@ func _run() -> void:
 	check.expect_false(paused, "removing the scene releases tree pause")
 	files.cleanup()
 	check.finish(self, "Window lifecycle test")
+
+func _expect_pointer_gameplay_input(main: Main) -> void:
+	main.start_new_round()
+	await process_frame
+	var gameplay := main.gameplay
+	var snake := gameplay.snake
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.position = snake.get_global_transform_with_canvas() * Vector2(snake.cell_size / 2.0, -2.0)
+	click.pressed = true
+	root.push_input(click, true)
+	check.expect_false(gameplay.model.snake.waiting_for_input, "a click on the tutorial starts gameplay")
+	check.expect_equal(gameplay.model.snake.queued_direction, Vector2i.UP, "a click above the visible head turns up")
+	click.pressed = false
+	root.push_input(click, true)
+	main.game_session.return_to_menu()
+
+	main.start_new_round()
+	await process_frame
+	snake = gameplay.snake
+	var touch := InputEventScreenTouch.new()
+	touch.index = 1
+	touch.position = snake.get_global_transform_with_canvas() * Vector2(-2.0, snake.cell_size / 2.0)
+	touch.pressed = true
+	root.push_input(touch, true)
+	check.expect_true(gameplay.model.snake.waiting_for_input, "a touch press waits for a tap or swipe")
+	touch.pressed = false
+	root.push_input(touch, true)
+	check.expect_false(gameplay.model.snake.waiting_for_input, "a tap on the tutorial starts gameplay")
+	check.expect_equal(gameplay.model.snake.queued_direction, Vector2i.LEFT, "a tap left of the visible head turns left")
+	main.game_session.return_to_menu()
+
+	main.start_new_round()
+	await process_frame
+	touch.position = gameplay.snake.get_global_transform_with_canvas() * Vector2.ONE
+	touch.pressed = true
+	root.push_input(touch, true)
+	var drag := InputEventScreenDrag.new()
+	drag.index = touch.index
+	drag.relative = Vector2(0.0, main.snake_input_adapter.get_drag_threshold_pixels() + 1.0)
+	drag.screen_relative = drag.relative
+	drag.position = touch.position + drag.relative
+	root.push_input(drag, true)
+	check.expect_false(gameplay.model.snake.waiting_for_input, "a swipe on the tutorial starts gameplay before release")
+	check.expect_equal(gameplay.model.snake.queued_direction, Vector2i.DOWN, "a swipe follows the drag direction")
+	touch.position = drag.position
+	touch.pressed = false
+	root.push_input(touch, true)
+	main.game_session.return_to_menu()
 
 func _expect_mouse_mode_ignores_idle_controller(main: Main) -> void:
 	var mouse := InputEventMouseMotion.new()
