@@ -82,20 +82,14 @@ func end_round(final_score: int) -> void:
 
 	current_score = final_score
 
-	var high_scores := get_high_scores(current_mode)
-	var score_added := false
-	for i in high_scores.size():
-		if final_score > high_scores[i]:
-			high_scores.insert(i, final_score)
-			score_added = true
-			break
-
-	if not score_added and high_scores.size() < _high_score_store.max_scores:
+	if final_score > 0:
+		var previous_scores := get_high_scores(current_mode)
+		var high_scores := previous_scores.duplicate()
 		high_scores.append(final_score)
-
-	high_scores = _high_score_store.sanitize_high_scores(high_scores)
-	high_scores_by_mode[GameMode.key(current_mode)] = high_scores
-	_high_score_store.save_high_scores_by_mode(high_scores_by_mode)
+		high_scores = _high_score_store.sanitize_high_scores(high_scores)
+		if high_scores != previous_scores:
+			high_scores_by_mode[GameMode.key(current_mode)] = high_scores
+			_high_score_store.save_high_scores_by_mode(high_scores_by_mode)
 
 	# Signals run synchronously. Commit state before notifying observers so a
 	# listener cannot score this round twice or have its menu transition undone.

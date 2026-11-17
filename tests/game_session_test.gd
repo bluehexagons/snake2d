@@ -35,13 +35,6 @@ class FakeHighScoreStore extends HighScoreStore:
 	func load_high_scores_by_mode() -> Dictionary:
 		return stored_tables.duplicate(true)
 
-	func sanitize_high_scores(scores: Array[int]) -> Array[int]:
-		var sanitized := scores.duplicate()
-		sanitized.sort_custom(func(a: int, b: int) -> bool: return a > b)
-		if sanitized.size() > max_scores:
-			sanitized.resize(max_scores)
-		return sanitized
-
 	func save_high_scores_by_mode(score_tables: Dictionary) -> void:
 		save_count += 1
 		stored_tables = score_tables.duplicate(true)
@@ -86,6 +79,12 @@ func _initialize() -> void:
 	check.expect_equal(game_session.state, GameSession.State.GAME_OVER, "game over ends the active round")
 	check.expect_equal(game_session.get_high_scores(), [30, 25, 20], "a final score is ranked and limited")
 	check.expect_equal(high_score_store.stored_tables.classic, [30, 25, 20], "the ranked Classic scores are persisted")
+
+	for score in [0, 5, 20]:
+		game_session.start_new_round()
+		gameplay.game_over.emit(score)
+		check.expect_equal(game_session.get_current_score(), score, "an unranked score still ends the round")
+		check.expect_equal(high_score_store.save_count, 1, "an unchanged table does not rewrite the score file")
 
 	game_session.return_to_menu()
 	game_session.return_to_menu()
