@@ -1,5 +1,7 @@
 extends SceneTree
 
+const SaveFile = preload("res://services/save_file.gd")
+
 var test_files := TestFiles.new()
 var score_path := test_files.path("scores.dat")
 var settings_path := test_files.path("settings.cfg")
@@ -13,11 +15,14 @@ func _initialize() -> void:
 	_version_one_scores_are_migrated_to_classic()
 	_malformed_scores_fail_closed()
 	_truncated_scores_fail_closed()
+	_interrupted_score_replacement_recovers_previous_table()
 	_settings_round_trip_and_reset()
 	_external_window_mode_is_saved()
 	_minimizing_keeps_fullscreen_preference()
 	_malformed_settings_keep_safe_defaults()
 	_legacy_settings_migrate_only_complete_records()
+	_interrupted_settings_replacement_recovers_previous_preferences()
+	_failed_publish_preserves_recovery_file()
 	test_files.cleanup()
 	check.finish(self, "Persistence test")
 
@@ -133,6 +138,62 @@ func _settings_round_trip_and_reset() -> void:
 	settings.free()
 	loaded.free()
 	reset.free()
+
+func _interrupted_score_replacement_recovers_previous_table() -> void:
+	var store := HighScoreStore.new()
+	store.save_path = test_files.path("interrupted-scores.dat")
+	var recovery_path := store.save_path + SaveFile.RECOVERY_SUFFIX
+	store.save_high_scores_by_mode({"classic": [15], "pitfall": [30], "obstacles": [25]})
+	var staged_path := store.save_path + ".interrupted.tmp"
+	var staged := FileAccess.open(staged_path, FileAccess.WRITE)
+	staged.store_8(10)
+	staged.close()
+	check.expect_equal(store.load_high_scores(), [15], "a partial staging file leaves current scores readable")
+	check.expect_equal(DirAccess.rename_absolute(store.save_path, recovery_path), OK, "simulate interruption while replacing scores on Windows")
+	check.expect_equal(store.load_high_scores(), [15], "the previous score file loads while the primary is absent")
+	check.expect_false(FileAccess.file_exists(store.save_path), "reading recovered scores leaves the files undisturbed")
+	store.save_high_scores([20, 15])
+	var tables := store.load_high_scores_by_mode()
+	check.expect_equal(tables.classic, [20, 15], "retry publishes the updated score table")
+	check.expect_equal(tables.pitfall, [30], "retry retains recovered Pitfall scores")
+	check.expect_equal(tables.obstacles, [25], "retry retains recovered Obstacles scores")
+	check.expect_true(FileAccess.file_exists(store.save_path), "retry recreates the primary score file")
+	check.expect_false(FileAccess.file_exists(recovery_path), "a successful save retires the recovery copy")
+	store.free()
+
+func _interrupted_settings_replacement_recovers_previous_preferences() -> void:
+	var settings := SettingsService.new()
+	settings.settings_path = test_files.path("interrupted-settings.cfg")
+	settings.legacy_settings_path = test_files.path("interrupted-legacy.dat")
+	var recovery_path := settings.settings_path + SaveFile.RECOVERY_SUFFIX
+	var legacy := FileAccess.open(settings.legacy_settings_path, FileAccess.WRITE)
+	legacy.store_16(0)
+	legacy.close()
+	settings.toggle_mute()
+	check.expect_equal(DirAccess.rename_absolute(settings.settings_path, recovery_path), OK, "simulate interruption while replacing settings on Windows")
+	settings.load_settings()
+	check.expect_true(settings.is_muted, "recovery takes precedence over legacy settings")
+	check.expect_false(FileAccess.file_exists(settings.settings_path), "reading recovered settings leaves the files undisturbed")
+	settings.toggle_grid()
+	settings.load_settings()
+	check.expect_true(settings.is_muted, "saving after recovery preserves the recovered preference")
+	check.expect_false(settings.grid_enabled, "the updated preference survives reload")
+	check.expect_true(FileAccess.file_exists(settings.settings_path), "retry recreates the primary settings file")
+	check.expect_false(FileAccess.file_exists(recovery_path), "successful replacement removes the recovery copy")
+	settings.free()
+
+func _failed_publish_preserves_recovery_file() -> void:
+	var path := test_files.path("blocked-save")
+	var recovery_path := path + SaveFile.RECOVERY_SUFFIX
+	var previous := "previous contents".to_utf8_buffer()
+	check.expect_equal(SaveFile.write(recovery_path, previous), OK, "write a recovery fixture")
+	check.expect_equal(DirAccess.make_dir_absolute(path), OK, "block publication by occupying the destination")
+	var files_before := DirAccess.get_files_at(test_files.directory)
+	check.expect_true(SaveFile.write(path, "new contents".to_utf8_buffer()) != OK, "a failed rename reports a write failure")
+	check.expect_equal(FileAccess.get_file_as_bytes(SaveFile.path_for_read(path)), previous, "a failed publication preserves the recovery file")
+	check.expect_equal(DirAccess.get_files_at(test_files.directory), files_before, "failed publication cleans up its staging file")
+	check.expect_equal(DirAccess.remove_absolute(path), OK, "remove the directory occupying the save path")
+	check.expect_equal(SaveFile.write(path, "replacement".to_utf8_buffer()), OK, "a publish failure can be retried")
 
 func _external_window_mode_is_saved() -> void:
 	var settings := SettingsService.new()

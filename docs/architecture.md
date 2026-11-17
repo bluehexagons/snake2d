@@ -149,6 +149,12 @@ produce empty tables without engine errors or rewriting the damaged file.
 The session saves the tables only when a score changes a ranking or the player
 explicitly clears the scores.
 
+Both save services write and verify a temporary file beside the destination
+before replacing it. On Windows, the current file moves to a recovery path during
+replacement. If the game stops between the two moves, the next load reads that
+recovery file. A successful save retires it. The settings and score file formats
+remain readable by earlier versions.
+
 `SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
 
 Settings migration writes the new format only after validating a complete

@@ -5,6 +5,7 @@ extends Node
 
 signal settings_changed
 
+const SaveFile = preload("res://services/save_file.gd")
 const CURRENT_VERSION := 1
 const DEFAULT_SETTINGS_PATH := "user://settings.cfg"
 const LEGACY_SETTINGS_PATH := "user://settings.dat"
@@ -58,7 +59,8 @@ func _sync_window_mode(mode: DisplayServer.WindowMode) -> void:
 func load_settings() -> void:
 	_reset_values()
 	var config := ConfigFile.new()
-	var error := config.load(settings_path)
+	var read_path := SaveFile.path_for_read(settings_path)
+	var error := config.load(read_path)
 	if error == OK:
 		var version = config.get_value("meta", "version", 0)
 		if version is int and version == CURRENT_VERSION:
@@ -71,7 +73,7 @@ func load_settings() -> void:
 			reduced_motion = _read_bool(config, "accessibility", "reduced_motion", false)
 		return
 
-	if not FileAccess.file_exists(settings_path) and FileAccess.file_exists(legacy_settings_path):
+	if not FileAccess.file_exists(read_path) and FileAccess.file_exists(legacy_settings_path):
 		if _load_legacy_settings():
 			save_settings()
 
@@ -83,7 +85,7 @@ func save_settings() -> void:
 	config.set_value("display", "fullscreen", is_fullscreen)
 	config.set_value("display", "grid_enabled", grid_enabled)
 	config.set_value("accessibility", "reduced_motion", reduced_motion)
-	var error := config.save(settings_path)
+	var error := SaveFile.write(settings_path, config.encode_to_text().to_utf8_buffer())
 	if error != OK:
 		push_warning("Could not save settings to %s (error %d)." % [settings_path, error])
 

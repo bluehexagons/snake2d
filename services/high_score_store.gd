@@ -2,6 +2,7 @@ class_name HighScoreStore
 extends Node
 
 const AppConstants = preload("res://core/app_constants.gd")
+const SaveFile = preload("res://services/save_file.gd")
 const SAVE_VERSION := 2
 
 ## File-backed, versioned persistence for the local high-score table.
@@ -10,10 +11,7 @@ const SAVE_VERSION := 2
 
 func load_high_scores_by_mode() -> Dictionary:
 	var tables := empty_score_tables()
-	if not FileAccess.file_exists(save_path):
-		return tables
-	
-	var file := FileAccess.open(save_path, FileAccess.READ)
+	var file := FileAccess.open(SaveFile.path_for_read(save_path), FileAccess.READ)
 	if not file:
 		return tables
 	# store_var prefixes the Variant with its byte length. Interrupted writes
@@ -62,9 +60,15 @@ func save_high_scores_by_mode(score_tables: Dictionary) -> void:
 		"version": SAVE_VERSION,
 		"scores_by_mode": sanitized_tables,
 	}
-	var file := FileAccess.open(save_path, FileAccess.WRITE)
-	if file:
-		file.store_var(save_data)
+	# Preserve the four-byte length prefix used by FileAccess.store_var.
+	var payload := var_to_bytes(save_data)
+	var record := PackedByteArray()
+	record.resize(4)
+	record.encode_u32(0, payload.size())
+	record.append_array(payload)
+	var error := SaveFile.write(save_path, record)
+	if error != OK:
+		push_warning("Could not save high scores to %s (error %d)." % [save_path, error])
 
 ## Compatibility helpers keep older callers focused on the Classic table.
 func load_high_scores() -> Array[int]:
