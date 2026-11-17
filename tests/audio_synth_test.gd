@@ -12,7 +12,7 @@ func _initialize() -> void:
 	_expect_cached_tones_reused(audio_service)
 	_expect_sweep_changes_pcm(audio_service)
 	_expect_delayed_movement_progression(audio_service)
-	_expect_prewarmed_cues_are_bounded(audio_service)
+	_expect_movement_cues_are_cached_on_demand(audio_service)
 	_expect_channel_gain_composition(audio_service)
 	audio_service.free()
 
@@ -156,26 +156,31 @@ func _expect_delayed_movement_progression(audio_service: AudioService) -> void:
 	):
 		_fail("Expected faster movement cues to become shorter.")
 
-func _expect_prewarmed_cues_are_bounded(audio_service: AudioService) -> void:
+func _expect_movement_cues_are_cached_on_demand(audio_service: AudioService) -> void:
 	audio_service._tone_cache.clear()
 	audio_service._tone_cache_order.clear()
-	audio_service._prewarm_cues()
+	audio_service._prewarm_fixed_cues()
 	var prewarmed_count := audio_service._tone_cache.size()
-	if prewarmed_count > AudioServiceScript.TONE_CACHE_CAPACITY:
-		_fail("Expected prewarmed cues to fit within the bounded tone cache.")
+	if prewarmed_count != 4:
+		_fail("Expected startup to prewarm only the four fixed cues.")
 		return
 
 	for step in range(AudioServiceScript.MOVE_PROGRESS_STEPS + 1):
 		var progress := float(step) / float(AudioServiceScript.MOVE_PROGRESS_STEPS)
 		var frequency := audio_service.movement_frequency_for_progress(progress)
-		audio_service._get_cached_tone_stream(
+		var duration := audio_service.movement_duration_for_progress(progress)
+		var waveform := AudioServiceScript.Waveform.SINE
+		var stream := audio_service._get_cached_tone_stream(
 			frequency,
 			frequency,
-			audio_service.movement_duration_for_progress(progress),
-			AudioServiceScript.Waveform.SINE
+			duration,
+			waveform
 		)
-	if audio_service._tone_cache.size() != prewarmed_count:
-		_fail("Expected movement playback to reuse the prewarmed pitch buckets.")
+		if stream == null or stream != audio_service._get_cached_tone_stream(frequency, frequency, duration, waveform):
+			_fail("Expected each movement cue to reuse its cached stream.")
+			return
+	if audio_service._tone_cache.size() > AudioServiceScript.TONE_CACHE_CAPACITY:
+		_fail("Expected all speed buckets to fit within the bounded tone cache.")
 
 func _expect_channel_gain_composition(audio_service: AudioService) -> void:
 	audio_service._channel_cue_volume_db.append(-22.0)

@@ -112,6 +112,10 @@ func is_cell_blocked(cell: Vector2i) -> bool:
 	return cell in obstacle_cells
 
 func _choose_food_cell() -> Vector2i:
+	# Without walls, the entire board is connected.
+	if obstacle_cells.is_empty():
+		return board.choose_available_cell(snake.body, _random)
+
 	var occupied := snake.body.duplicate()
 	occupied.append_array(obstacle_cells)
 	var candidates := board.available_cells(occupied)
@@ -172,6 +176,9 @@ func _is_below_snake_segment(cell: Vector2i) -> bool:
 	return false
 
 func _reachable_cells_from(start: Vector2i) -> Dictionary[Vector2i, bool]:
+	var blocked: Dictionary[Vector2i, bool] = {}
+	for cell in obstacle_cells:
+		blocked[cell] = true
 	var reachable: Dictionary[Vector2i, bool] = {start: true}
 	var frontier: Array[Vector2i] = [start]
 	var index := 0
@@ -180,7 +187,7 @@ func _reachable_cells_from(start: Vector2i) -> Dictionary[Vector2i, bool]:
 		index += 1
 		for direction in SnakeState.CARDINAL_DIRECTIONS:
 			var next := current + direction
-			if board.contains(next) and next not in obstacle_cells and not reachable.has(next):
+			if board.contains(next) and not blocked.has(next) and not reachable.has(next):
 				reachable[next] = true
 				frontier.append(next)
 	return reachable

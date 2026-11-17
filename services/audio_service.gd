@@ -65,7 +65,7 @@ var effects_volume_db := 0.0
 func _ready() -> void:
 	if DisplayServer.get_name() != "headless":
 		_ensure_audio_players()
-		_prewarm_cues()
+		_prewarm_fixed_cues()
 	_update_players()
 
 func _ensure_audio_players() -> void:
@@ -260,15 +260,9 @@ func _acquire_channel_index(voice_group: VoiceGroup) -> int:
 			return channel
 	return -1
 
-func _prewarm_cues() -> void:
-	for step in range(MOVE_PROGRESS_STEPS + 1):
-		var progress := float(step) / float(MOVE_PROGRESS_STEPS)
-		_get_cached_tone_stream(
-			movement_frequency_for_progress(progress),
-			movement_frequency_for_progress(progress),
-			movement_duration_for_progress(progress),
-			Waveform.SINE
-		)
+func _prewarm_fixed_cues() -> void:
+	# Render the longer, timing-sensitive effects before gameplay. Movement
+	# buckets are short and are synthesized only when their speed is reached.
 	_get_cached_tone_stream(
 		EAT_START_FREQUENCY,
 		EAT_END_FREQUENCY,
