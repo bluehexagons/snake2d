@@ -13,19 +13,41 @@ source "$PROJECT_DIR/scripts/godot-common.sh"
 GODOT_BIN="$(resolve_godot_bin)"
 echo "Using Godot executable: $GODOT_BIN"
 
-export_build() {
+export_build() (
     local preset_name="$1"
     local output_path="$2"
+    shift 2
+    local output_dir staging filename
+    output_dir="$(dirname "$output_path")"
 
     echo "Exporting ${preset_name} version..."
-    mkdir -p "$(dirname "$output_path")"
-    rm -f -- "$output_path"
-    run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "$preset_name" "$output_path"
+    # An earlier build must not mask a missing file in this invocation.
+    mkdir -p "$output_dir"
+    staging="$(mktemp -d "$output_dir/.export.XXXXXX")"
+    trap 'rm -rf -- "$staging"' EXIT
+    touch "$staging/.gdignore"
+    run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --export-release "$preset_name" "$staging/${output_path##*/}"
 
-    if [[ ! -s "$output_path" ]]; then
-        echo "Error: Expected export output was not created: $output_path"
-        exit 1
-    fi
+    for filename in "${output_path##*/}" "$@"; do
+        if [[ ! -f "$staging/$filename" || ! -s "$staging/$filename" ]]; then
+            echo "Error: Expected export output was not created: $filename" >&2
+            return 1
+        fi
+    done
+    mv -f -- "$staging"/* "$output_dir/"
+)
+
+export_web() {
+    export_build "Web" "$PROJECT_DIR/out/html/index.html" index.js index.wasm index.pck \
+        index.audio.worklet.js index.audio.position.worklet.js
+}
+
+export_windows() {
+    export_build "Windows Desktop" "$PROJECT_DIR/out/win64/snake.exe" snake.pck
+}
+
+export_linux() {
+    export_build "Linux" "$PROJECT_DIR/out/linux64/snake.x86_64" snake.pck
 }
 
 # Function to show usage
@@ -40,19 +62,19 @@ PLATFORM=${1:-all}
 
 case "$PLATFORM" in
     web|Web)
-        export_build "Web" "$PROJECT_DIR/out/html/index.html"
+        export_web
         ;;
     windows|Windows\ Desktop)
-        export_build "Windows Desktop" "$PROJECT_DIR/out/win64/snake.exe"
+        export_windows
         ;;
     linux|Linux)
-        export_build "Linux" "$PROJECT_DIR/out/linux64/snake.x86_64"
+        export_linux
         ;;
     all)
         echo "Exporting all platforms..."
-        export_build "Web" "$PROJECT_DIR/out/html/index.html"
-        export_build "Windows Desktop" "$PROJECT_DIR/out/win64/snake.exe"
-        export_build "Linux" "$PROJECT_DIR/out/linux64/snake.x86_64"
+        export_web
+        export_windows
+        export_linux
         ;;
     *)
         echo "Error: Unknown platform '$PLATFORM'"

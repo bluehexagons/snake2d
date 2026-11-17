@@ -13,14 +13,17 @@ if ($WindowsExportPath -and $Mode -ne 'windows-export') {
 if ($Mode -in @('source', 'all')) {
     $godot = Resolve-GodotCommand
     Invoke-GodotCommand $godot @('--headless', '--path', $PSScriptRoot, '--import', '--quit') -TimeoutSeconds $TimeoutSeconds
+    $ranSuite = $false
     foreach ($suite in Get-Content -LiteralPath (Join-Path $PSScriptRoot 'tests\source-suites.txt')) {
         if (-not $suite) { continue }
         $parts = $suite.Split('|')
-        if ($parts.Count -ne 2 -or $parts[0] -notmatch '\A[a-z_]+_test\.gd\z' -or -not $parts[1]) {
+        if ($parts.Count -ne 2 -or $parts[0] -cnotmatch '\A[a-z_]+_test\.gd\z' -or -not $parts[1]) {
             throw "Invalid source suite: $suite"
         }
         Invoke-GodotCommand $godot @('--headless', '--path', $PSScriptRoot, '--script', "res://tests/$($parts[0])") $parts[1] -TimeoutSeconds $TimeoutSeconds
+        $ranSuite = $true
     }
+    if (-not $ranSuite) { throw 'No source suites were registered.' }
     Invoke-GodotCommand $godot @('--headless', '--path', $PSScriptRoot, '--scene', 'res://tests/smoke_test.tscn', '--quit-after', '300') 'Smoke test passed.' -TimeoutSeconds $TimeoutSeconds
 }
 if ($Mode -eq 'all') {

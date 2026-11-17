@@ -69,7 +69,8 @@ from Linux still needs native Windows runtime testing.
 ./build.sh linux
 ```
 
-The exported files will be placed in the `out/` directory. Bash commands enforce
+The exported files will be placed in the `out/` directory after the launcher
+and its required companion files pass validation. Bash commands enforce
 a 120-second deadline per engine process; set `GODOT_TIMEOUT_SECONDS` (1–3600)
 for a deliberate override. A timed-out process group receives TERM, then KILL
 if it has not exited within five seconds. Engine discovery honors `GODOT_BIN`
@@ -168,6 +169,7 @@ Releases are created from a clean, up-to-date `main` branch:
 ```
 
 The helper runs the source test suite, increments `application/config/version`, creates the version commit and matching `v*` tag, then atomically pushes both. Pushing the tag triggers the GitHub release workflow, which tests and exports the Web, Windows, and Linux builds before publishing their archives.
+If the push fails, the helper prints the command to retry the same commit and tag.
 
 Publication waits for a separate Windows runner to extract and start the actual
 Windows archive without an installed editor. The tested archives are retained

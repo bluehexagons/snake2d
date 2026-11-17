@@ -5,8 +5,10 @@ function Resolve-GodotCommand {
     }
     foreach ($candidate in $candidates) {
         if (-not $candidate) { continue }
-        $command = Get-Command $candidate -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($command -and [IO.Path]::GetExtension($command.Source) -eq '.exe') { return $command.Source }
+        $command = Get-Command $candidate -All -CommandType Application -ErrorAction SilentlyContinue |
+            Where-Object { [IO.Path]::GetExtension($_.Source) -eq '.exe' } |
+            Select-Object -First 1
+        if ($command) { return $command.Source }
     }
     throw 'Godot was not found. Install the documented engine version and set GODOT_BIN to its console executable.'
 }
@@ -45,14 +47,14 @@ function Invoke-GodotCommand([string]$Command, [string[]]$Arguments, [string]$Ex
             }
         }
         if (-not $stdout.Wait(5000) -or -not $stderr.Wait(5000)) { throw 'Godot output streams did not close.' }
-        $output = $stdout.Result + $stderr.Result
-        if ($output) { Write-Host $output.TrimEnd() }
+        $output = ($stdout.Result, $stderr.Result) -join "`n"
+        if ($output.TrimEnd()) { Write-Host $output.TrimEnd() }
         if ($timedOut) { throw "Godot timed out after $TimeoutSeconds seconds." }
         if ($process.ExitCode -ne 0) { throw "Godot failed (exit code $($process.ExitCode))." }
         if ($output -match 'SCRIPT ERROR:|Parse Error:|Compile Error:|(?m)(?:^|\s)ERROR:') {
             throw 'Godot reported an error.'
         }
-        if ($ExpectedMarker -and $ExpectedMarker -notin @($output -split '\r?\n')) {
+        if ($ExpectedMarker -and $ExpectedMarker -cnotin @($output -split '\r?\n')) {
             throw "Godot exited before reporting: $ExpectedMarker"
         }
     } finally { $process.Dispose() }

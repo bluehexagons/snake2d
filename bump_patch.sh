@@ -47,8 +47,11 @@ if git rev-parse --verify --quiet "refs/tags/$new_tag" > /dev/null; then
     echo "Error: tag $new_tag already exists locally."
     exit 1
 fi
-if git ls-remote --exit-code --tags "$REMOTE" "refs/tags/$new_tag" > /dev/null 2>&1; then
+if git ls-remote --exit-code --tags "$REMOTE" "refs/tags/$new_tag" > /dev/null; then
     echo "Error: tag $new_tag already exists on $REMOTE."
+    exit 1
+elif [[ $? -ne 2 ]]; then
+    echo "Error: could not check for tag $new_tag on $REMOTE." >&2
     exit 1
 fi
 
@@ -67,6 +70,14 @@ fi
 git add "$PROJECT_FILE"
 git commit -m "Bump patch version to $new_version"
 git tag "$new_tag"
-git push --atomic "$REMOTE" "$RELEASE_BRANCH" "$new_tag"
+release_commit="$(git rev-parse HEAD)"
+push_args=(--atomic "$REMOTE" "$release_commit:refs/heads/$RELEASE_BRANCH" "refs/tags/$new_tag")
+if ! git push "${push_args[@]}"; then
+    echo "Error: release commit and tag are local. After resolving the push error, retry the same release:" >&2
+    printf '  git push' >&2
+    printf ' %q' "${push_args[@]}" >&2
+    printf '\n' >&2
+    exit 1
+fi
 
 echo "Released v$new_version"

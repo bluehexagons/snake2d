@@ -26,6 +26,7 @@ switch ($Mode) {
     'script-error' { Write-Output 'SCRIPT ERROR: fixture failure' }
     'marker' { Write-Output 'Suite passed.' }
     'warning' { [Console]::Error.WriteLine('harmless diagnostic') }
+    'split-error' { [Console]::Write('message'); [Console]::Error.Write('ERROR: fixture failure') }
     'argument' { Write-Output ([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Value))) }
     'hang' { Start-Sleep -Seconds 20 }
 }
@@ -42,6 +43,8 @@ exit 0
     }
     Assert-Throws { Invoke-GodotCommand $command ($baseArguments + @('fail')) } 'exit code 23'
     Assert-Throws { Invoke-GodotCommand $command ($baseArguments + @('script-error')) } 'reported an error'
+    Assert-Throws { Invoke-GodotCommand $command ($baseArguments + @('split-error')) } 'reported an error'
+    Assert-Throws { Invoke-GodotCommand $command ($baseArguments + @('marker')) 'suite passed.' } 'before reporting'
     Assert-Throws { Invoke-GodotCommand $command ($baseArguments + @('early-exit')) 'Suite passed.' } 'before reporting'
     Assert-Throws { Invoke-GodotCommand $command ($baseArguments + @('hang')) -TimeoutSeconds 1 } 'timed out after 1 seconds'
     $env:GODOT_BIN = Join-Path $temporary 'missing.exe'

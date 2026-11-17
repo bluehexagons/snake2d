@@ -7,18 +7,37 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'scripts\Godot.Common.ps1')
 $godot = Resolve-GodotCommand
 $exports = [ordered]@{
-    windows = @('Windows Desktop', 'out\win64\snake.exe')
-    web = @('Web', 'out\html\index.html')
-    linux = @('Linux', 'out\linux64\snake.x86_64')
+    windows = @('Windows Desktop', 'out\win64\snake.exe', 'snake.pck')
+    web = @('Web', 'out\html\index.html', 'index.js', 'index.wasm', 'index.pck',
+        'index.audio.worklet.js', 'index.audio.position.worklet.js')
+    linux = @('Linux', 'out\linux64\snake.x86_64', 'snake.pck')
 }
 $selected = if ($Platform -eq 'all') { @($exports.Keys) } else { @($Platform) }
 foreach ($name in $selected) {
-    $preset, $relative = $exports[$name]
+    $preset, $relative, $companions = $exports[$name]
     $output = Join-Path $PSScriptRoot $relative
-    New-Item -ItemType Directory -Path (Split-Path -Parent $output) -Force | Out-Null
-    if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
-    Invoke-GodotCommand $godot @('--headless', '--path', $PSScriptRoot, '--export-release', $preset, $output) -TimeoutSeconds $TimeoutSeconds
-    if (-not (Test-Path -LiteralPath $output -PathType Leaf) -or (Get-Item -LiteralPath $output).Length -eq 0) {
-        throw "Expected export output was not created: $output"
+    $outputDirectory = Split-Path -Parent $output
+    # An earlier build must not mask a missing file in this invocation.
+    New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+    $staging = Join-Path $outputDirectory ('.export.' + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $staging | Out-Null
+    try {
+        New-Item -ItemType File -Path (Join-Path $staging '.gdignore') | Out-Null
+        $filename = Split-Path -Leaf $output
+        $stagedOutput = Join-Path $staging $filename
+        Invoke-GodotCommand $godot @('--headless', '--path', $PSScriptRoot, '--export-release', $preset, $stagedOutput) -TimeoutSeconds $TimeoutSeconds
+        foreach ($required in (@($filename) + $companions)) {
+            $file = Join-Path $staging $required
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) {
+                throw "Expected export output was not created: $required"
+            }
+        }
+        foreach ($file in Get-ChildItem -LiteralPath $staging -File) {
+            if ($file.Name -ne '.gdignore') {
+                Copy-Item -LiteralPath $file.FullName -Destination $outputDirectory -Force
+            }
+        }
+    } finally {
+        Remove-Item -LiteralPath $staging -Recurse -Force
     }
 }

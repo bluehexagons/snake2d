@@ -44,7 +44,7 @@ run_and_check_logs() (
         echo "Error: Godot reported an error." >&2
         return 1
     fi
-    if [[ -n "$expected_marker" ]] && ! grep -Fxq "$expected_marker" "$log_file"; then
+    if [[ -n "$expected_marker" ]] && ! grep -Fxq -e "$expected_marker" -e "$expected_marker"$'\r' "$log_file"; then
         echo "Error: Godot exited before reporting: $expected_marker" >&2
         return 1
     fi

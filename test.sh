@@ -10,15 +10,25 @@ run_source_smoke() {
     GODOT_BIN="$(resolve_godot_bin)"
     echo "Using Godot executable: $GODOT_BIN"
     run_and_check_logs "" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --import --quit
-    local script marker
-    while IFS='|' read -r script marker; do
-        [[ -n "$script" ]] || continue
-        if [[ ! "$script" =~ ^[a-z_]+_test\.gd$ || -z "$marker" ]]; then
-            echo "Error: Invalid source suite: $script|$marker" >&2
+    local suite script marker
+    local suite_pattern='^([a-z_]+_test\.gd)\|([^|]+)$'
+    local ran_suite=false
+    while IFS= read -r suite || [[ -n "$suite" ]]; do
+        suite="${suite%$'\r'}"
+        [[ -n "$suite" ]] || continue
+        if [[ ! "$suite" =~ $suite_pattern ]]; then
+            echo "Error: Invalid source suite: $suite" >&2
             return 1
         fi
+        script="${BASH_REMATCH[1]}"
+        marker="${BASH_REMATCH[2]}"
         run_and_check_logs "$marker" "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script "res://tests/$script"
+        ran_suite=true
     done < "$PROJECT_DIR/tests/source-suites.txt"
+    if [[ "$ran_suite" == false ]]; then
+        echo "Error: No source suites were registered." >&2
+        return 1
+    fi
     run_and_check_logs "Smoke test passed." "$GODOT_BIN" --headless --path "$PROJECT_DIR" --scene "res://tests/smoke_test.tscn" --quit-after 300
 }
 
