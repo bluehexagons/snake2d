@@ -87,7 +87,6 @@ func _ready() -> void:
 	game_over_panel.menu_requested.connect(_on_quit_to_menu_pressed)
 
 	game_session.state_changed.connect(_on_session_state_changed)
-	game_session.round_ended.connect(_on_round_ended)
 	game_session.score_updated.connect(_on_score_updated)
 	game_session.high_scores_updated.connect(_on_high_scores_updated)
 
@@ -154,9 +153,6 @@ func _on_start_pressed(mode: GameMode.Value, world_seed: int) -> void:
 	game_session.start_new_round(mode, world_seed)
 	_update_mode_label()
 
-func _on_round_ended(final_score: int) -> void:
-	game_over_panel.show_final_score(final_score)
-
 func _on_session_state_changed(old_state: GameSession.State, new_state: GameSession.State) -> void:
 	snake_input_adapter.set_enabled(new_state == GameSession.State.PLAYING)
 	match new_state:
@@ -169,6 +165,7 @@ func _on_session_state_changed(old_state: GameSession.State, new_state: GameSess
 		GameSession.State.PAUSED:
 			ui_state_manager.change_state(UIStateManager.UIState.PAUSED)
 		GameSession.State.GAME_OVER:
+			game_over_panel.show_final_score(game_session.current_score, gameplay.is_board_complete())
 			ui_state_manager.change_state(UIStateManager.UIState.GAME_OVER)
 
 func _on_ui_state_changed(old_state: int, new_state: int) -> void:

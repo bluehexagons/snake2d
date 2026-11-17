@@ -197,6 +197,9 @@ func get_snake_position() -> Vector2:
 func get_snake_center() -> Vector2:
 	return snake.position + Vector2.ONE * (snake.cell_size / 2.0) if snake else Vector2.ZERO
 
+func is_board_complete() -> bool:
+	return model != null and model.is_board_complete()
+
 func get_food_position() -> Vector2:
 	return food.position if food else Vector2.ZERO
 
@@ -350,10 +353,17 @@ func _consume_food_view() -> void:
 func _finish_round() -> void:
 	if snake == null:
 		return
-	_audio_service.play_die()
-	snake.mark_dead()
-	for segment in tail_segments:
-		segment.mark_dead()
+	# The session pauses the world as soon as game_over is emitted.
+	_snap_presentation_to_targets()
+	if is_board_complete():
+		_remove_eaten_food_views()
+		_remove_controls_tutorial()
+		snake.hide_direction_indicator()
+	else:
+		_audio_service.play_die()
+		snake.mark_dead()
+		for segment in tail_segments:
+			segment.mark_dead()
 	game_over.emit(model.score)
 
 func _recycle_active_tail() -> void:

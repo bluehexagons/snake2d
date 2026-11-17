@@ -102,6 +102,9 @@ func _complete_round(result: StepResult) -> StepResult:
 func current_tick_seconds() -> float:
 	return rules.tick_seconds_for_length(snake.body.size())
 
+func is_board_complete() -> bool:
+	return _terminal_result == StepResult.FILLED_BOARD
+
 func is_cell_occupied(cell: Vector2i) -> bool:
 	return cell in snake.body
 

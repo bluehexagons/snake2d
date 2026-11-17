@@ -38,5 +38,26 @@ func _run() -> void:
 	gameplay.start_game()
 	await process_frame
 	check.expect_true(is_instance_valid(decoration), "starting a round also preserves unrelated siblings")
+	_expect_collision_settles_movement(gameplay, audio)
 	world.free()
 	check.finish(self, "Presentation test")
+
+func _expect_collision_settles_movement(gameplay: Gameplay, audio: AudioService) -> void:
+	var rules := GameRules.new()
+	rules.columns = 4
+	rules.rows = 4
+	gameplay.configure(rules, audio)
+	gameplay.start_game()
+	gameplay.model.snake.body.append(Vector2i(1, 2))
+	gameplay.model.food_cell = Vector2i.ZERO
+	gameplay.request_direction(Vector2i.RIGHT)
+	check.expect_equal(gameplay.advance_one_tick(), SnakeGame.StepResult.MOVED, "the snake reaches the board edge")
+	gameplay.time_since_tick = gameplay.model.current_tick_seconds() * 0.5
+	gameplay._apply_visual_interpolation()
+	var head := gameplay.snake
+	var retracting_tail := gameplay.tail_segments[gameplay.tail_retraction_index]
+	check.expect_true(head.position != head.logical_position, "the previous move is still interpolating")
+	check.expect_true(retracting_tail.visible, "the old tail is still retracting")
+	check.expect_equal(gameplay.advance_one_tick(), SnakeGame.StepResult.HIT_WALL, "the next step collides")
+	check.expect_equal(head.position, head.logical_position, "the dead head settles into its last valid cell")
+	check.expect_false(retracting_tail.visible, "collision finishes the previous tail retraction")

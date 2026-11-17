@@ -96,4 +96,3 @@ The learning value of authored scenes and straightforward pooling currently outw
 ## Audit follow-ups
 
 - Keep the shared `GameRules` resource immutable during a round. Inspector ranges are authoring hints, not runtime validation; an eventual runtime preset editor should validate positive board/timing values and pit cadence before constructing a model.
-- Round completion currently shares the death cue and game-over panel. A distinct completion presentation would make the meaning of `FILLED_BOARD` clearer.

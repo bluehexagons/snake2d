@@ -98,6 +98,7 @@ script = ExtResource("15_input")
 
 [node name="PlayArea" type="Node2D" parent="GameLayer/GameViewport/GameWorld" unique_id=147997543]
 unique_name_in_owner = true
+z_index = -2
 y_sort_enabled = true
 
 [node name="PlayAreaBackground" type="Panel" parent="GameLayer/GameViewport/GameWorld/PlayArea" unique_id=140665384]
@@ -210,10 +211,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="GameOverLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=360653660]
+unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
 text = "GAME OVER"
 horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="FinalScoreLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=1394019066]
 unique_name_in_owner = true

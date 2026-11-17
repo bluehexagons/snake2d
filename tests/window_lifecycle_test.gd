@@ -8,16 +8,11 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
-	var main := MAIN.instantiate() as Main
-	(main.get_node("Services/HighScoreStore") as HighScoreStore).save_path = files.path("scores.dat")
-	var settings := main.get_node("Services/SettingsService") as SettingsService
-	settings.settings_path = files.path("settings.cfg")
-	settings.legacy_settings_path = files.path("legacy.dat")
-	root.add_child(main)
+	var main := _create_main()
 	main.ui_state_manager.set_reduced_motion(true)
 	await process_frame
 	if OS.has_feature("windows") and DisplayServer.get_name() != "headless":
-		await _expect_minimized_fullscreen(settings)
+		await _expect_minimized_fullscreen(main.settings_service)
 	root.focus_exited.emit()
 	check.expect_equal(main.game_session.state, GameSession.State.MAIN_MENU, "unfocused menus remain menus")
 	await _expect_pointer_gameplay_input(main)
@@ -55,8 +50,40 @@ func _run() -> void:
 	main.free()
 	await process_frame
 	check.expect_false(paused, "removing the scene releases tree pause")
+	_expect_board_completion()
 	files.cleanup()
 	check.finish(self, "Window lifecycle test")
+
+func _create_main(rules: GameRules = null) -> Main:
+	var main := MAIN.instantiate() as Main
+	if rules != null:
+		main.game_rules = rules
+	(main.get_node("Services/HighScoreStore") as HighScoreStore).save_path = files.path("scores.dat")
+	var settings := main.get_node("Services/SettingsService") as SettingsService
+	settings.settings_path = files.path("settings.cfg")
+	settings.legacy_settings_path = files.path("legacy.dat")
+	root.add_child(main)
+	return main
+
+func _expect_board_completion() -> void:
+	var rules := GameRules.new()
+	rules.columns = 2
+	rules.rows = 1
+	var main := _create_main(rules)
+	main.start_new_round()
+	main.gameplay.request_direction(Vector2i.LEFT)
+	var result := main.gameplay.advance_one_tick()
+	check.expect_equal(result, SnakeGame.StepResult.FILLED_BOARD, "the only food completes the board")
+	check.expect_equal(main.game_session.state, GameSession.State.GAME_OVER, "completion ends the round")
+	check.expect_equal(main.game_over_panel.title_label.text, "BOARD COMPLETE", "completion displays its own heading")
+	check.expect_equal(main.game_over_panel.score_label.text, "Final Score: %d" % rules.points_per_food, "completion shows the final score")
+	var head := main.gameplay.snake.get_node("Head") as SnakeSegment
+	check.expect_equal(head.color, SnakeView.HEAD_COLOR, "the winning snake keeps its live color")
+	main.start_new_round()
+	main.gameplay.request_direction(Vector2i.RIGHT)
+	check.expect_equal(main.gameplay.advance_one_tick(), SnakeGame.StepResult.HIT_WALL, "the next round can end in a collision")
+	check.expect_equal(main.game_over_panel.title_label.text, "GAME OVER", "a collision restores the loss heading")
+	main.free()
 
 func _expect_pointer_gameplay_input(main: Main) -> void:
 	main.start_new_round()

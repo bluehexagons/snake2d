@@ -117,14 +117,12 @@ static func _generate_ribbons(
 	var ribbon_count := clampi(board_size.y / 8, 2, 3)
 	for ribbon in ribbon_count:
 		var base_y := roundi(float(ribbon + 1) * board_size.y / float(ribbon_count + 1))
+		var y := clampi(base_y + 1, 2, board_size.y - 3)
 		var phase := random.randi_range(0, 5)
 		for x in range(2, board_size.x - 2):
 			# Alternating three-cell dashes leave regular passages through the ribbon.
-			if (x + phase) % 6 >= 3:
-				continue
-			var rising := floori(float(x + phase) / 3.0) % 2 == 0
-			var wave_y := base_y + (1 if rising else -1)
-			cells.append(Vector2i(x, clampi(wave_y, 2, board_size.y - 3)))
+			if (x + phase) % 6 < 3:
+				cells.append(Vector2i(x, y))
 	return cells
 
 static func _manhattan_distance(a: Vector2i, b: Vector2i) -> int:

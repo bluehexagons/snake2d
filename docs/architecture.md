@@ -90,6 +90,11 @@ The model uses `Vector2i` cells. Presentation converts cells to pixel positions 
 
 `Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
 
+Gameplay settles the snake into its final cells before the session pauses the
+world. Completing the reachable board keeps the snake's live colors and displays
+a completion heading. The play area renders underneath both the food and its
+consumption animation.
+
 `ResponsiveUILayer` compensates only when the project's canvas stretch would
 shrink the UI below its authored pixel size (CSS pixels on Web, accounting for
 device pixel density). It sizes full-screen menu controls
