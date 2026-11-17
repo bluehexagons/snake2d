@@ -201,6 +201,7 @@ theme_override_constants/margin_bottom = 32
 layout_mode = 2
 vertical = true
 script = ExtResource("99_menu_layout")
+stacked_minimum_width = 400.0
 
 [node name="Primary" type="VBoxContainer" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout"]
 layout_mode = 2

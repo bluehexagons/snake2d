@@ -38,8 +38,12 @@ func _run() -> void:
 			for state in main.ui_state_manager.ui_elements:
 				main.ui_state_manager.change_state(state)
 				var menu := main.ui_state_manager.ui_elements[state] as ScrollContainer
+				if menu is GameOverPanel:
+					menu.show_final_score(20, true)
 				for frame in 5:
 					await process_frame
+				if menu is GameOverPanel and dimensions == Vector2i(1280, 720):
+					check.expect_equal(menu.title_label.get_line_count(), 1, "the desktop completion heading fits on one line")
 				var captures := OS.get_environment("SNAKE_UI_CAPTURE_DIR")
 				if not captures.is_empty() and DisplayServer.get_name() != "headless":
 					await RenderingServer.frame_post_draw
