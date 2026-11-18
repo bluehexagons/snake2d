@@ -9,6 +9,7 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | Controller | Navigate all menus, select each mode, edit a seed, adjust volume, cancel and accept reset dialogs | Focus stays in the active panel; sliders and seed input remain usable |
 | Controller at rest | Move the mouse during a round with a controller connected and untouched | Neutral/deadzone/unmapped axes do not hide the mouse cursor; mapped stick movement still switches to controller input |
 | World seed bounds | Type or paste an oversized integer in Obstacles, then start with keyboard/controller | Input stays within nine characters and launches a seed in 1–999999999 without engine errors |
+| Web touch seed entry | On a phone, select Obstacles, tap the World Seed field, replace the seed, dismiss the keyboard and start | The on-screen keyboard opens and the round shows the edited seed in its HUD |
 | Fast menu changes | Open Options and immediately go back; press Start then immediately move or pause | Fading panels cannot take focus, activate buttons, or swallow gameplay input |
 | Native touch | Tap, swipe, cancel a touch, add a second finger, pause/resume mid-gesture | One direction per gesture; no duplicate emulated mouse turn; old gestures are cleared |
 | Web pointer | Switch between touch and mouse, drag outside the canvas and release, return to the game | No stuck drag or duplicate turn; direction matches the visible snake |

@@ -1,6 +1,7 @@
 extends SceneTree
 
 const MENU := preload("res://scenes/ui/main_menu.tscn")
+const SCORES_MENU := preload("res://scenes/ui/high_scores_menu.tscn")
 var check := TestAssertions.new()
 
 func _initialize() -> void:
@@ -15,6 +16,7 @@ func _run() -> void:
 	var seeds: Array[int] = []
 	menu.start_requested.connect(func(_mode: GameMode.Value, world_seed: int) -> void: seeds.append(world_seed))
 	var line := menu.world_seed_spin_box.get_line_edit()
+	check.expect_equal(line.virtual_keyboard_type, LineEdit.KEYBOARD_TYPE_NUMBER, "the seed editor requests a numeric keypad")
 	await _type_seed(line, "12345")
 	await _start_through_keyboard()
 	check.expect_equal(seeds, [12345], "typed seed is committed before keyboard start")
@@ -42,7 +44,29 @@ func _run() -> void:
 	check.expect_equal(seeds.back(), MainMenu.MAX_WORLD_SEED, "programmatic values cannot launch an out-of-range seed")
 	menu.free()
 	await process_frame
+	await _expect_score_mode_starts_at_top()
 	check.finish(self, "Menu input test")
+
+func _expect_score_mode_starts_at_top() -> void:
+	root.size = Vector2i(800, 600)
+	var scores := SCORES_MENU.instantiate() as HighScoresMenu
+	root.add_child(scores)
+	var classic: Array[int] = []
+	var pitfall: Array[int] = []
+	for index in 100:
+		classic.append(1000 - index)
+		pitfall.append(2000 - index)
+	scores.update_scores({"classic": classic, "pitfall": pitfall})
+	for frame in 5:
+		await process_frame
+	scores.scroll_container.scroll_vertical = 500
+	check.expect_true(scores.scroll_container.scroll_vertical > 0, "the first score table can scroll")
+	scores.mode_selector.select(GameMode.Value.PITFALL)
+	scores.mode_selector.item_selected.emit(GameMode.Value.PITFALL)
+	check.expect_equal(scores.scores_list.get_child_count(), 100, "switching modes replaces rows immediately")
+	check.expect_equal(scores.scores_list.get_child(0).text, "1. 2000", "the new mode's highest score appears first")
+	check.expect_equal(scores.scroll_container.scroll_vertical, 0, "each score table opens at rank one")
+	scores.free()
 
 func _type_seed(line: LineEdit, text: String) -> void:
 	line.grab_focus()

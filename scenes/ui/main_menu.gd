@@ -28,6 +28,7 @@ func _ready() -> void:
 	_seed_random.randomize()
 	_seed_line_edit = world_seed_spin_box.get_line_edit()
 	_seed_line_edit.focus_mode = Control.FOCUS_ALL
+	_seed_line_edit.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	# Bound text before SpinBox parses it; very long integers overflow first.
 	_seed_line_edit.max_length = str(MAX_WORLD_SEED).length()
 	_prepare_next_world_seed()

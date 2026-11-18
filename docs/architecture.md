@@ -100,6 +100,9 @@ recalculates both limits, including while the game is paused.
 
 `Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
 
+At each movement tick, the body settles into its occupied grid cells. Only
+the head and the old tail cell animate between ticks.
+
 Gameplay settles the snake into its final cells before the session pauses the
 world. Completing the reachable board keeps the snake's live colors and displays
 a completion heading. The play area renders underneath both the food and its
@@ -117,7 +120,8 @@ The world-seed field accepts at most nine characters and bounds values to the
 declared seed range. `MainMenu` also clamps the floating-point value before
 integer conversion at launch, generation and gamepad-adjustment boundaries.
 This prevents oversized typed/pasted values from overflowing inside `SpinBox`
-or leaking an invalid seed into the session.
+or leaking an invalid seed into the session. The Web preset enables Godot's
+virtual keyboard support, and the seed field requests a numeric keypad.
 
 Each menu is a `ScrollContainer` with a centering `Content` child and its authored
 panel. Short windows scroll vertically and follow keyboard/controller focus;

@@ -26,8 +26,6 @@ var _eaten_food_views: Array[FoodView] = []
 
 var tail_segments: Array[SnakeSegment] = []
 var tail_segment_pool: Array[SnakeSegment] = []
-var tail_previous_positions: Array[Vector2] = []
-var tail_target_positions: Array[Vector2] = []
 var tail_retraction_index := -1
 var tail_retraction_origin := Vector2.ZERO
 var tail_retraction_direction := Vector2i.ZERO
@@ -113,7 +111,7 @@ func advance_one_tick() -> SnakeGame.StepResult:
 	if model.game_over:
 		return model.step()
 
-	var previous_body := model.snake.body.duplicate()
+	var previous_tail := model.snake.body[-1]
 	var eaten_cell := model.food_cell
 	var previous_obstacle_count := model.obstacle_cells.size()
 	var result := model.step()
@@ -134,7 +132,7 @@ func advance_one_tick() -> SnakeGame.StepResult:
 	_audio_service.play_move(_rules.speed_progress_for_length(model.snake.body.size()))
 	snake.move_to_cell(model.snake.body[0])
 	var grew := result == SnakeGame.StepResult.ATE_FOOD or result == SnakeGame.StepResult.FILLED_BOARD
-	_sync_tail_presentation(previous_body, grew)
+	_sync_tail_presentation(previous_tail, grew)
 	snake_moved.emit(_cell_to_pixel(model.snake.body[0]))
 
 	if result == SnakeGame.StepResult.ATE_FOOD or result == SnakeGame.StepResult.FILLED_BOARD:
@@ -187,8 +185,6 @@ func cleanup() -> void:
 	for segment in tail_segment_pool:
 		segment.queue_free()
 	tail_segment_pool.clear()
-	tail_previous_positions.clear()
-	tail_target_positions.clear()
 	_clear_tail_retraction()
 	model = null
 	time_since_tick = 0.0
@@ -244,40 +240,33 @@ func get_debug_snapshot() -> Dictionary:
 		"game_over": model.game_over,
 	}
 
-func _sync_tail_presentation(previous_body: Array[Vector2i], grew: bool) -> void:
+func _sync_tail_presentation(previous_tail: Vector2i, grew: bool) -> void:
 	var logical_tail_segments := model.snake.body.size() - 1
-	var retracts_tail := not grew and previous_body.size() > 1
+	var retracts_tail := not grew and logical_tail_segments > 0
 	var required_segments := logical_tail_segments + (1 if retracts_tail else 0)
 	while tail_segments.size() < required_segments:
-		var segment := _acquire_tail_segment(tail_segments.size())
-		tail_segments.append(segment)
+		tail_segments.append(_acquire_tail_segment())
 	while tail_segments.size() > required_segments:
 		var segment: SnakeSegment = tail_segments.pop_back()
 		segment.hide()
 		tail_segment_pool.append(segment)
 
-	tail_previous_positions.clear()
-	tail_target_positions.clear()
 	_clear_tail_retraction()
 	for i in required_segments:
 		tail_segments[i].set_alive_color(_segment_color_for_index(i, required_segments))
 	for i in logical_tail_segments:
-		var position := _cell_to_pixel(model.snake.body[i + 1])
-		tail_previous_positions.append(position)
-		tail_target_positions.append(position)
-		tail_segments[i].position = position
+		tail_segments[i].position = _cell_to_pixel(model.snake.body[i + 1])
 		tail_segments[i].show_full_size(_rules.cell_size)
 
 	if retracts_tail:
 		tail_retraction_index = required_segments - 1
-		tail_retraction_origin = _cell_to_pixel(previous_body[-1])
-		tail_retraction_direction = previous_body[-2] - previous_body[-1]
-		tail_previous_positions.append(tail_retraction_origin)
-		tail_target_positions.append(tail_retraction_origin)
+		tail_retraction_origin = _cell_to_pixel(previous_tail)
+		# The old tail retracts toward the last cell that remains occupied.
+		tail_retraction_direction = model.snake.body[-1] - previous_tail
 		tail_segments[tail_retraction_index].show_full_size(_rules.cell_size)
 		tail_segments[tail_retraction_index].position = tail_retraction_origin
 
-func _acquire_tail_segment(_index: int) -> SnakeSegment:
+func _acquire_tail_segment() -> SnakeSegment:
 	var segment: SnakeSegment
 	if tail_segment_pool.is_empty():
 		segment = SnakeSegmentScene.instantiate() as SnakeSegment
@@ -302,37 +291,26 @@ func _apply_visual_interpolation() -> void:
 	if model == null or snake == null or model.game_over:
 		return
 	var progress := clampf(time_since_tick / model.current_tick_seconds(), 0.0, 1.0)
+	snake.apply_visual_interpolation(progress)
+	_apply_tail_retraction(progress)
+
+func _apply_tail_retraction(progress: float) -> void:
+	if tail_retraction_index < 0:
+		return
 	var eased := progress * progress * progress * (
 		progress * (progress * 6.0 - 15.0) + 10.0
 	)
-	snake.apply_visual_interpolation(progress)
-	for i in tail_segments.size():
-		if i == tail_retraction_index:
-			tail_segments[i].apply_tail_retraction(
-				tail_retraction_origin,
-				tail_retraction_direction,
-				eased,
-				_rules.cell_size
-			)
-			continue
-		tail_segments[i].position = tail_previous_positions[i].lerp(
-			tail_target_positions[i],
-			eased
-		)
+	tail_segments[tail_retraction_index].apply_tail_retraction(
+		tail_retraction_origin,
+		tail_retraction_direction,
+		eased,
+		_rules.cell_size
+	)
 
 func _snap_presentation_to_targets() -> void:
 	if snake:
 		snake.apply_visual_interpolation(1.0)
-	for i in tail_segments.size():
-		if i == tail_retraction_index:
-			tail_segments[i].apply_tail_retraction(
-				tail_retraction_origin,
-				tail_retraction_direction,
-				1.0,
-				_rules.cell_size
-			)
-		else:
-			tail_segments[i].position = tail_target_positions[i]
+	_apply_tail_retraction(1.0)
 
 func _show_food(cell: Vector2i) -> void:
 	food = FoodViewScene.instantiate() as FoodView
@@ -372,8 +350,6 @@ func _recycle_active_tail() -> void:
 		segment.hide()
 		tail_segment_pool.append(segment)
 	tail_segments.clear()
-	tail_previous_positions.clear()
-	tail_target_positions.clear()
 	_clear_tail_retraction()
 
 func _clear_tail_retraction() -> void:

@@ -43,7 +43,10 @@ func _on_mode_selected(_index: int) -> void:
 	_show_selected_scores()
 
 func _show_selected_scores() -> void:
+	scroll_container.scroll_vertical = 0
+	_scroll_position = 0.0
 	for child in scores_list.get_children():
+		scores_list.remove_child(child)
 		child.queue_free()
 
 	var mode := mode_selector.get_selected_id() as GameMode.Value
@@ -62,8 +65,6 @@ func _show_selected_scores() -> void:
 			scores_list.add_child(score_label)
 
 func _on_back_pressed() -> void:
-	scroll_container.scroll_vertical = 0
-	_scroll_position = 0.0
 	high_scores_closed.emit()
 
 func get_buttons() -> Array[Button]:
