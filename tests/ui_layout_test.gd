@@ -138,7 +138,15 @@ func _run() -> void:
 			_click(main.main_menu.start_button)
 			await process_frame
 			check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "pointer starts a round through the scaled menu")
+			var tutorial := main.controls_tutorial
+			check.expect_true(tutorial.visible, "the tutorial is visible before the first turn")
+			check.expect_true(tutorial.size.is_equal_approx(root.get_visible_rect().size / layer.scale), "the tutorial fits the responsive UI")
+			_key(KEY_P)
+			check.expect_false(tutorial.visible, "pausing hides the tutorial")
+			_key(KEY_P)
+			check.expect_true(tutorial.visible, "resuming before the first turn restores the tutorial")
 			_key(KEY_RIGHT)
+			check.expect_false(tutorial.visible, "the first turn hides the tutorial")
 			await physics_frame
 			_key(KEY_P)
 			check.expect_equal(main.game_session.state, GameSession.State.PAUSED, "P pauses through engine event routing")
@@ -150,7 +158,13 @@ func _run() -> void:
 			check.expect_equal(main.gameplay.time_since_tick, paused_time, "paused frames retain visual interpolation")
 			_key(KEY_P)
 			check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "P resumes through engine event routing")
-			_key(KEY_ESCAPE)
+			check.expect_false(tutorial.visible, "resuming after a turn keeps the tutorial hidden")
+			var pause_button := main.gameplay_pause_button
+			check.expect_true(pause_button.visible, "pointer pause is available during gameplay")
+			check.expect_true(pause_button.size.y * pixel_scale >= 43.9, "pointer pause has a 44px target")
+			_click(pause_button)
+			check.expect_equal(main.game_session.state, GameSession.State.PAUSED, "pointer pauses through engine event routing")
+			check.expect_false(pause_button.visible, "the in-game pause control leaves the pause menu unobstructed")
 			for frame in 5:
 				await process_frame
 			_click(main.pause_menu.menu_button)
@@ -176,12 +190,34 @@ func _run() -> void:
 	_key(KEY_TAB)
 	await process_frame
 	check.expect_equal(root.gui_get_focus_owner(), main.main_menu.scores_button, "Tab advances through horizontal menu actions")
+	await _expect_board_stays_visible_after_resize(main)
 	# Let the final 50 ms focus cue finish before tearing down the native mixer.
 	await create_timer(0.1).timeout
 	main.free()
 	await process_frame
 	files.cleanup()
 	check.finish(self, "UI layout test")
+
+func _expect_board_stays_visible_after_resize(main: Main) -> void:
+	main.start_new_round()
+	var camera_rules := main.game_rules.duplicate() as GameRules
+	camera_rules.camera_look_ahead_cells = 100.0
+	camera_rules.camera_smoothing = 1.0
+	main.camera_node.configure(camera_rules, main.gameplay)
+	for frame in 5:
+		await physics_frame
+	var wide_camera_x := main.camera_node.position.x
+	main.game_session.pause_round()
+	root.size = Vector2i(320, 568)
+	for frame in 5:
+		await process_frame
+	var board := main.play_area_background
+	var border := board.get_theme_stylebox("panel") as StyleBoxFlat
+	var outline := Rect2(Vector2.ZERO, board.size).grow(border.get_expand_margin(SIDE_LEFT))
+	var visible_board := board.get_global_transform_with_canvas() * outline
+	check.expect_true(main.camera_node.position.x < wide_camera_x, "a narrower window reduces camera travel even while paused")
+	check.expect_true(root.get_visible_rect().grow(1.0).encloses(visible_board), "camera travel keeps the board outline inside the viewport")
+	main.game_session.return_to_menu()
 
 func _click(control: Control) -> void:
 	var event := InputEventMouseButton.new()

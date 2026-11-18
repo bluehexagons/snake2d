@@ -5,7 +5,7 @@ A Simple Snake Game is a simple snake game in which you simply snake.
 ## Controls
 
 - **Movement**: Arrow keys, WASD, gamepad, mouse, or touch (tap/swipe)
-- **Pause**: Space/Escape/P/or Start button
+- **Pause**: Space, Escape, P, gamepad Start, or on-screen Pause
 - **Menu Navigation**: 
   - Keyboard arrows/WASD
   - Gamepad D-pad/stick
@@ -28,7 +28,6 @@ A Simple Snake Game is a simple snake game in which you simply snake.
   - Touch (tap toward a direction or swipe; swipes resolve as soon as the threshold is crossed)
 - Top 100 high scores tracked separately for each game mode
 - Subtle cell-aligned gameplay grid, enabled by default and toggleable in Options
-- Pause functionality (Space/P/Start button)
 - Automatic pause when the game window loses focus; resume explicitly when ready
 - Full controller support with UI navigation
 - Versioned settings for sound, effects volume, fullscreen, reduced motion, and the gameplay grid
@@ -80,6 +79,21 @@ A missing explicit `GODOT_BIN` fails instead of selecting another engine.
 See [Basaltwater integration](docs/basaltwater.md) for optional CachyOS checks.
 The Linux export smoke runs from an empty temporary directory, isolates Godot's
 data through `XDG_DATA_HOME`, and requires no installed editor.
+
+### Serving the Web build
+
+Serve the Web export files together over HTTPS, or use localhost for testing.
+Set the WASM response type to `application/wasm` and enable HTTP
+compression for it. The engine file measured 39.5 MB uncompressed and 10.1 MB
+with gzip. A compressed release ZIP only reduces the download of the archive.
+
+For example, NGINX can serve a precompressed companion generated with
+`gzip -6 -kf out/html/index.wasm`. Enable `gzip_static on` and `gzip_vary on`
+for the game location, and regenerate the companion whenever the WASM changes.
+On a managed static host, use its HTTP compression instead. Check the deployed
+URL with `curl --compressed -sI https://example.com/snake/index.wasm` and confirm
+`Content-Type: application/wasm` and a `Content-Encoding` such as `gzip` or `br`.
+[NGINX precompressed file documentation](https://nginx.org/en/docs/http/ngx_http_gzip_static_module.html)
 
 ### Native Windows
 

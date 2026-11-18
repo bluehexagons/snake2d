@@ -120,8 +120,7 @@ func _run_smoke_test() -> void:
 		_fail("Expected the snake to spawn on the center grid cell.")
 		return
 
-	var first_tutorial := main.game_world.get_node_or_null("ControlsTutorial")
-	if first_tutorial == null:
+	if not main.controls_tutorial.visible:
 		_fail("Expected a new round to show the controls tutorial.")
 		return
 
@@ -221,9 +220,8 @@ func _run_smoke_test() -> void:
 	if main.camera_node.position != expected_camera_position:
 		_fail("Expected a restarted game to reset the camera.")
 		return
-	var replacement_tutorial := main.game_world.get_node_or_null("ControlsTutorial")
-	if replacement_tutorial == null or replacement_tutorial == first_tutorial:
-		_fail("Expected a restarted game to replace the controls tutorial.")
+	if not main.controls_tutorial.visible:
+		_fail("Expected a restarted game to show the controls tutorial again.")
 		return
 
 	main.call("_on_quit_to_menu_pressed")

@@ -14,9 +14,12 @@ var _game_size_pixels := Vector2i.ZERO
 @onready var high_score_store: HighScoreStore = %HighScoreStore
 @onready var settings_service: SettingsService = %SettingsService
 @onready var game_session: GameSession = %GameSession
+@onready var ui_layer: ResponsiveUILayer = $UILayer
 @onready var ui_background: ColorRect = %UIBackground
 @onready var score_display_label: Label = %HUDScoreLabel
 @onready var mode_display_label: Label = %HUDModeLabel
+@onready var controls_tutorial: Control = %ControlsTutorial
+@onready var gameplay_pause_button: Button = %GameplayPauseButton
 
 @onready var game_world: Node2D = %GameWorld
 @onready var gameplay: Gameplay = %Gameplay
@@ -44,6 +47,7 @@ func _ready() -> void:
 	# Focus returning leaves the pause menu up for an explicit resume.
 	get_window().focus_exited.connect(game_session.pause_round)
 	gameplay.configure(game_rules, audio_service)
+	gameplay.first_direction_accepted.connect(controls_tutorial.hide)
 	gameplay_grid.configure(game_rules)
 	snake_input_adapter.configure(gameplay)
 	snake_input_adapter.set_enabled(game_session.state == GameSession.State.PLAYING)
@@ -83,6 +87,7 @@ func _ready() -> void:
 	high_scores_menu.high_scores_closed.connect(_on_high_scores_back_pressed)
 	pause_menu.resume_requested.connect(_on_resume_pressed)
 	pause_menu.menu_requested.connect(_on_quit_to_menu_pressed)
+	gameplay_pause_button.pressed.connect(game_session.pause_round)
 	game_over_panel.restart_requested.connect(_on_restart_pressed)
 	game_over_panel.menu_requested.connect(_on_quit_to_menu_pressed)
 
@@ -169,6 +174,8 @@ func _on_session_state_changed(old_state: GameSession.State, new_state: GameSess
 			ui_state_manager.change_state(UIStateManager.UIState.GAME_OVER)
 
 func _on_ui_state_changed(old_state: int, new_state: int) -> void:
+	ui_layer.set_gameplay_pause_visible(new_state == UIStateManager.UIState.GAMEPLAY)
+	controls_tutorial.visible = new_state == UIStateManager.UIState.GAMEPLAY and gameplay.is_waiting_for_input()
 	match new_state:
 		ui_state_manager.UIState.GAMEPLAY:
 			ui_background.visible = false
@@ -212,6 +219,7 @@ func _get_all_buttons() -> Array[Button]:
 	buttons.append_array(high_scores_menu.get_buttons())
 	buttons.append_array(pause_menu.get_buttons())
 	buttons.append_array(game_over_panel.get_buttons())
+	buttons.append(gameplay_pause_button)
 	return buttons
 
 # Adds a subtle scale animation on focus/hover/press transitions for any Button.
@@ -351,3 +359,4 @@ func _update_mode_label() -> void:
 
 func _on_window_resize() -> void:
 	_update_game_area()
+	camera_node.fit_to_viewport()

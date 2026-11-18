@@ -9,12 +9,12 @@ signal food_spawned(position: Vector2)
 signal snake_moved(position: Vector2)
 signal snake_grew(position: Vector2)
 signal tick_completed(result: SnakeGame.StepResult)
+signal first_direction_accepted
 
 const SnakeViewScene := preload("res://scenes/snake/snake_view.tscn")
 const SnakeSegmentScene := preload("res://scenes/snake/snake_segment.tscn")
 const FoodViewScene := preload("res://scenes/food/food.tscn")
 const ObstacleViewScene := preload("res://scenes/obstacle/obstacle.tscn")
-const ControlsTutorial := preload("res://scenes/main/controls_tutorial.tscn")
 const BODY_MID_COLOR := Color(0.075, 0.72, 0.16, 1)
 const TAIL_END_COLOR := Color(0.10, 0.61, 0.18, 1)
 
@@ -22,7 +22,6 @@ var model: SnakeGame
 var snake: SnakeView
 var food: FoodView
 var obstacle_views: Array[ObstacleView] = []
-var _controls_tutorial: Control
 var _eaten_food_views: Array[FoodView] = []
 
 var tail_segments: Array[SnakeSegment] = []
@@ -66,7 +65,6 @@ func start_game(
 	_remove_current_food()
 	_remove_obstacle_views()
 	_remove_eaten_food_views()
-	_create_controls_tutorial()
 
 	if _randomize_on_start:
 		_model_random.randomize()
@@ -163,11 +161,16 @@ func advance_one_tick_and_snap() -> SnakeGame.StepResult:
 func request_direction(direction: Vector2i) -> bool:
 	if model == null or model.game_over:
 		return false
+	var waiting_for_input := model.snake.waiting_for_input
 	var accepted := model.request_direction(direction)
 	if accepted:
 		snake.show_queued_direction(model.snake.queued_direction)
-		_remove_controls_tutorial()
+		if waiting_for_input:
+			first_direction_accepted.emit()
 	return accepted
+
+func is_waiting_for_input() -> bool:
+	return model != null and not model.game_over and model.snake.waiting_for_input
 
 func is_position_occupied(pixel_position: Vector2) -> bool:
 	return model != null and model.is_cell_occupied(_pixel_to_cell(pixel_position))
@@ -177,7 +180,6 @@ func cleanup() -> void:
 	_remove_current_food()
 	_remove_obstacle_views()
 	_remove_eaten_food_views()
-	_remove_controls_tutorial()
 
 	for segment in tail_segments:
 		segment.queue_free()
@@ -357,7 +359,6 @@ func _finish_round() -> void:
 	_snap_presentation_to_targets()
 	if is_board_complete():
 		_remove_eaten_food_views()
-		_remove_controls_tutorial()
 		snake.hide_direction_indicator()
 	else:
 		_audio_service.play_die()
@@ -414,24 +415,6 @@ func _remove_obstacle_views() -> void:
 		if is_instance_valid(obstacle):
 			obstacle.queue_free()
 	obstacle_views.clear()
-
-func _create_controls_tutorial() -> void:
-	_remove_controls_tutorial()
-	_controls_tutorial = ControlsTutorial.instantiate() as Control
-	_controls_tutorial.name = "ControlsTutorial"
-	game_world.add_child(_controls_tutorial)
-	var center := Vector2(_rules.board_size_pixels()) / 2.0
-	_controls_tutorial.position = center - _controls_tutorial.get_minimum_size() / 2.0
-
-func _remove_controls_tutorial() -> void:
-	if not is_instance_valid(_controls_tutorial):
-		_controls_tutorial = null
-		return
-	var tutorial_parent := _controls_tutorial.get_parent()
-	if tutorial_parent:
-		tutorial_parent.remove_child(_controls_tutorial)
-	_controls_tutorial.queue_free()
-	_controls_tutorial = null
 
 func _cell_to_pixel(cell: Vector2i) -> Vector2:
 	return Vector2(cell * _rules.cell_size)

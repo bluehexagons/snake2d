@@ -4,6 +4,9 @@ extends CanvasLayer
 ## Compensate for board downscaling so menu text stays at its authored pixel size.
 ## The board and its input/camera transforms keep the project stretch unchanged.
 var _full_rect_controls: Array[Control] = []
+var _gameplay_pause_visible := false
+
+@onready var _pause_button: Button = %GameplayPauseButton
 
 func _ready() -> void:
 	for child in get_children():
@@ -37,3 +40,16 @@ func fit_to_viewport(pixel_density: float) -> void:
 	var mode_label := get_node("HUDModeLabel") as Label
 	mode_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mode_label.size.x = maxf(1.0, available.x - mode_label.position.x - 16.0)
+	_layout_pause_button()
+
+func set_gameplay_pause_visible(visible: bool) -> void:
+	_gameplay_pause_visible = visible
+	_layout_pause_button()
+
+func _layout_pause_button() -> void:
+	var available := get_viewport().get_visible_rect().size / scale
+	var margin := Vector2(16.0, 16.0)
+	var position := available - _pause_button.size - margin
+	# On very small windows the button would cover the playfield.
+	_pause_button.visible = _gameplay_pause_visible and position.x >= margin.x and position.y >= margin.y
+	_pause_button.position = position

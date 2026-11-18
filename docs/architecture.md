@@ -24,7 +24,10 @@ Main
 │   ├── HighScoresMenu
 │   ├── CreditsScreen
 │   ├── PauseMenu
+│   ├── ControlsTutorial
 │   ├── HUDScoreLabel
+│   ├── HUDModeLabel
+│   ├── GameplayPauseButton
 │   └── GameOverPanel
 └── DebugLayer
     └── DebugOverlay
@@ -70,9 +73,12 @@ MAIN_MENU → PLAYING ⇄ PAUSED
 Only `GameSession` writes `SceneTree.paused`. `Main`, services, session state, and UI inherit an always-processing mode so menus continue to work while paused. `GameWorld` explicitly uses the pausable process mode, which stops gameplay, input, and camera callbacks without per-node pause checks.
 
 `Main` connects its owning window's focus loss to `GameSession.pause_round()`.
-Alt-Tab and minimizing therefore freeze an active round and clear pending touch
-gestures through the existing input-adapter state transition. Regaining focus
-does not resume automatically; the player resumes through the pause menu.
+Alt-Tab and minimizing freeze an active round, and the gameplay HUD routes its
+pointer and touch Pause button to the same session method. Pausing clears
+pending touch gestures through the input-adapter state transition. The player
+resumes explicitly through the pause menu after returning to the window.
+The first-move hint lives in the responsive UI layer so its text stays readable
+as the board scales. `Main` hides it when gameplay accepts a direction.
 Touch drags require a tracked press: a late drag after pause, cancellation or
 scene changes cannot recreate a cleared gesture. Input modality changes from
 joypad motion only when it activates a mapped navigation/gameplay action, so
@@ -87,6 +93,10 @@ neutral axes and stick drift do not hide a mouse-controlled cursor.
 ## Coordinates and timing
 
 The model uses `Vector2i` cells. Presentation converts cells to pixel positions using `GameRules.cell_size`. Keeping that conversion at the adapter boundary prevents interpolation or camera motion from affecting collision rules.
+
+The camera limits how far it pans on each axis so the entire playable grid
+stays visible when it fits. Larger boards can scroll to their edges. Resizing
+recalculates both limits, including while the game is paused.
 
 `Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
 
@@ -140,6 +150,9 @@ is open.
 `SnakeGame` receives a `RandomNumberGenerator`. Normal play randomizes it; tests supply a seed. Tail colors are a deterministic presentation gradient and do not consume model randomness. Obstacle mode also sends the selected world seed through `ObstaclePatternGenerator`; that independent generator chooses and parameterizes a Gates, Islands, or Ribbons layout, so the same world seed always produces the same walls regardless of food placement.
 
 Pitfall mode adds a blocked cell at the configured food cadence. Its placement tiers prefer cells that are not directly ahead, are outside the snake's safety radius, and are not vertically below any body segment. Those preferences relax only when the remaining free cells make the safer tier impossible. Food selection excludes all blocked cells and is restricted to the connected region reachable from the snake. This reachability query treats the moving body as traversable and walls as permanent: it prevents food across a sealed wall, but does not promise that a legal sequence of turns can reach it. `FILLED_BOARD` means no free food cell remains in that region, which may be smaller than the whole board. Terminal steps retain their original outcome and reject new direction requests.
+On wall-free boards, food placement can sample the column-ordered free-cell
+list directly. With walls, a set provides membership checks during the flood
+fill. Both paths keep the same candidate order for seeded randomness.
 
 ## Persistence and audio
 
@@ -156,6 +169,9 @@ recovery file. A successful save retires it. The settings and score file formats
 remain readable by earlier versions.
 
 `SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
+
+Audio startup prewarms the four fixed cues. Short movement tones render and
+enter the cache when their speed bucket is first played.
 
 Settings migration writes the new format only after validating a complete
 legacy record. Invalid or truncated legacy files retain defaults without

@@ -42,6 +42,10 @@ func _ready() -> void:
 	options_button.pressed.connect(options_requested.emit)
 	credits_button.pressed.connect(credits_requested.emit)
 	quit_button.pressed.connect(quit_requested.emit)
+	if OS.has_feature("web"):
+		quit_button.hide()
+		mode_selector.focus_neighbor_top = mode_selector.get_path_to(credits_button)
+		credits_button.focus_neighbor_bottom = credits_button.get_path_to(mode_selector)
 	_on_mode_selected(mode_selector.selected)
 
 func _input(event: InputEvent) -> void:
@@ -50,7 +54,7 @@ func _input(event: InputEvent) -> void:
 	var focus_owner := get_viewport().gui_get_focus_owner()
 	if focus_owner == mode_selector:
 		if event.is_action_pressed("ui_up"):
-			_move_focus_to(quit_button)
+			_move_focus_to(quit_button if quit_button.visible else credits_button)
 		elif event.is_action_pressed("ui_down"):
 			if seed_row.visible:
 				_move_focus_to(_seed_line_edit, true)
