@@ -3,6 +3,7 @@ extends ScrollContainer
 
 signal options_closed
 signal reset_scores_requested
+signal volume_preview_requested
 
 var sound_button: Button
 var volume_label: Label
@@ -14,8 +15,9 @@ var reset_settings_button: Button
 var reset_scores_button: Button
 var back_button: Button
 var _settings_service: SettingsService
-var _updating_controls := false
 var _confirmation_dialog: ConfirmationDialog
+
+@onready var _volume_preview_timer: Timer = $VolumePreviewTimer
 
 func _ready() -> void:
 	sound_button = %SoundButton
@@ -30,6 +32,7 @@ func _ready() -> void:
 	
 	sound_button.pressed.connect(_on_sound_toggled)
 	volume_slider.value_changed.connect(_on_volume_changed)
+	_volume_preview_timer.timeout.connect(_preview_volume)
 	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
 	reduced_motion_button.pressed.connect(_on_reduced_motion_toggled)
 	grid_button.pressed.connect(_on_grid_toggled)
@@ -40,6 +43,10 @@ func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
 	resized.connect(_update_confirmation_layout)
 	update_button_states()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DISABLED and is_instance_valid(_volume_preview_timer):
+		_volume_preview_timer.stop()
 
 ## Supplies the versioned settings boundary this menu edits.
 func set_settings_service(service: SettingsService) -> void:
@@ -55,10 +62,15 @@ func _on_sound_toggled() -> void:
 	update_sound_button()
 
 func _on_volume_changed(volume_db: float) -> void:
-	if _updating_controls or _settings_service == null:
+	if _settings_service == null:
 		return
 	_settings_service.set_effects_volume_db(volume_db)
-	update_volume_label()
+	if can_process() and is_visible_in_tree() and not _settings_service.is_muted:
+		_volume_preview_timer.start()
+
+func _preview_volume() -> void:
+	if is_visible_in_tree() and _settings_service != null and not _settings_service.is_muted:
+		volume_preview_requested.emit()
 
 func _on_fullscreen_toggled() -> void:
 	_settings_service.toggle_fullscreen()
@@ -107,16 +119,15 @@ func get_default_focus() -> Button:
 	return sound_button
 
 func update_button_states() -> void:
+	_volume_preview_timer.stop()
 	if _settings_service == null:
 		return
-	_updating_controls = true
 	update_sound_button()
-	volume_slider.value = _settings_service.effects_volume_db
+	volume_slider.set_value_no_signal(_settings_service.effects_volume_db)
 	update_volume_label()
 	update_fullscreen_button()
 	update_reduced_motion_button()
 	update_grid_button()
-	_updating_controls = false
 
 func update_sound_button() -> void:
 	sound_button.text = str("Sound: ", "Off" if _settings_service.is_muted else "On")

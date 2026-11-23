@@ -15,7 +15,7 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | Web pointer | Switch between touch and mouse, drag outside the canvas and release, return to the game | No stuck drag or duplicate turn; direction matches the visible snake |
 | Layout | Resize while playing and in every menu; try narrow/tall and wide/short windows | Controls remain reachable and grid, food, snake, and camera stay aligned |
 | Reduced motion | Enable during a panel transition; visit every menu and disable it again | Panel transitions settle immediately; verify button animation behavior separately |
-| Audio | Play at starting and maximum speed, eat, lose, pause; test mute and volume | No clicks or clipping; death cue is audible; settings take effect immediately |
+| Audio | Play at starting and maximum speed, eat, lose, pause, and adjust Effects Volume with sound on and muted | Playback stays free of clicks and clipping, and the death cue is audible. Volume applies immediately and one food cue previews the settled level when sound is on. |
 | Save/reload | Change settings and earn scores in all modes; restart the application | Settings persist and scores remain separated by mode |
 
 Use a temporary OS account or back up saves before manually testing reset actions. Automated persistence and smoke tests already use disposable paths.

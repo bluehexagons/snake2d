@@ -83,6 +83,7 @@ func _ready() -> void:
 	main_menu.quit_requested.connect(_on_quit_game_pressed)
 	options_menu.options_closed.connect(_on_options_back_pressed)
 	options_menu.reset_scores_requested.connect(reset_high_scores)
+	options_menu.volume_preview_requested.connect(audio_service.play_eat)
 	credits_screen.credits_screen_closed.connect(_on_credits_back_pressed)
 	high_scores_menu.high_scores_closed.connect(_on_high_scores_back_pressed)
 	pause_menu.resume_requested.connect(_on_resume_pressed)
