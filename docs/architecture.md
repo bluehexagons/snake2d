@@ -172,10 +172,23 @@ replacement. If the game stops between the two moves, the next load reads that
 recovery file. A successful save retires it. The settings and score file formats
 remain readable by earlier versions.
 
-`SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes. `AudioService` is intentionally limited to procedural synthesis and playback. It renders click-safe attack/release envelopes and phase-continuous frequency sweeps, then reuses quantized PCM streams through a bounded cache. Cue gain is applied by the player rather than baked into PCM, so the same waveform can be reused at different volumes. The movement cue follows normalized game-speed progress from `GameRules`, not elapsed movement count. Overflow is dropped instead of cutting an active waveform, and a reserved voice keeps the death sound available without channel stealing.
+`SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes.
 
-Audio startup prewarms the four fixed cues. Short movement tones render and
-enter the cache when their speed bucket is first played.
+`AudioService` owns procedural synthesis and playback. It renders smooth
+attack and release envelopes and phase-continuous sweeps. Harmonics taper out
+as they approach Nyquist. The bounded PCM cache keys on waveform, quantized
+pitch endpoints and exact sample count. Custom tone requests have a one-second
+duration limit to bound render work and PCM allocation.
+
+Playback applies cue gain and effects volume to the cached streams. Voices
+route directly to Master on native and Web. The PCM peak and per-voice gain
+limits leave at least 2 dB of sample headroom even with every voice active.
+A reserved voice keeps the death sound available when all general voices are
+busy. The service drops overflow so active waveforms finish cleanly.
+
+Audio startup prewarms the four fixed cues. Short movement tones follow
+normalized game-speed progress from `GameRules` and enter the cache when their
+speed bucket is first played.
 
 Settings migration writes the new format only after validating a complete
 legacy record. Invalid or truncated legacy files retain defaults without

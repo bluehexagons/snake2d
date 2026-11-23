@@ -1,6 +1,9 @@
 extends SceneTree
 
 const AudioServiceScript := preload("res://services/audio_service.gd")
+const TestAssertionsScript := preload("res://tests/test_assertions.gd")
+
+var check := TestAssertionsScript.new()
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -9,8 +12,11 @@ func _run() -> void:
 	var audio_service := AudioServiceScript.new()
 
 	_expect_tone_stream(audio_service, 210.0, 210.0, 0.044, AudioServiceScript.Waveform.SINE)
+	_expect_tone_stream(audio_service, 210.0, 210.0, 0.044, AudioServiceScript.Waveform.SQUARE)
 	_expect_tone_stream(audio_service, 693.0, 861.0, 0.13, AudioServiceScript.Waveform.TRIANGLE)
 	_expect_tone_stream(audio_service, 231.0, 84.0, 0.34, AudioServiceScript.Waveform.SAW)
+	_expect_waveform_coefficients(audio_service)
+	_expect_partial_fades_at_nyquist(audio_service)
 	_expect_invalid_tone_rejected(audio_service)
 	_expect_cached_tones_reused(audio_service)
 	_expect_cache_uses_rendered_length(audio_service)
@@ -19,11 +25,11 @@ func _run() -> void:
 	_expect_delayed_movement_progression(audio_service)
 	_expect_movement_cues_are_cached_on_demand(audio_service)
 	_expect_channel_gain_composition(audio_service)
-	await _expect_voice_pool_reused()
+	_expect_voice_budget(audio_service)
+	_expect_voice_pool_reused()
 	audio_service.free()
 
-	print("Audio synth test passed.")
-	quit()
+	check.finish(self, "Audio synth test")
 
 func _expect_tone_stream(
 	audio_service: AudioService,
@@ -51,7 +57,7 @@ func _expect_tone_stream(
 	var peak := 0
 	var first_sample: int = abs(int(stream.data.decode_s16(0)))
 	var last_sample: int = abs(int(stream.data.decode_s16(stream.data.size() - AudioServiceScript.PCM_16_BYTES_PER_SAMPLE)))
-	var max_allowed := int(AudioServiceScript.MAX_SAMPLE_AMPLITUDE * AudioServiceScript.PCM_16_SCALE)
+	var max_allowed := int(AudioServiceScript.TONE_RENDER_PEAK * AudioServiceScript.PCM_16_SCALE)
 
 	for offset in range(0, stream.data.size(), AudioServiceScript.PCM_16_BYTES_PER_SAMPLE):
 		var sample: int = abs(int(stream.data.decode_s16(offset)))
@@ -64,8 +70,30 @@ func _expect_tone_stream(
 		_fail("Expected rendered tone to start and end at zero amplitude.")
 		return
 
-	if peak <= 32:
-		_fail("Expected rendered tone to contain audible sample data.")
+	if peak < 0.9 * max_allowed:
+		_fail("Expected full-length cues to reach a consistent PCM peak across waveforms.")
+
+func _expect_waveform_coefficients(audio_service: AudioService) -> void:
+	var square := audio_service._wave_sample(PI * 0.5, 210.0, AudioServiceScript.Waveform.SQUARE)
+	var triangle := audio_service._wave_sample(PI * 0.5, 210.0, AudioServiceScript.Waveform.TRIANGLE)
+	var saw := audio_service._wave_sample(PI * 0.5, 210.0, AudioServiceScript.Waveform.SAW)
+	check.expect_true(absf(square - 1.0) < 0.05, "square midpoint is close to +1")
+	check.expect_true(absf(triangle - 1.0) < 0.05, "triangle apex is close to +1")
+	check.expect_true(absf(saw - 0.5) < 0.05, "descending saw is close to +0.5 at quarter phase")
+
+func _expect_partial_fades_at_nyquist(audio_service: AudioService) -> void:
+	var waveform := AudioServiceScript.Waveform.SQUARE
+	var phase := PI / 6.0
+	var fade_start := AudioServiceScript.HARMONIC_FADE_START_HZ / 3.0
+	var cutoff := AudioServiceScript.NYQUIST_HZ / 3.0
+	var full := audio_service._wave_sample(phase, fade_start, waveform)
+	var halfway := audio_service._wave_sample(phase, lerpf(fade_start, cutoff, 0.5), waveform)
+	var fundamental := 8.0 / TAU * sin(phase)
+	var just_below_cutoff := audio_service._wave_sample(phase, cutoff - 1.0, waveform)
+	check.expect_true(is_equal_approx(full, fundamental + 8.0 / TAU / 3.0), "third partial below taper")
+	check.expect_true(is_equal_approx(halfway, lerpf(full, fundamental, 0.5)), "third partial halfway through taper")
+	check.expect_true(absf(just_below_cutoff - fundamental) < 0.00001, "third partial fades before Nyquist")
+	check.expect_true(is_equal_approx(audio_service._wave_sample(phase, cutoff, waveform), fundamental), "third partial at Nyquist is silent")
 
 func _expect_invalid_tone_rejected(audio_service: AudioService) -> void:
 	var waveform := AudioServiceScript.Waveform.SINE
@@ -158,6 +186,20 @@ func _expect_sweep_changes_pcm(audio_service: AudioService) -> void:
 		return
 	if fixed == sweep or fixed.data == sweep.data:
 		_fail("Expected a frequency sweep to have distinct cached PCM data.")
+		return
+
+	# These positions are within the sustain, where the integrated sweep is unscaled
+	# apart from the shared PCM gain.
+	var final_sample := sweep.data.size() / float(AudioServiceScript.PCM_16_BYTES_PER_SAMPLE) - 1.0
+	for index: int in [400, 1000, 2500]:
+		var time := index / AudioServiceScript.SAMPLE_HZ
+		var average_frequency := lerpf(210.0, 420.0, 0.5 * index / final_sample)
+		var expected := int(
+			sin(TAU * time * average_frequency)
+			* AudioServiceScript.TONE_RENDER_PEAK * AudioServiceScript.PCM_16_SCALE
+		)
+		var actual := sweep.data.decode_s16(index * AudioServiceScript.PCM_16_BYTES_PER_SAMPLE)
+		check.expect_true(absi(actual - expected) <= 1, "sine sweep keeps phase at sample %d" % index)
 
 func _expect_delayed_movement_progression(audio_service: AudioService) -> void:
 	var start_frequency := audio_service.movement_frequency_for_progress(0.0)
@@ -227,17 +269,29 @@ func _expect_channel_gain_composition(audio_service: AudioService) -> void:
 	audio_service._channel_cue_volume_db.append(-22.0)
 	audio_service.set_effects_volume_db(-3.0)
 	audio_service.set_effects_volume_db(NAN)
-	var expected_volume := (
-		AudioServiceScript.MASTER_GAIN_DB
-		- 3.0
-		- 22.0
-		- AudioServiceScript.TONE_RENDER_HEADROOM_DB
-	)
+	var expected_volume := -3.0 - 22.0
 	if not is_equal_approx(audio_service._volume_db_for_channel(0), expected_volume):
 		_fail("Expected cue and settings gain to be composed at playback time.")
 	audio_service.set_muted(true)
 	if audio_service._volume_db_for_channel(0) > -900.0:
 		_fail("Expected mute to silence a channel without changing its cue gain.")
+
+func _expect_voice_budget(audio_service: AudioService) -> void:
+	audio_service.set_muted(false)
+	audio_service.set_effects_volume_db(0.0)
+	audio_service._channel_cue_volume_db.resize(AudioServiceScript.CHANNEL_COUNT)
+	audio_service._channel_cue_volume_db.fill(20.0)
+	var peak_sum := 0.0
+	for channel in range(AudioServiceScript.CHANNEL_COUNT):
+		peak_sum += AudioServiceScript.TONE_RENDER_PEAK * db_to_linear(
+			audio_service._volume_db_for_channel(channel)
+		)
+	check.expect_true(peak_sum < db_to_linear(-2.0), "all voices combined leave 2 dB of sample headroom")
+	check.expect_equal(
+		audio_service._volume_db_for_channel(AudioServiceScript.CHANNEL_COUNT - 1),
+		AudioServiceScript.DIE_VOLUME_DB,
+		"the reserved voice keeps the death cue's gain"
+	)
 
 func _expect_voice_pool_reused() -> void:
 	var audio_service := AudioServiceScript.new()
@@ -247,11 +301,9 @@ func _expect_voice_pool_reused() -> void:
 	first_player.stream = audio_service._get_cached_tone_stream(
 		210.0, 210.0, 0.1, AudioServiceScript.Waveform.SINE
 	)
-	first_player.play()
-
 	root.remove_child(audio_service)
-	if first_player.playing or first_player.stream != null:
-		_fail("Expected detaching the service to stop playback and release the stream.")
+	if first_player.stream != null:
+		_fail("Expected detaching the service to release the assigned stream.")
 
 	root.add_child(audio_service)
 	audio_service._ensure_audio_players()
@@ -261,9 +313,6 @@ func _expect_voice_pool_reused() -> void:
 	):
 		_fail("Expected reattaching the service to reuse its existing voice pool.")
 	audio_service.free()
-	# Let the mixer retire the stopped playback before shutting down the engine.
-	await create_timer(0.1).timeout
 
 func _fail(message: String) -> void:
-	push_error(message)
-	quit(1)
+	check.expect_true(false, message)

@@ -10,7 +10,7 @@ This roadmap reflects the current Godot 4.7.2 project after the architecture and
 - `Gameplay` is a Godot adapter for ticking, interpolation, pooled views, signals, and audio.
 - `TouchGesture` and `SnakeInputAdapter` classify taps and scale-aware swipes per finger, use unscaled screen-relative drag motion, and ignore emulated duplicate mouse events without owning turn legality. Gameplay input is enabled only in the playing session state.
 - `GameRules` provides Inspector-editable presets for board, scoring, timing, and camera tuning.
-- Audio, settings, and high-score persistence are explicitly owned services with typed consumers. Synth tones have zero-amplitude edges, phase-continuous sweeps, playback-time cue gain, a bounded PCM cache, a limiter, and non-stealing player channels. Startup warms the fixed cues. Movement tones follow an eased game-speed curve and are cached on first use.
+- Audio, settings, and high-score persistence are explicitly owned services with typed consumers. Synth tones have smooth envelopes, phase-continuous sweeps, tapered harmonics, playback-time cue gain, a bounded PCM cache, and non-stealing player channels. PCM peaks and per-voice gain limits preserve mix headroom on native and Web. Startup warms the fixed cues. Movement tones follow an eased game-speed curve and are cached on first use.
 - The F1 debug overlay exposes live state; F2 advances one paused tick.
 - Model, session, persistence, audio, input, input-map, and composed-scene tests run through `./test.sh source` and CI.
 - `docs/architecture.md` and `docs/learning-path.md` describe ownership and a recommended reading order.
@@ -31,7 +31,7 @@ Use [the manual test matrix](manual-testing.md) to record results for:
 
 - Android/iOS tap, swipe, cancellation, and multi-touch behavior with the active Camera2D
 - Web touch, physical mouse switching, and pointer capture
-- native and Web audio latency, cue balance, and limiter behavior at maximum movement speed
+- perceived audio latency and cue balance on native and Web at maximum movement speed
 - controller-only navigation through the volume slider and confirmation dialogs
 - resizing and aspect-ratio extremes
 - reduced-motion behavior across every menu transition
