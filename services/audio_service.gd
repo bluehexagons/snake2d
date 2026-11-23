@@ -52,12 +52,14 @@ const FOCUS_FREQUENCY := AppConstants.BASE_FREQUENCY * 2.0
 const FOCUS_VOLUME_DB := -20.0
 const TONE_CACHE_FREQUENCY_STEP_HZ := 2.0
 const TONE_CACHE_CAPACITY := 128
+const MAX_TONE_DURATION_SECONDS := 1.0
+const MAX_TONE_FREQUENCY_HZ := SAMPLE_HZ * 0.45
 
 var audio_players: Array[AudioStreamPlayer] = []
 var next_general_channel_index := 0
 var _channel_cue_volume_db := PackedFloat32Array()
-var _tone_cache: Dictionary[String, AudioStreamWAV] = {}
-var _tone_cache_order: Array[String] = []
+var _tone_cache: Dictionary[Vector4i, AudioStreamWAV] = {}
+var _tone_cache_order: Array[Vector4i] = []
 
 var is_muted := false
 var effects_volume_db := 0.0
@@ -66,7 +68,6 @@ func _ready() -> void:
 	if DisplayServer.get_name() != "headless":
 		_ensure_audio_players()
 		_prewarm_fixed_cues()
-	_update_players()
 
 func _ensure_audio_players() -> void:
 	if not audio_players.is_empty():
@@ -88,10 +89,8 @@ func _exit_tree() -> void:
 	for player in audio_players:
 		player.stop()
 		player.stream = null
-	audio_players.clear()
-	_channel_cue_volume_db.clear()
-	_tone_cache.clear()
-	_tone_cache_order.clear()
+	# The players are still children if the service is detached for reuse.
+	next_general_channel_index = 0
 
 func _ensure_synth_bus() -> void:
 	var bus_index := AudioServer.get_bus_index(SYNTH_BUS_NAME)
@@ -148,15 +147,16 @@ func set_muted(muted: bool) -> void:
 	_update_players()
 
 func set_effects_volume_db(volume_db: float) -> void:
+	if not is_finite(volume_db):
+		return
 	effects_volume_db = clampf(volume_db, -30.0, 0.0)
 	_update_players()
 
 func play_move(speed_progress: float) -> void:
-	var progress := _quantized_move_progress(speed_progress)
 	_play_tone(
-		movement_frequency_for_progress(progress),
-		movement_duration_for_progress(progress),
-		movement_volume_db_for_progress(progress),
+		movement_frequency_for_progress(speed_progress),
+		movement_duration_for_progress(speed_progress),
+		movement_volume_db_for_progress(speed_progress),
 		Waveform.SINE
 	)
 
@@ -175,6 +175,8 @@ func movement_duration_for_progress(speed_progress: float) -> float:
 	return lerpf(MOVE_START_DURATION_SECONDS, MOVE_END_DURATION_SECONDS, progress)
 
 func _quantized_move_progress(speed_progress: float) -> float:
+	if not is_finite(speed_progress):
+		return 0.0
 	var step_size := 1.0 / float(MOVE_PROGRESS_STEPS)
 	return clampf(snappedf(clampf(speed_progress, 0.0, 1.0), step_size), 0.0, 1.0)
 
@@ -205,8 +207,6 @@ func play_focus() -> void:
 	_play_tone(FOCUS_FREQUENCY, 0.05, FOCUS_VOLUME_DB, Waveform.TRIANGLE)
 
 func play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
-	if is_muted or DisplayServer.get_name() == "headless":
-		return
 	_play_tone(frequency, duration, volume_db, waveform)
 
 func _play_tone(
@@ -217,13 +217,11 @@ func _play_tone(
 	voice_group := VoiceGroup.GENERAL,
 	end_frequency := -1.0
 ) -> void:
-	if is_muted or DisplayServer.get_name() == "headless":
+	if (is_muted or not is_inside_tree() or not is_finite(volume_db)
+		or DisplayServer.get_name() == "headless"):
 		return
 
 	_ensure_audio_players()
-
-	if audio_players.is_empty():
-		return
 
 	var channel := _acquire_channel_index(voice_group)
 	if channel == -1:
@@ -294,10 +292,22 @@ func _get_cached_tone_stream(
 	duration: float,
 	waveform: Waveform
 ) -> AudioStreamWAV:
-	# Quantized sweep endpoints keep similar cues reusable without an unbounded cache.
-	var quantized_start := snappedf(start_frequency, TONE_CACHE_FREQUENCY_STEP_HZ)
-	var quantized_end := snappedf(end_frequency, TONE_CACHE_FREQUENCY_STEP_HZ)
-	var cache_key := _tone_cache_key(quantized_start, quantized_end, duration, waveform)
+	if (
+		not is_finite(start_frequency) or start_frequency <= 0.0
+		or not is_finite(end_frequency) or end_frequency <= 0.0
+		or not is_finite(duration) or duration <= 0.0 or duration > MAX_TONE_DURATION_SECONDS
+		or waveform < Waveform.SINE or waveform > Waveform.SAW
+	):
+		return null
+
+	var sample_count := int(duration * SAMPLE_HZ)
+	if sample_count <= 2:
+		return null
+
+	# Key the cache by the inputs actually rendered, including the exact PCM length.
+	var quantized_start := _quantize_frequency(start_frequency)
+	var quantized_end := _quantize_frequency(end_frequency)
+	var cache_key := Vector4i(quantized_start, quantized_end, sample_count, waveform)
 	if _tone_cache.has(cache_key):
 		_touch_cache_key(cache_key)
 		return _tone_cache[cache_key]
@@ -305,50 +315,31 @@ func _get_cached_tone_stream(
 	var stream := _render_tone_stream(
 		quantized_start,
 		quantized_end,
-		duration,
+		sample_count,
 		waveform
 	)
-	if stream == null:
-		return null
 
 	while _tone_cache_order.size() >= TONE_CACHE_CAPACITY:
-		var oldest_key: String = _tone_cache_order.pop_front()
+		var oldest_key: Vector4i = _tone_cache_order.pop_front()
 		_tone_cache.erase(oldest_key)
 	_tone_cache[cache_key] = stream
 	_tone_cache_order.append(cache_key)
 	return stream
 
-func _tone_cache_key(
-	start_frequency: float,
-	end_frequency: float,
-	duration: float,
-	waveform: Waveform
-) -> String:
-	return "%d:%d:%d:%d" % [
-		roundi(start_frequency / TONE_CACHE_FREQUENCY_STEP_HZ),
-		roundi(end_frequency / TONE_CACHE_FREQUENCY_STEP_HZ),
-		roundi(duration * 10000.0),
-		waveform,
-	]
+func _quantize_frequency(frequency: float) -> int:
+	var clamped := clampf(frequency, TONE_CACHE_FREQUENCY_STEP_HZ, MAX_TONE_FREQUENCY_HZ)
+	return mini(roundi(snappedf(clamped, TONE_CACHE_FREQUENCY_STEP_HZ)), int(MAX_TONE_FREQUENCY_HZ))
 
-func _touch_cache_key(cache_key: String) -> void:
-	var existing_index := _tone_cache_order.find(cache_key)
-	if existing_index != -1:
-		_tone_cache_order.remove_at(existing_index)
+func _touch_cache_key(cache_key: Vector4i) -> void:
+	_tone_cache_order.erase(cache_key)
 	_tone_cache_order.append(cache_key)
 
 func _render_tone_stream(
 	start_frequency: float,
 	end_frequency: float,
-	duration: float,
+	sample_count: int,
 	waveform: Waveform
 ) -> AudioStreamWAV:
-	var sample_count := int(duration * SAMPLE_HZ)
-	if sample_count <= 1 or start_frequency <= 0.0 or end_frequency <= 0.0 or duration <= 0.0:
-		return null
-
-	var safe_start_frequency := minf(start_frequency, SAMPLE_HZ * 0.45)
-	var safe_end_frequency := minf(end_frequency, SAMPLE_HZ * 0.45)
 	var sample_data := PackedByteArray()
 	sample_data.resize(sample_count * PCM_16_BYTES_PER_SAMPLE)
 
@@ -356,8 +347,8 @@ func _render_tone_stream(
 		var sample := _tone_sample(
 			i,
 			sample_count,
-			safe_start_frequency,
-			safe_end_frequency,
+			start_frequency,
+			end_frequency,
 			waveform
 		)
 		var pcm_sample := int(clampf(sample, -MAX_SAMPLE_AMPLITUDE, MAX_SAMPLE_AMPLITUDE) * PCM_16_SCALE)

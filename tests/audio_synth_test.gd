@@ -3,6 +3,9 @@ extends SceneTree
 const AudioServiceScript := preload("res://services/audio_service.gd")
 
 func _initialize() -> void:
+	_run.call_deferred()
+
+func _run() -> void:
 	var audio_service := AudioServiceScript.new()
 
 	_expect_tone_stream(audio_service, 210.0, 210.0, 0.044, AudioServiceScript.Waveform.SINE)
@@ -10,10 +13,13 @@ func _initialize() -> void:
 	_expect_tone_stream(audio_service, 231.0, 84.0, 0.34, AudioServiceScript.Waveform.SAW)
 	_expect_invalid_tone_rejected(audio_service)
 	_expect_cached_tones_reused(audio_service)
+	_expect_cache_uses_rendered_length(audio_service)
+	_expect_cache_evicts_least_recently_used(audio_service)
 	_expect_sweep_changes_pcm(audio_service)
 	_expect_delayed_movement_progression(audio_service)
 	_expect_movement_cues_are_cached_on_demand(audio_service)
 	_expect_channel_gain_composition(audio_service)
+	await _expect_voice_pool_reused()
 	audio_service.free()
 
 	print("Audio synth test passed.")
@@ -26,12 +32,12 @@ func _expect_tone_stream(
 	duration: float,
 	waveform: AudioServiceScript.Waveform
 ) -> void:
-	var stream: AudioStreamWAV = audio_service._render_tone_stream(
+	var stream := audio_service._get_cached_tone_stream(
 		start_frequency,
 		end_frequency,
 		duration,
 		waveform
-	) as AudioStreamWAV
+	)
 	if stream == null:
 		_fail("Expected a rendered tone stream.")
 		return
@@ -62,14 +68,49 @@ func _expect_tone_stream(
 		_fail("Expected rendered tone to contain audible sample data.")
 
 func _expect_invalid_tone_rejected(audio_service: AudioService) -> void:
-	var invalid_stream: AudioStreamWAV = audio_service._render_tone_stream(
-		-1.0,
-		210.0,
-		0.1,
-		AudioServiceScript.Waveform.SINE
-	) as AudioStreamWAV
-	if invalid_stream != null:
-		_fail("Expected invalid tone parameters to be rejected.")
+	var waveform := AudioServiceScript.Waveform.SINE
+	for invalid_frequency: float in [-1.0, 0.0, INF, -INF, NAN]:
+		if audio_service._get_cached_tone_stream(invalid_frequency, 210.0, 0.1, waveform) != null:
+			_fail("Expected invalid start frequencies to be rejected.")
+		if audio_service._get_cached_tone_stream(210.0, invalid_frequency, 0.1, waveform) != null:
+			_fail("Expected invalid end frequencies to be rejected.")
+	for invalid_duration: float in [0.0, 0.00001, 1.01, INF, NAN]:
+		if audio_service._get_cached_tone_stream(210.0, 210.0, invalid_duration, waveform) != null:
+			_fail("Expected invalid durations to be rejected before allocation.")
+
+func _expect_cache_uses_rendered_length(audio_service: AudioService) -> void:
+	var waveform := AudioServiceScript.Waveform.SINE
+	var short := audio_service._get_cached_tone_stream(210.0, 210.0, 0.1, waveform)
+	var long := audio_service._get_cached_tone_stream(210.0, 210.0, 0.10004, waveform)
+	var same_length := audio_service._get_cached_tone_stream(210.0, 210.0, 0.10001, waveform)
+	if short == null or long == null or long.data.size() != short.data.size() + 2:
+		_fail("Expected nearby durations with different sample counts to render separately.")
+	if short != same_length:
+		_fail("Expected matching sample counts to reuse a cached stream.")
+
+	var limit := AudioServiceScript.MAX_TONE_FREQUENCY_HZ
+	var capped := audio_service._get_cached_tone_stream(limit, limit, 0.1, waveform)
+	var above_cap := audio_service._get_cached_tone_stream(1.0e100, 3.0e100, 0.1, waveform)
+	if capped == null or capped != above_cap:
+		_fail("Expected frequencies above the render limit to share a cache entry.")
+
+func _expect_cache_evicts_least_recently_used(audio_service: AudioService) -> void:
+	audio_service._tone_cache.clear()
+	audio_service._tone_cache_order.clear()
+	var waveform := AudioServiceScript.Waveform.SINE
+	var first := audio_service._get_cached_tone_stream(100.0, 100.0, 0.001, waveform)
+	var second := audio_service._get_cached_tone_stream(102.0, 102.0, 0.001, waveform)
+	for i in range(2, AudioServiceScript.TONE_CACHE_CAPACITY):
+		var frequency := 100.0 + i * 2.0
+		audio_service._get_cached_tone_stream(frequency, frequency, 0.001, waveform)
+	audio_service._get_cached_tone_stream(100.0, 100.0, 0.001, waveform)
+	audio_service._get_cached_tone_stream(1000.0, 1000.0, 0.001, waveform)
+	if audio_service._tone_cache.size() != AudioServiceScript.TONE_CACHE_CAPACITY:
+		_fail("Expected the tone cache to stay within capacity.")
+	if first != audio_service._get_cached_tone_stream(100.0, 100.0, 0.001, waveform):
+		_fail("Expected a recently used stream to survive cache eviction.")
+	if second == audio_service._get_cached_tone_stream(102.0, 102.0, 0.001, waveform):
+		_fail("Expected the least recently used stream to be evicted.")
 
 func _expect_cached_tones_reused(audio_service: AudioService) -> void:
 	var first := audio_service._get_cached_tone_stream(
@@ -185,6 +226,7 @@ func _expect_movement_cues_are_cached_on_demand(audio_service: AudioService) -> 
 func _expect_channel_gain_composition(audio_service: AudioService) -> void:
 	audio_service._channel_cue_volume_db.append(-22.0)
 	audio_service.set_effects_volume_db(-3.0)
+	audio_service.set_effects_volume_db(NAN)
 	var expected_volume := (
 		AudioServiceScript.MASTER_GAIN_DB
 		- 3.0
@@ -196,6 +238,31 @@ func _expect_channel_gain_composition(audio_service: AudioService) -> void:
 	audio_service.set_muted(true)
 	if audio_service._volume_db_for_channel(0) > -900.0:
 		_fail("Expected mute to silence a channel without changing its cue gain.")
+
+func _expect_voice_pool_reused() -> void:
+	var audio_service := AudioServiceScript.new()
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+	var first_player := audio_service.audio_players.front() as AudioStreamPlayer
+	first_player.stream = audio_service._get_cached_tone_stream(
+		210.0, 210.0, 0.1, AudioServiceScript.Waveform.SINE
+	)
+	first_player.play()
+
+	root.remove_child(audio_service)
+	if first_player.playing or first_player.stream != null:
+		_fail("Expected detaching the service to stop playback and release the stream.")
+
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+	if (
+		audio_service.get_child_count() != AudioServiceScript.CHANNEL_COUNT
+		or audio_service.audio_players.front() != first_player
+	):
+		_fail("Expected reattaching the service to reuse its existing voice pool.")
+	audio_service.free()
+	# Let the mixer retire the stopped playback before shutting down the engine.
+	await create_timer(0.1).timeout
 
 func _fail(message: String) -> void:
 	push_error(message)
