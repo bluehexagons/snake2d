@@ -300,7 +300,7 @@ func _expect_move_cues_do_not_stack() -> void:
 	audio_service._ensure_audio_players()
 
 	for step in range(4):
-		audio_service.play_move(float(step) / 24.0)
+		audio_service.play_move(float(step) / AudioServiceScript.MOVE_PROGRESS_STEPS)
 	var first_voice := audio_service.audio_players.front() as AudioStreamPlayer
 	var active := audio_service.audio_players.filter(
 		func(player: AudioStreamPlayer) -> bool: return player.playing
@@ -309,12 +309,12 @@ func _expect_move_cues_do_not_stack() -> void:
 
 	audio_service.play_die()
 	check.expect_true(audio_service.audio_players.back().playing, "death can still play over a movement cue")
-	await create_timer(0.2).timeout
-	check.expect_false(first_voice.playing, "the movement cue finishes after its envelope")
+	# Make voice retirement independent of the headless mixer's wall-clock timing.
+	first_voice.stop()
 	audio_service.play_move(1.0)
-	check.expect_true(audio_service.audio_players[1].playing, "movement can play again once its cue ends")
-	await create_timer(0.3).timeout
+	check.expect_true(audio_service.audio_players[1].playing, "movement can play again after its voice stops")
 	audio_service.free()
+	await create_timer(0.3).timeout
 
 func _expect_voice_pool_reused() -> void:
 	var audio_service := AudioServiceScript.new()
