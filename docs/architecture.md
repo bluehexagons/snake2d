@@ -188,7 +188,8 @@ busy. The service drops overflow so active waveforms finish cleanly.
 
 Audio startup prewarms the four fixed cues. Short movement tones follow
 normalized game-speed progress from `GameRules` and enter the cache when their
-speed bucket is first played.
+speed bucket is first played. A movement cue already in progress covers
+additional catch-up ticks, and food pickups use the food cue alone.
 
 Settings migration writes the new format only after validating a complete
 legacy record. Invalid or truncated legacy files retain defaults without

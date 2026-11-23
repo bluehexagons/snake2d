@@ -54,6 +54,7 @@ const MAX_TONE_FREQUENCY_HZ := HARMONIC_FADE_START_HZ
 var audio_players: Array[AudioStreamPlayer] = []
 var next_general_channel_index := 0
 var _channel_cue_volume_db := PackedFloat32Array()
+var _movement_player: AudioStreamPlayer
 var _tone_cache: Dictionary[Vector4i, AudioStreamWAV] = {}
 var _tone_cache_order: Array[Vector4i] = []
 
@@ -86,9 +87,12 @@ func _exit_tree() -> void:
 		player.stream = null
 	# The players are still children if the service is detached for reuse.
 	next_general_channel_index = 0
+	_movement_player = null
 
 func _on_audio_player_finished(player: AudioStreamPlayer) -> void:
 	player.stream = null
+	if player == _movement_player:
+		_movement_player = null
 
 func _update_players() -> void:
 	for channel in range(audio_players.size()):
@@ -116,7 +120,10 @@ func set_effects_volume_db(volume_db: float) -> void:
 	_update_players()
 
 func play_move(speed_progress: float) -> void:
-	_play_tone(
+	# Catch-up ticks can arrive before the last movement cue has finished.
+	if _movement_player != null and _movement_player.playing:
+		return
+	_movement_player = _play_tone(
 		movement_frequency_for_progress(speed_progress),
 		movement_duration_for_progress(speed_progress),
 		movement_volume_db_for_progress(speed_progress),
@@ -179,27 +186,27 @@ func _play_tone(
 	waveform: Waveform,
 	voice_group := VoiceGroup.GENERAL,
 	end_frequency := -1.0
-) -> void:
-	if (is_muted or not is_inside_tree() or not is_finite(volume_db)
-		or DisplayServer.get_name() == "headless"):
-		return
-
-	_ensure_audio_players()
+) -> AudioStreamPlayer:
+	if is_muted or audio_players.is_empty() or not is_inside_tree() or not is_finite(volume_db):
+		return null
 
 	var channel := _acquire_channel_index(voice_group)
 	if channel == -1:
-		return
+		return null
 
 	var resolved_end_frequency := frequency if end_frequency <= 0.0 else end_frequency
 	var stream := _get_cached_tone_stream(frequency, resolved_end_frequency, duration, waveform)
 	if stream == null:
-		return
+		return null
 
 	var player := audio_players[channel]
+	if player == _movement_player:
+		_movement_player = null
 	_channel_cue_volume_db[channel] = volume_db
 	player.stream = stream
 	player.volume_db = _volume_db_for_channel(channel)
 	player.play()
+	return player
 
 func _acquire_channel_index(voice_group: VoiceGroup) -> int:
 	# Interrupting a PCM voice at an arbitrary sample creates a discontinuity that

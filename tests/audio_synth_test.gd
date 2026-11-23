@@ -26,6 +26,7 @@ func _run() -> void:
 	_expect_movement_cues_are_cached_on_demand(audio_service)
 	_expect_channel_gain_composition(audio_service)
 	_expect_voice_budget(audio_service)
+	await _expect_move_cues_do_not_stack()
 	_expect_voice_pool_reused()
 	audio_service.free()
 
@@ -292,6 +293,28 @@ func _expect_voice_budget(audio_service: AudioService) -> void:
 		AudioServiceScript.DIE_VOLUME_DB,
 		"the reserved voice keeps the death cue's gain"
 	)
+
+func _expect_move_cues_do_not_stack() -> void:
+	var audio_service := AudioServiceScript.new()
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+
+	for step in range(4):
+		audio_service.play_move(float(step) / 24.0)
+	var first_voice := audio_service.audio_players.front() as AudioStreamPlayer
+	var active := audio_service.audio_players.filter(
+		func(player: AudioStreamPlayer) -> bool: return player.playing
+	)
+	check.expect_equal(active, [first_voice], "catch-up moves share a single cue")
+
+	audio_service.play_die()
+	check.expect_true(audio_service.audio_players.back().playing, "death can still play over a movement cue")
+	await create_timer(0.2).timeout
+	check.expect_false(first_voice.playing, "the movement cue finishes after its envelope")
+	audio_service.play_move(1.0)
+	check.expect_true(audio_service.audio_players[1].playing, "movement can play again once its cue ends")
+	await create_timer(0.3).timeout
+	audio_service.free()
 
 func _expect_voice_pool_reused() -> void:
 	var audio_service := AudioServiceScript.new()

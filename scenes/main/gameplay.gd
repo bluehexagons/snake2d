@@ -129,13 +129,14 @@ func advance_one_tick() -> SnakeGame.StepResult:
 		tick_completed.emit(result)
 		return result
 
-	_audio_service.play_move(_rules.speed_progress_for_length(model.snake.body.size()))
+	if result == SnakeGame.StepResult.MOVED:
+		_audio_service.play_move(_rules.speed_progress_for_length(model.snake.body.size()))
 	snake.move_to_cell(model.snake.body[0])
 	var grew := result == SnakeGame.StepResult.ATE_FOOD or result == SnakeGame.StepResult.FILLED_BOARD
 	_sync_tail_presentation(previous_tail, grew)
 	snake_moved.emit(_cell_to_pixel(model.snake.body[0]))
 
-	if result == SnakeGame.StepResult.ATE_FOOD or result == SnakeGame.StepResult.FILLED_BOARD:
+	if grew:
 		_audio_service.play_eat()
 		_consume_food_view()
 		score_updated.emit(model.score)
