@@ -78,3 +78,35 @@ jobs:
           dist/snake-web.zip
           dist/snake-windows.zip
           dist/snake-linux.zip
+
+  pages:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+    - name: Download published build
+      uses: actions/download-artifact@v8
+      with:
+        name: release-build
+        path: dist/
+
+    - name: Extract Web export
+      run: unzip -q dist/snake-web.zip -d site
+
+    - name: Upload GitHub Pages artifact
+      uses: actions/upload-pages-artifact@v4
+      with:
+        path: site/
+
+    - name: Deploy GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

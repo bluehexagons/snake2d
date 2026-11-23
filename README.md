@@ -190,6 +190,9 @@ Windows archive without an installed editor. The tested archives are retained
 as one immutable build artifact and downloaded again for publication; the publish
 job does not rebuild them. CI uses the same flat archive layout and package check.
 
+After the release is published, the workflow deploys the same Web archive to
+[GitHub Pages](https://bluehexagons.github.io/snake2d/).
+
 ## Technical Details
 
 - Explicit scene composition with no Autoload singletons
