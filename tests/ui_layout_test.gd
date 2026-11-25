@@ -8,6 +8,7 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	var capture_dir := "" if DisplayServer.get_name() == "headless" else OS.get_environment("SNAKE_UI_CAPTURE_DIR")
 	var main := MAIN.instantiate() as Main
 	(main.get_node("Services/HighScoreStore") as HighScoreStore).save_path = files.path("scores.dat")
 	var settings := main.get_node("Services/SettingsService") as SettingsService
@@ -50,12 +51,8 @@ func _run() -> void:
 					await process_frame
 				if menu is GameOverPanel and dimensions == Vector2i(1280, 720):
 					check.expect_equal(menu.title_label.get_line_count(), 1, "the desktop completion heading fits on one line")
-				var captures := OS.get_environment("SNAKE_UI_CAPTURE_DIR")
-				if not captures.is_empty() and DisplayServer.get_name() != "headless":
-					RenderingServer.force_draw.call_deferred()
-					await RenderingServer.frame_post_draw
-					var image := root.get_texture().get_image()
-					check.expect_equal(image.save_png(captures.path_join("%dx%d-%s-dpi%s.png" % [dimensions.x, dimensions.y, menu.name, density])), OK, "save layout capture")
+				if not capture_dir.is_empty():
+					await _capture_ui(capture_dir.path_join("%dx%d-%s-dpi%s.png" % [dimensions.x, dimensions.y, menu.name, density]))
 				var panel := menu.get_node("Content/PanelContainer") as Control
 				var layout := panel.get_node("MarginContainer/MenuLayout") as ResponsiveMenuLayout
 				var primary := layout.get_node("Primary") as Control
@@ -138,10 +135,8 @@ func _run() -> void:
 			var popup := main.main_menu.mode_selector.get_popup()
 			check.expect_true(popup.visible, "mode selector opens its popup through pointer input")
 			check.expect_true(popup.get_theme_constant("v_separation") >= 24, "mode choices retain usable vertical spacing")
-			var capture_dir := OS.get_environment("SNAKE_UI_CAPTURE_DIR")
-			if not capture_dir.is_empty() and DisplayServer.get_name() != "headless":
-				await RenderingServer.frame_post_draw
-				root.get_texture().get_image().save_png(capture_dir.path_join("%dx%d-ModePopup-dpi%s.png" % [dimensions.x, dimensions.y, density]))
+			if not capture_dir.is_empty():
+				await _capture_ui(capture_dir.path_join("%dx%d-ModePopup-dpi%s.png" % [dimensions.x, dimensions.y, density]))
 			main.main_menu.mode_selector.select(GameMode.Value.OBSTACLES)
 			main.main_menu.mode_selector.item_selected.emit(GameMode.Value.OBSTACLES)
 			popup.hide()
@@ -179,9 +174,8 @@ func _run() -> void:
 			check.expect_true(board_rect.position.y >= layer.gameplay_top_inset(), "the HUD stays above the board")
 			var pause_rect := pause_button.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, pause_button.size)
 			check.expect_false(board_rect.intersects(pause_rect), "Pause leaves the entire board playable")
-			if not capture_dir.is_empty() and DisplayServer.get_name() != "headless":
-				await RenderingServer.frame_post_draw
-				root.get_texture().get_image().save_png(capture_dir.path_join("%dx%d-Ready-dpi%s.png" % [dimensions.x, dimensions.y, density]))
+			if not capture_dir.is_empty():
+				await _capture_ui(capture_dir.path_join("%dx%d-Ready-dpi%s.png" % [dimensions.x, dimensions.y, density]))
 			_key(KEY_P)
 			check.expect_false(tutorial.visible, "pausing hides the tutorial")
 			_key(KEY_P)
@@ -237,6 +231,12 @@ func _run() -> void:
 	await process_frame
 	files.cleanup()
 	check.finish(self, "UI layout test")
+
+func _capture_ui(path: String) -> void:
+	# A settled screen may never redraw without an explicit capture request.
+	RenderingServer.force_draw.call_deferred()
+	await RenderingServer.frame_post_draw
+	check.expect_equal(root.get_texture().get_image().save_png(path), OK, "save layout capture")
 
 func _expect_board_stays_visible_after_resize(main: Main) -> void:
 	main.start_new_round()
