@@ -102,7 +102,7 @@ func _on_mode_selected(_index: int) -> void:
 		GameMode.Value.OBSTACLES:
 			mode_description.text = "Dodge walls. Reuse the seed to play the same layout."
 		_:
-			mode_description.text = "Eat food, grow, and beat your best."
+			mode_description.text = "Avoid the walls and your own body."
 
 func _prepare_next_world_seed() -> void:
 	var current_seed := _selected_world_seed()

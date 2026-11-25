@@ -40,18 +40,6 @@ expand_margin_top = 6.0
 expand_margin_right = 6.0
 expand_margin_bottom = 6.0
 
-[sub_resource type="Gradient" id="MenuGradient"]
-offsets = PackedFloat32Array(0, 0.6, 1)
-colors = PackedColorArray(0.13, 0.25, 0.20, 1, 0.065, 0.107, 0.089, 1, 0.038, 0.065, 0.054, 1)
-
-[sub_resource type="GradientTexture2D" id="MenuBackdropTexture"]
-gradient = SubResource("MenuGradient")
-width = 512
-height = 512
-fill = 1
-fill_from = Vector2(0.32, 0.2)
-fill_to = Vector2(0.96, 0.86)
-
 [node name="Main" type="Control" unique_id=308419110]
 layout_mode = 3
 anchors_preset = 15
@@ -135,15 +123,6 @@ script = ExtResource("3_yyfjg")
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=106770468]
 layer = 2
 script = ExtResource("20_ui_layout")
-
-[node name="MenuBackdrop" type="TextureRect" parent="UILayer"]
-unique_name_in_owner = true
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
-texture = SubResource("MenuBackdropTexture")
-expand_mode = 1
 
 [node name="UIBackground" type="ColorRect" parent="UILayer" unique_id=1867130892]
 unique_name_in_owner = true

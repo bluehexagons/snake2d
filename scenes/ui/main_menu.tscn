@@ -48,20 +48,9 @@ size_flags_horizontal = 3
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Title" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="NamePrefix" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary/Title"]
-layout_mode = 2
-theme_type_variation = &"HintLabel"
-theme_override_font_sizes/font_size = 20
-text = "A Simple"
-
-[node name="TitleLabel" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary/Title" unique_id=1574374115]
+[node name="TitleLabel" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=1574374115]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
-theme_override_font_sizes/font_size = 44
 autowrap_mode = 3
 text = "Snake Game"
 
@@ -87,7 +76,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 32)
 layout_mode = 2
 theme_type_variation = &"HintLabel"
-text = "Eat food, grow, and beat your best."
 autowrap_mode = 3
 
 [node name="SeedRow" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary"]
@@ -152,13 +140,3 @@ layout_mode = 2
 focus_neighbor_top = NodePath("../CreditsButton")
 focus_neighbor_bottom = NodePath("../../Primary/ModeRow/ModeSelector")
 text = "Quit Game"
-
-[node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=351248812]
-layout_mode = 2
-alignment = 1
-
-[node name="Label" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions/ButtonHints" unique_id=327194930]
-layout_mode = 2
-theme_type_variation = &"HintLabel"
-text = "Enter  Select"
-horizontal_alignment = 1

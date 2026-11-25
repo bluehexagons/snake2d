@@ -23,7 +23,6 @@ var _quitting := false
 @onready var settings_service: SettingsService = %SettingsService
 @onready var game_session: GameSession = %GameSession
 @onready var ui_layer: ResponsiveUILayer = $UILayer
-@onready var menu_backdrop: TextureRect = %MenuBackdrop
 @onready var ui_background: ColorRect = %UIBackground
 @onready var gameplay_hud: PanelContainer = %GameplayHUD
 @onready var score_display_label: Label = %HUDScoreLabel
@@ -165,10 +164,10 @@ func _update_input_hints() -> void:
 			first_move_hint.text = "D-pad or left stick to move"
 			menu_hint = "A  Select    B  Back"
 	for menu in ui_state_manager.ui_elements.values():
+		if menu == main_menu:
+			continue
 		var hint := menu.get_node("Content/PanelContainer/MarginContainer/MenuLayout/Actions/ButtonHints/Label") as Label
 		hint.text = menu_hint
-		if menu == main_menu:
-			hint.text = "A  Select" if _input_device == InputDevice.CONTROLLER else "Enter  Select"
 		hint.visible = _input_device != InputDevice.TOUCH
 
 func _has_active_joypad_action(event: InputEventJoypadMotion) -> bool:
@@ -221,9 +220,6 @@ func _on_session_state_changed(old_state: GameSession.State, new_state: GameSess
 func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 	ui_layer.set_gameplay_pause_visible(new_state == UIStateManager.UIState.GAMEPLAY)
 	controls_tutorial.visible = new_state == UIStateManager.UIState.GAMEPLAY and gameplay.is_waiting_for_input()
-	menu_backdrop.visible = new_state not in [
-		UIStateManager.UIState.GAMEPLAY, UIStateManager.UIState.PAUSED, UIStateManager.UIState.GAME_OVER
-	]
 	match new_state:
 		ui_state_manager.UIState.GAMEPLAY:
 			ui_background.visible = false
