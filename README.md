@@ -25,7 +25,7 @@ The game pauses when its window loses focus. Select **Resume** when you’re rea
 
 ## Credits and AI disclosure
 
-Created by bluehexagons as a Godot learning project. Development now uses AI coding agents through the creator’s open-source project, [Basaltwater](https://github.com/bluehexagons/basaltwater). The agents have helped implement and test parts of the game and revise some in-game text. Generative AI is used during development only.
+Created by bluehexagons as a Godot learning project for agentic development, originally with Copilot. Development now uses AI coding agents on [Basaltwater](https://github.com/bluehexagons/basaltwater). The agents have helped implement and test the game and revise in-game text.
 
 Game source is available under the [Apache 2.0 license](LICENSE). The [Averia Sans Libre font license](AveriaSansLibre-Regular%20OFL.txt) credits Dan Sayers.
 
