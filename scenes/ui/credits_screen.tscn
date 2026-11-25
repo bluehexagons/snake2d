@@ -64,8 +64,7 @@ text = "[center]A Simple Snake Game
 Built with [color=#7affc3]Godot Engine {godot_version}[/color]
 
 Developed with AI assistance
-using open-source Basaltwater.
-Generative AI is used during development only.[/center]"
+using open-source Basaltwater.[/center]"
 fit_content = true
 
 [node name="LicenseText" type="RichTextLabel" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions"]
@@ -79,14 +78,25 @@ SIL Open Font License
 Version: {project_version}[/center]"
 fit_content = true
 
+[node name="SourceButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+focus_neighbor_top = NodePath("../BackButton")
+focus_neighbor_bottom = NodePath("../BackButton")
+focus_next = NodePath("../BackButton")
+focus_previous = NodePath("../BackButton")
+mouse_default_cursor_shape = 2
+text = "Source on GitHub"
+
 [node name="BackButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=1149227835]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
-focus_neighbor_top = NodePath(".")
-focus_neighbor_bottom = NodePath(".")
-focus_next = NodePath(".")
-focus_previous = NodePath(".")
+focus_neighbor_top = NodePath("../SourceButton")
+focus_neighbor_bottom = NodePath("../SourceButton")
+focus_next = NodePath("../SourceButton")
+focus_previous = NodePath("../SourceButton")
 text = "Back"
 
 [node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=1217405360]

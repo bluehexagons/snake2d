@@ -3,11 +3,15 @@ extends ScrollContainer
 
 signal credits_screen_closed
 
+const SOURCE_URL := "https://github.com/bluehexagons/snake2d"
+
 var back_button: Button
+@onready var source_button: Button = %SourceButton
 
 func _ready() -> void:
 	back_button = %BackButton
 	back_button.pressed.connect(_on_back_pressed)
+	source_button.pressed.connect(_on_source_pressed)
 
 	var credits_text: RichTextLabel = %CreditsRichText
 	var engine_version := Engine.get_version_info()
@@ -26,8 +30,11 @@ func _ready() -> void:
 func _on_back_pressed() -> void:
 	credits_screen_closed.emit()
 
+func _on_source_pressed() -> void:
+	OS.shell_open(SOURCE_URL)
+
 func get_buttons() -> Array[Button]:
-	return [back_button]
+	return [source_button, back_button]
 
 func get_default_focus() -> Button:
 	return back_button
