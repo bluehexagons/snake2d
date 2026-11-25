@@ -3,9 +3,14 @@ extends Control
 
 @export var game_rules: GameRules
 
+enum InputDevice { MOUSE, KEYBOARD, TOUCH, CONTROLLER }
+
 var high_scores_by_mode: Dictionary = {}
 
-var using_mouse := true
+var _input_device := InputDevice.MOUSE
+var using_mouse: bool:
+	get:
+		return _input_device == InputDevice.MOUSE
 var _button_tweens: Dictionary[Button, Tween] = {}
 var _game_size_pixels := Vector2i.ZERO
 
@@ -16,9 +21,11 @@ var _game_size_pixels := Vector2i.ZERO
 @onready var game_session: GameSession = %GameSession
 @onready var ui_layer: ResponsiveUILayer = $UILayer
 @onready var ui_background: ColorRect = %UIBackground
+@onready var gameplay_hud: PanelContainer = %GameplayHUD
 @onready var score_display_label: Label = %HUDScoreLabel
 @onready var mode_display_label: Label = %HUDModeLabel
 @onready var controls_tutorial: Control = %ControlsTutorial
+@onready var first_move_hint: Label = controls_tutorial.get_node("HintArea/Panel/FirstMoveHint")
 @onready var gameplay_pause_button: Button = %GameplayPauseButton
 
 @onready var game_world: Node2D = %GameWorld
@@ -55,8 +62,11 @@ func _ready() -> void:
 	debug_overlay.configure(game_session, gameplay)
 	settings_service.configure(audio_service, ui_state_manager, gameplay_grid)
 	options_menu.set_settings_service(settings_service)
-	settings_service.settings_changed.connect(_settle_button_polish)
 	camera_node.configure(game_rules, gameplay)
+	ui_layer.gameplay_inset_changed.connect(camera_node.set_top_inset)
+	camera_node.set_top_inset(ui_layer.gameplay_top_inset())
+	settings_service.settings_changed.connect(_apply_motion_setting)
+	_apply_motion_setting()
 
 	ui_state_manager.state_changed.connect(_on_ui_state_changed)
 
@@ -99,9 +109,11 @@ func _ready() -> void:
 	ui_background.visible = false
 	main_menu.visible = true
 	options_menu.visible = false
-	score_display_label.visible = false
-	mode_display_label.visible = false
+	gameplay_hud.visible = false
 	game_world.visible = false
+	if DisplayServer.is_touchscreen_available():
+		_input_device = InputDevice.TOUCH
+	_update_input_hints()
 	_update_cursor_visibility()
 
 	for button in _get_all_buttons():
@@ -118,19 +130,39 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadMotion and not _has_active_joypad_action(event):
 		return
+	var device := _input_device
 	if (
 		(event is InputEventMouseButton or event is InputEventMouseMotion)
 		and event.device != InputEvent.DEVICE_ID_EMULATION
 	):
-		if not using_mouse:
-			using_mouse = true
-			_update_cursor_visibility()
-	elif event is InputEventJoypadButton or event is InputEventJoypadMotion \
-			or event is InputEventKey \
-			or event is InputEventScreenTouch or event is InputEventScreenDrag:
-		if using_mouse:
-			using_mouse = false
-			_update_cursor_visibility()
+		device = InputDevice.MOUSE
+	elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		device = InputDevice.CONTROLLER
+	elif event is InputEventKey:
+		device = InputDevice.KEYBOARD
+	elif event is InputEventScreenTouch or event is InputEventScreenDrag:
+		device = InputDevice.TOUCH
+	if device != _input_device:
+		_input_device = device
+		_update_input_hints()
+		_update_cursor_visibility()
+
+func _update_input_hints() -> void:
+	var menu_hint := "Enter  Select    Esc  Back"
+	match _input_device:
+		InputDevice.KEYBOARD:
+			first_move_hint.text = "Arrow keys or WASD to move"
+		InputDevice.MOUSE:
+			first_move_hint.text = "Click to steer, or use arrows / WASD"
+		InputDevice.TOUCH:
+			first_move_hint.text = "Swipe or tap to move"
+		InputDevice.CONTROLLER:
+			first_move_hint.text = "D-pad or left stick to move"
+			menu_hint = "A  Select    B  Back"
+	for menu in ui_state_manager.ui_elements.values():
+		var hint := menu.get_node("Content/PanelContainer/MarginContainer/MenuLayout/Actions/ButtonHints/Label") as Label
+		hint.text = menu_hint
+		hint.visible = _input_device != InputDevice.TOUCH
 
 func _has_active_joypad_action(event: InputEventJoypadMotion) -> bool:
 	# Neutral axes and stick drift must not hide a mouse-controlled cursor.
@@ -180,14 +212,12 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 	match new_state:
 		ui_state_manager.UIState.GAMEPLAY:
 			ui_background.visible = false
-			score_display_label.visible = true
-			mode_display_label.visible = true
+			gameplay_hud.visible = true
 			game_world.visible = true
 			_update_cursor_visibility()
 		ui_state_manager.UIState.MAIN_MENU:
 			ui_background.visible = false
-			score_display_label.visible = false
-			mode_display_label.visible = false
+			gameplay_hud.visible = false
 			game_world.visible = false
 			_update_cursor_visibility()
 		ui_state_manager.UIState.PAUSED:
@@ -258,7 +288,8 @@ func _install_button_polish(btn: Button) -> void:
 		animate_to.call(dest, 0.12)
 	)
 
-func _settle_button_polish() -> void:
+func _apply_motion_setting() -> void:
+	camera_node.set_reduced_motion(settings_service.reduced_motion)
 	if not settings_service.reduced_motion:
 		return
 	for button in _button_tweens:

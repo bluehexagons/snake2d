@@ -18,6 +18,7 @@ func _run() -> void:
 	await _expect_pointer_gameplay_input(main)
 	main.start_new_round()
 	_expect_mouse_mode_ignores_idle_controller(main)
+	_expect_reduced_motion_camera(main)
 	main.gameplay.request_direction(Vector2i.RIGHT)
 	await physics_frame
 	var adapter := main.snake_input_adapter
@@ -109,6 +110,7 @@ func _expect_pointer_gameplay_input(main: Main) -> void:
 	touch.position = snake.get_global_transform_with_canvas() * Vector2(-2.0, snake.cell_size / 2.0)
 	touch.pressed = true
 	root.push_input(touch, true)
+	check.expect_equal(main.first_move_hint.text, "Swipe or tap to move", "touch shows the gesture hint")
 	check.expect_true(gameplay.model.snake.waiting_for_input, "a touch press waits for a tap or swipe")
 	touch.pressed = false
 	root.push_input(touch, true)
@@ -152,8 +154,23 @@ func _expect_mouse_mode_ignores_idle_controller(main: Main) -> void:
 	motion.axis_value = 1.0
 	root.push_input(motion, true)
 	check.expect_false(main.using_mouse, "mapped stick movement selects controller input")
+	check.expect_equal(main.first_move_hint.text, "D-pad or left stick to move", "controller input shows the controller hint")
 	root.push_input(mouse, true)
 	check.expect_true(main.using_mouse, "mouse movement restores mouse input after a controller")
+	check.expect_equal(main.first_move_hint.text, "Click to steer, or use arrows / WASD", "pointer hint also exposes keyboard bindings")
+	var key := InputEventKey.new()
+	key.keycode = KEY_ENTER
+	key.pressed = true
+	root.push_input(key, true)
+	check.expect_equal(main.first_move_hint.text, "Arrow keys or WASD to move", "a key switches to keyboard hints")
+
+func _expect_reduced_motion_camera(main: Main) -> void:
+	var center := Vector2(main.game_rules.board_size_pixels()) / 2.0
+	main.camera_node.position = center + Vector2(20.0, 0.0)
+	main.settings_service.toggle_reduced_motion()
+	check.expect_equal(main.camera_node.position, center, "reduced motion centers the camera immediately")
+	main.camera_node._physics_process(1.0 / 60.0)
+	check.expect_equal(main.camera_node.target, center, "reduced motion keeps the camera centered during play")
 
 func _expect_minimized_fullscreen(settings: SettingsService) -> void:
 	settings.toggle_fullscreen()

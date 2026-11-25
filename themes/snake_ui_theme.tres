@@ -2,6 +2,17 @@
 
 [ext_resource type="FontFile" uid="uid://cbpsi4o2txea7" path="res://resources/AveriaSansLibre-Regular.ttf" id="1_lljul"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0.105, 0.135, 0.112, 0.96)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lljul"]
 content_margin_left = 4.0
 content_margin_top = 4.0
@@ -146,6 +157,8 @@ HintLabel/font_sizes/font_size = 14
 Label/colors/font_color = Color(0.85098, 0.847059, 0.843137, 1)
 Label/font_sizes/font_size = 16
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_bg")
+StatusPanel/base_type = &"PanelContainer"
+StatusPanel/styles/panel = SubResource("StyleBoxFlat_status")
 PopupMenu/constants/v_separation = 24
 QuitButton/base_type = &"Button"
 QuitButton/colors/font_color = Color(0.85098, 0.847059, 0.843137, 1)

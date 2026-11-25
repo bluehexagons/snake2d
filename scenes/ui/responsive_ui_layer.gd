@@ -1,12 +1,16 @@
 class_name ResponsiveUILayer
 extends CanvasLayer
 
+signal gameplay_inset_changed(top_inset: float)
+
 ## Compensate for board downscaling so menu text stays at its authored pixel size.
-## The board and its input/camera transforms keep the project stretch unchanged.
+## Report the HUD space in game viewport units so the camera can frame around it.
 var _full_rect_controls: Array[Control] = []
 var _gameplay_pause_visible := false
 
 @onready var _pause_button: Button = %GameplayPauseButton
+@onready var _hud: PanelContainer = %GameplayHUD
+@onready var _first_move_hint_area: CenterContainer = %ControlsTutorial.get_node("HintArea")
 
 func _ready() -> void:
 	for child in get_children():
@@ -18,6 +22,7 @@ func _ready() -> void:
 			child.grow_horizontal = Control.GROW_DIRECTION_END
 			child.grow_vertical = Control.GROW_DIRECTION_END
 	get_viewport().size_changed.connect(_update_layout)
+	_hud.resized.connect(_layout_first_move_hint)
 	_update_layout()
 
 func _update_layout() -> void:
@@ -37,10 +42,26 @@ func fit_to_viewport(pixel_density: float) -> void:
 			layout.fit_to_size(available)
 		control.position = Vector2.ZERO
 		control.size = available
-	var mode_label := get_node("HUDModeLabel") as Label
-	mode_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mode_label.size.x = maxf(1.0, available.x - mode_label.position.x - 16.0)
+	var hud_height := 60.0 if available.x < 440.0 else 42.0
+	_hud.size = Vector2(minf(460.0, available.x - 24.0), hud_height)
+	_layout_first_move_hint()
 	_layout_pause_button()
+	gameplay_inset_changed.emit(gameplay_top_inset())
+
+func gameplay_top_inset() -> float:
+	return (_hud.position.y + _hud.size.y) * scale.y
+
+func _layout_first_move_hint() -> void:
+	var available_width := get_viewport().get_visible_rect().size.x / scale.x
+	var hud_rect := _hud.get_rect()
+	const HINT_HEIGHT := 44.0
+	if available_width >= 760.0:
+		var left := hud_rect.end.x + 8.0
+		_first_move_hint_area.position = Vector2(left, hud_rect.get_center().y - HINT_HEIGHT / 2.0)
+		_first_move_hint_area.size = Vector2(available_width - left - 12.0, HINT_HEIGHT)
+	else:
+		_first_move_hint_area.position = Vector2(0, hud_rect.end.y + 8.0)
+		_first_move_hint_area.size = Vector2(available_width, HINT_HEIGHT)
 
 func set_gameplay_pause_visible(visible: bool) -> void:
 	_gameplay_pause_visible = visible

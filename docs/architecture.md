@@ -78,7 +78,8 @@ pointer and touch Pause button to the same session method. Pausing clears
 pending touch gestures through the input-adapter state transition. The player
 resumes explicitly through the pause menu after returning to the window.
 The first-move hint lives in the responsive UI layer so its text stays readable
-as the board scales. `Main` hides it when gameplay accepts a direction.
+as the board scales. `Main` selects the hint and menu prompts from the active
+input device and hides the first-move hint when gameplay accepts a direction.
 Touch drags require a tracked press: a late drag after pause, cancellation or
 scene changes cannot recreate a cleared gesture. Input modality changes from
 joypad motion only when it activates a mapped navigation/gameplay action, so
@@ -95,8 +96,9 @@ neutral axes and stick drift do not hide a mouse-controlled cursor.
 The model uses `Vector2i` cells. Presentation converts cells to pixel positions using `GameRules.cell_size`. Keeping that conversion at the adapter boundary prevents interpolation or camera motion from affecting collision rules.
 
 The camera limits how far it pans on each axis so the entire playable grid
-stays visible when it fits. Larger boards can scroll to their edges. Resizing
-recalculates both limits, including while the game is paused.
+stays visible below the HUD when it fits. Larger boards can scroll to their
+edges. Reduced Motion centers and fits the entire board. Resizing recalculates
+the framing and pan limits, including while the game is paused.
 
 `Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
 
@@ -111,10 +113,9 @@ consumption animation.
 `ResponsiveUILayer` compensates only when the project's canvas stretch would
 shrink the UI below its authored pixel size (CSS pixels on Web, accounting for
 device pixel density). It sizes full-screen menu controls
-in the compensated coordinate space; the game layer, camera, grid and input
-adapter retain their existing transforms. The HUD mode label wraps within the
-remaining width. The font uses distance-field rendering to stay crisp when
-canvas and viewport scales differ.
+in the compensated coordinate space and reports the HUD inset to the camera in
+game viewport units. The HUD mode label wraps beside the score. The font uses
+distance-field rendering to stay crisp when canvas and viewport scales differ.
 
 The world-seed field accepts at most nine characters and bounds values to the
 declared seed range. `MainMenu` also clamps the floating-point value before

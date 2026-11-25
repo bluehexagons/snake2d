@@ -8,6 +8,8 @@ var gameplay: Gameplay
 var _rules: GameRules
 var _board_center := Vector2.ZERO
 var _pan_limit := Vector2.ZERO
+var _reduced_motion := false
+var _top_inset := 0.0
 
 func configure(game_rules: GameRules, gameplay_node: Gameplay) -> void:
 	_rules = game_rules
@@ -17,7 +19,19 @@ func configure(game_rules: GameRules, gameplay_node: Gameplay) -> void:
 	fit_to_viewport()
 
 func fit_to_viewport() -> void:
-	var visible_half_size := get_viewport_rect().size / zoom / 2.0
+	var viewport_size := get_viewport_rect().size
+	var top_inset := minf(_top_inset, viewport_size.y / 3.0)
+	var play_space := viewport_size - Vector2(0, top_inset)
+	var board_size := _board_center * 2.0
+	zoom = Vector2.ONE
+	if _reduced_motion or (board_size.x <= viewport_size.x and board_size.y <= viewport_size.y):
+		var fit := (play_space - EDGE_MARGIN * 2.0) / board_size
+		zoom = Vector2.ONE * clampf(minf(fit.x, fit.y), 0.01, 1.0)
+	# Move the board center to the middle of the space remaining below the HUD.
+	offset = Vector2(0, -top_inset / (2.0 * zoom.y))
+	if _reduced_motion:
+		reset_camera()
+	var visible_half_size := play_space / zoom / 2.0
 	var spare := visible_half_size - _board_center
 	# Leave room for the outline on axes that fit. For a larger board, allow
 	# travel through the excess so the player can still reach either edge.
@@ -26,12 +40,22 @@ func fit_to_viewport() -> void:
 	position = _clamp_to_board(position)
 	force_update_scroll()
 
+func set_top_inset(top_inset: float) -> void:
+	_top_inset = top_inset
+	fit_to_viewport()
+
+func set_reduced_motion(enabled: bool) -> void:
+	if _reduced_motion == enabled:
+		return
+	_reduced_motion = enabled
+	fit_to_viewport()
+
 func _process(delta: float) -> void:
 	var weight := clampf(1.0 - pow(0.001, delta), 0.0, 0.95)
 	position = position.lerp(target, weight)
 
 func _physics_process(_delta: float) -> void:
-	if gameplay == null:
+	if gameplay == null or _reduced_motion:
 		return
 
 	# Calculate camera target based on weighted factors:

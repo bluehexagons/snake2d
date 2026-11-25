@@ -136,11 +136,22 @@ func _run() -> void:
 			for frame in 3:
 				await process_frame
 			_click(main.main_menu.start_button)
-			await process_frame
+			for frame in 3:
+				await process_frame
 			check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "pointer starts a round through the scaled menu")
 			var tutorial := main.controls_tutorial
 			check.expect_true(tutorial.visible, "the tutorial is visible before the first turn")
 			check.expect_true(tutorial.size.is_equal_approx(root.get_visible_rect().size / layer.scale), "the tutorial fits the responsive UI")
+			var hint := main.first_move_hint
+			var hint_rect := hint.get_global_rect()
+			check.expect_true(Rect2(Vector2.ZERO, tutorial.size).grow(1.0).encloses(hint_rect), "the first-move prompt fits the viewport: %s in %s" % [hint_rect, tutorial.size])
+			check.expect_false(hint_rect.intersects(main.gameplay_hud.get_rect()), "the first-move prompt clears the HUD")
+			var board := main.play_area_background
+			var board_rect := board.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, board.size)
+			check.expect_true(board_rect.position.y >= layer.gameplay_top_inset(), "the HUD stays above the board")
+			if not capture_dir.is_empty() and DisplayServer.get_name() != "headless":
+				await RenderingServer.frame_post_draw
+				root.get_texture().get_image().save_png(capture_dir.path_join("%dx%d-Ready-dpi%s.png" % [dimensions.x, dimensions.y, density]))
 			_key(KEY_P)
 			check.expect_false(tutorial.visible, "pausing hides the tutorial")
 			_key(KEY_P)
