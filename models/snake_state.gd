@@ -16,6 +16,7 @@ var queued_direction := Vector2i.RIGHT
 var waiting_for_input := true
 var alive := true
 var _turn_queued := false
+var _buffered_direction := Vector2i.ZERO
 
 func reset(start_cell: Vector2i) -> void:
 	body.assign([start_cell])
@@ -24,17 +25,22 @@ func reset(start_cell: Vector2i) -> void:
 	waiting_for_input = true
 	alive = true
 	_turn_queued = false
+	_buffered_direction = Vector2i.ZERO
 
-## Queues at most one legal turn for the next grid tick.
+## Keeps the next turn and one follow-up. Each takes effect on its own tick.
 func request_direction(requested_direction: Vector2i) -> bool:
-	if not alive or requested_direction not in CARDINAL_DIRECTIONS or _turn_queued:
+	if not alive or requested_direction not in CARDINAL_DIRECTIONS or _buffered_direction != Vector2i.ZERO:
 		return false
-	if not waiting_for_input and requested_direction in [direction, -direction]:
+	var previous_direction := queued_direction if _turn_queued else direction
+	if not waiting_for_input and requested_direction in [previous_direction, -previous_direction]:
 		return false
 
-	queued_direction = requested_direction
-	waiting_for_input = false
-	_turn_queued = true
+	if _turn_queued:
+		_buffered_direction = requested_direction
+	else:
+		queued_direction = requested_direction
+		_turn_queued = true
+		waiting_for_input = false
 	return true
 
 func next_head_cell() -> Vector2i:
@@ -50,7 +56,9 @@ func would_hit_self(next_head: Vector2i, will_grow: bool) -> bool:
 
 func advance(next_head: Vector2i, grow: bool) -> void:
 	direction = queued_direction
-	_turn_queued = false
+	_turn_queued = _buffered_direction != Vector2i.ZERO
+	queued_direction = _buffered_direction if _turn_queued else direction
+	_buffered_direction = Vector2i.ZERO
 	body.push_front(next_head)
 	if not grow:
 		body.pop_back()

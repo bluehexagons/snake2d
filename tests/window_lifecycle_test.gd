@@ -54,6 +54,7 @@ func _run() -> void:
 	_expect_board_completion()
 	_expect_pitfall_hud_and_results()
 	_expect_obstacle_replay()
+	await _expect_buffered_keyboard_turns()
 	files.cleanup()
 	check.finish(self, "Window lifecycle test")
 
@@ -125,6 +126,43 @@ func _expect_obstacle_replay() -> void:
 	check.expect_equal(main.game_session.current_mode, GameMode.Value.OBSTACLES, "New Seed stays in Obstacles mode")
 	check.expect_true(main.mode_display_label.text.contains(str(new_seed)), "the HUD shows the new seed")
 	main.free()
+
+func _expect_buffered_keyboard_turns() -> void:
+	var main := _create_main()
+	main.start_new_round()
+	var gameplay := main.gameplay
+	var spawn := gameplay.model.snake.body[0]
+	gameplay.model.food_cell = Vector2i.ZERO
+	_push_key(KEY_UP)
+	_push_key(KEY_LEFT)
+	check.expect_equal(gameplay.snake.queued_direction, Vector2i.UP, "the arrow shows the next tick's heading")
+	main.game_session.pause_round()
+	for frame in 3:
+		await physics_frame
+	check.expect_equal(gameplay.model.snake.body[0], spawn, "pausing freezes accepted turns")
+	main.game_session.resume_round()
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i.UP, "the first turn survives pause")
+	check.expect_equal(gameplay.snake.queued_direction, Vector2i.LEFT, "the arrow shows the follow-up after the first tick")
+	main.game_session.pause_round()
+	_push_key(KEY_DOWN)
+	main.game_session.resume_round()
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i(-1, -1), "the follow-up survives pause")
+	check.expect_equal(gameplay.snake.queued_direction, Vector2i.LEFT, "input while paused does not replace the heading")
+	main.game_session.pause_round()
+	await create_timer(0.1).timeout
+	main.free()
+
+func _push_key(code: Key) -> void:
+	var key := InputEventKey.new()
+	key.keycode = code
+	key.physical_keycode = code
+	key.pressed = true
+	root.push_input(key, true)
+	key = key.duplicate() as InputEventKey
+	key.pressed = false
+	root.push_input(key, true)
 
 func _expect_pointer_gameplay_input(main: Main) -> void:
 	main.start_new_round()

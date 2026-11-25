@@ -102,6 +102,11 @@ the framing and pan limits, including while the game is paused.
 
 `Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
 
+`SnakeState` keeps one follow-up direction behind the next turn. It validates
+each input against the last accepted heading and consumes one turn per tick.
+The head arrow shows the direction that will apply on the next tick. Accepted
+turns stay queued during pause, while the input adapter clears active gestures.
+
 At each movement tick, the body settles into its occupied grid cells. Only
 the head and the old tail cell animate between ticks.
 

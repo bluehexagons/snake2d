@@ -134,6 +134,8 @@ func advance_one_tick() -> SnakeGame.StepResult:
 	if result == SnakeGame.StepResult.MOVED:
 		_audio_service.play_move(_rules.speed_progress_for_length(model.snake.body.size()))
 	snake.move_to_cell(model.snake.body[0])
+	if snake.queued_direction != model.snake.queued_direction:
+		snake.show_queued_direction(model.snake.queued_direction)
 	var grew := result == SnakeGame.StepResult.ATE_FOOD or result == SnakeGame.StepResult.FILLED_BOARD
 	_sync_tail_presentation(previous_tail, grew)
 	snake_moved.emit(_cell_to_pixel(model.snake.body[0]))
@@ -165,7 +167,8 @@ func request_direction(direction: Vector2i) -> bool:
 	var waiting_for_input := model.snake.waiting_for_input
 	var accepted := model.request_direction(direction)
 	if accepted:
-		snake.show_queued_direction(model.snake.queued_direction)
+		if snake.queued_direction != model.snake.queued_direction:
+			snake.show_queued_direction(model.snake.queued_direction)
 		if waiting_for_input:
 			first_direction_accepted.emit()
 	return accepted

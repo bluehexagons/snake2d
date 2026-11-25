@@ -4,7 +4,7 @@ var check := TestAssertions.new()
 
 func _initialize() -> void:
 	_a_snake_waits_for_its_first_direction()
-	_only_one_turn_is_queued_per_tick()
+	_two_quick_turns_play_on_consecutive_ticks()
 	_a_snake_dies_at_the_board_boundary()
 	_a_snake_dies_when_it_hits_its_body()
 	_the_departing_tail_cell_is_legal()
@@ -29,13 +29,24 @@ func _a_snake_waits_for_its_first_direction() -> void:
 		"a snake waits for its first direction"
 	)
 
-func _only_one_turn_is_queued_per_tick() -> void:
+func _two_quick_turns_play_on_consecutive_ticks() -> void:
 	var game := _new_game(Vector2i(5, 5), 2)
+	var spawn := game.snake.body[0]
+	game.food_cell = Vector2i.ZERO
 	check.expect_true(game.request_direction(Vector2i.UP), "the first turn before a tick is accepted")
-	check.expect_false(game.request_direction(Vector2i.LEFT), "a second turn before the same tick is rejected")
+	check.expect_false(game.request_direction(Vector2i.UP), "a duplicate does not occupy the follow-up slot")
+	check.expect_false(game.request_direction(Vector2i.DOWN), "reversing the queued heading is rejected")
+	check.expect_true(game.request_direction(Vector2i.LEFT), "a second legal turn is buffered")
+	check.expect_false(game.request_direction(Vector2i.DOWN), "a third turn cannot overfill the buffer")
 	game.step()
-	check.expect_equal(game.snake.direction, Vector2i.UP, "the accepted direction is committed on the tick")
-	check.expect_false(game.request_direction(Vector2i.DOWN), "a direct reversal is rejected")
+	check.expect_equal(game.snake.body[0], spawn + Vector2i.UP, "the first tick moves up one cell")
+	check.expect_equal(game.snake.queued_direction, Vector2i.LEFT, "the follow-up becomes the next heading")
+	check.expect_false(game.request_direction(Vector2i.RIGHT), "a new turn cannot reverse the promoted turn")
+	check.expect_true(game.request_direction(Vector2i.DOWN), "consuming a turn makes space for another")
+	game.step()
+	check.expect_equal(game.snake.body[0], spawn + Vector2i.UP + Vector2i.LEFT, "the next tick moves left one cell")
+	game.step()
+	check.expect_equal(game.snake.body[0], spawn + Vector2i.LEFT, "the newly buffered turn follows on the third tick")
 
 func _a_snake_dies_at_the_board_boundary() -> void:
 	var game := _new_game(Vector2i(3, 3), 3)
@@ -162,11 +173,15 @@ func _reset_restores_initial_state() -> void:
 	game.food_cell = game.snake.body[0] + Vector2i.RIGHT
 	game.request_direction(Vector2i.RIGHT)
 	game.step()
+	game.request_direction(Vector2i.UP)
+	game.request_direction(Vector2i.LEFT)
 	game.reset()
 	check.expect_equal(game.score, 0, "reset clears score")
 	check.expect_equal(game.snake.body.size(), 1, "reset restores one body cell")
 	check.expect_true(game.snake.waiting_for_input, "reset waits for fresh input")
 	check.expect_false(game.game_over, "reset clears game-over state")
+	check.expect_true(game.request_direction(Vector2i.LEFT), "reset accepts a fresh first heading")
+	check.expect_true(game.request_direction(Vector2i.DOWN), "reset clears both queued turns")
 
 func _terminal_results_are_stable() -> void:
 	var wall := _new_game(Vector2i(3, 3), 3)

@@ -63,7 +63,7 @@ Read the model in this order:
 3. `models/snake_game.gd`
 4. `tests/snake_game_test.gd`
 
-Set a breakpoint in `SnakeGame.step()` and inspect one movement tick. The model uses cells rather than pixels and has no scene-node references. The tests show why entering the departing tail cell is legal and why only one turn is accepted per tick.
+Set a breakpoint in `SnakeGame.step()` and inspect one movement tick. The model uses cells rather than pixels and has no scene-node references. The tests show why entering the departing tail cell is legal and how two quick turns are applied on consecutive ticks.
 
 ## 6. Physics ticks and visual interpolation
 
