@@ -11,6 +11,7 @@ var volume_slider: HSlider
 var fullscreen_button: SettingToggle
 var reduced_motion_button: SettingToggle
 var grid_button: SettingToggle
+var fps_limit_button: SettingToggle
 var reset_settings_button: Button
 var reset_scores_button: Button
 var back_button: Button
@@ -26,6 +27,7 @@ func _ready() -> void:
 	fullscreen_button = %FullscreenButton
 	reduced_motion_button = %ReducedMotionButton
 	grid_button = %GridButton
+	fps_limit_button = %FPSLimitButton
 	reset_settings_button = %ResetSettingsButton
 	reset_scores_button = %ResetScoresButton
 	back_button = %BackButton
@@ -36,6 +38,11 @@ func _ready() -> void:
 	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
 	reduced_motion_button.pressed.connect(_on_reduced_motion_toggled)
 	grid_button.pressed.connect(_on_grid_toggled)
+	fps_limit_button.pressed.connect(_on_fps_limit_toggled)
+	if not SettingsService.supports_gameplay_fps_limit():
+		fps_limit_button.hide()
+		grid_button.focus_neighbor_bottom = grid_button.get_path_to(reset_settings_button)
+		reset_settings_button.focus_neighbor_top = reset_settings_button.get_path_to(grid_button)
 	reset_settings_button.pressed.connect(_on_reset_settings_pressed)
 	
 	reset_scores_button.pressed.connect(_on_reset_scores_pressed)
@@ -84,6 +91,9 @@ func _on_grid_toggled() -> void:
 	_settings_service.toggle_grid()
 	update_grid_button()
 
+func _on_fps_limit_toggled() -> void:
+	_settings_service.toggle_gameplay_fps_limit()
+
 func _on_reset_settings_pressed() -> void:
 	_show_confirmation_dialog(
 		"Reset Settings",
@@ -107,15 +117,19 @@ func _on_back_pressed() -> void:
 	options_closed.emit()
 
 func get_buttons() -> Array[Button]:
-	return [
+	var buttons: Array[Button] = [
 		sound_button,
 		fullscreen_button,
 		reduced_motion_button,
 		grid_button,
+		fps_limit_button,
 		reset_settings_button,
 		reset_scores_button,
 		back_button,
 	]
+	if not fps_limit_button.visible:
+		buttons.erase(fps_limit_button)
+	return buttons
 
 func get_default_focus() -> Button:
 	return sound_button
@@ -130,6 +144,7 @@ func update_button_states() -> void:
 	update_fullscreen_button()
 	update_reduced_motion_button()
 	update_grid_button()
+	fps_limit_button.show_setting(_settings_service.limit_gameplay_fps)
 
 func update_sound_button() -> void:
 	sound_button.show_setting(not _settings_service.is_muted)

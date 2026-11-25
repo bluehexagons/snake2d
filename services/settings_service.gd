@@ -9,6 +9,7 @@ const SaveFile = preload("res://services/save_file.gd")
 const CURRENT_VERSION := 1
 const DEFAULT_SETTINGS_PATH := "user://settings.cfg"
 const LEGACY_SETTINGS_PATH := "user://settings.dat"
+const LIMITED_GAMEPLAY_FPS := 30
 
 @export var settings_path := DEFAULT_SETTINGS_PATH
 @export var legacy_settings_path := LEGACY_SETTINGS_PATH
@@ -18,6 +19,7 @@ var effects_volume_db := 0.0
 var is_fullscreen := false
 var reduced_motion := false
 var grid_enabled := true
+var limit_gameplay_fps := false
 
 var _audio_service: AudioService
 var _ui_state_manager: UIStateManager
@@ -70,6 +72,7 @@ func load_settings() -> void:
 				effects_volume_db = clampf(float(volume), -30.0, 0.0)
 			is_fullscreen = _read_bool(config, "display", "fullscreen", false)
 			grid_enabled = _read_bool(config, "display", "grid_enabled", true)
+			limit_gameplay_fps = _read_bool(config, "display", "limit_gameplay_fps", false)
 			reduced_motion = _read_bool(config, "accessibility", "reduced_motion", false)
 		return
 
@@ -84,6 +87,7 @@ func save_settings() -> void:
 	config.set_value("audio", "effects_volume_db", effects_volume_db)
 	config.set_value("display", "fullscreen", is_fullscreen)
 	config.set_value("display", "grid_enabled", grid_enabled)
+	config.set_value("display", "limit_gameplay_fps", limit_gameplay_fps)
 	config.set_value("accessibility", "reduced_motion", reduced_motion)
 	var error := SaveFile.write(settings_path, config.encode_to_text().to_utf8_buffer())
 	if error != OK:
@@ -119,6 +123,13 @@ func toggle_grid() -> bool:
 	_commit_change()
 	return grid_enabled
 
+static func supports_gameplay_fps_limit() -> bool:
+	return not OS.has_feature("web")
+
+func toggle_gameplay_fps_limit() -> void:
+	limit_gameplay_fps = not limit_gameplay_fps
+	_commit_change()
+
 func reset_settings() -> void:
 	_reset_values()
 	_apply_window_mode()
@@ -130,6 +141,7 @@ func _reset_values() -> void:
 	is_fullscreen = false
 	reduced_motion = false
 	grid_enabled = true
+	limit_gameplay_fps = false
 
 func _commit_change() -> void:
 	_apply_settings()

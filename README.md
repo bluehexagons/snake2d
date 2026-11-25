@@ -10,7 +10,7 @@ Eat food, grow, and beat your high score. Pick a mode from the main menu and pre
 - **Pitfall** adds a pit every third meal when there’s room.
 - **Obstacles** starts with a wall layout. Enter the same seed to replay that layout or share it with a friend.
 
-The game saves your top 100 scores for each mode. In **Options**, you can adjust sound and effects volume, switch to fullscreen, reduce motion, or hide the grid.
+The game saves your top 100 scores for each mode. In **Options**, you can adjust sound and effects volume, switch to fullscreen, reduce motion, or hide the grid. On desktop, turn on **30 FPS Limit** to reduce rendering work during play.
 
 ## Controls
 

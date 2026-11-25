@@ -115,6 +115,7 @@ func _settings_round_trip_and_reset() -> void:
 	settings.toggle_fullscreen()
 	settings.toggle_reduced_motion()
 	settings.toggle_grid()
+	settings.toggle_gameplay_fps_limit()
 
 	var loaded := SettingsService.new()
 	loaded.settings_path = settings_path
@@ -124,6 +125,7 @@ func _settings_round_trip_and_reset() -> void:
 	check.expect_true(loaded.is_fullscreen, "fullscreen state round-trips")
 	check.expect_true(loaded.reduced_motion, "reduced-motion state round-trips")
 	check.expect_false(loaded.grid_enabled, "gameplay-grid state round-trips")
+	check.expect_true(loaded.limit_gameplay_fps, "the gameplay frame limit round-trips")
 
 	loaded.reset_settings()
 	var reset := SettingsService.new()
@@ -134,6 +136,7 @@ func _settings_round_trip_and_reset() -> void:
 	check.expect_false(reset.is_fullscreen, "reset restores windowed mode")
 	check.expect_false(reset.reduced_motion, "reset restores motion")
 	check.expect_true(reset.grid_enabled, "reset restores the gameplay grid")
+	check.expect_false(reset.limit_gameplay_fps, "reset restores normal frame pacing")
 
 	settings.free()
 	loaded.free()
@@ -245,6 +248,7 @@ func _malformed_settings_keep_safe_defaults() -> void:
 	config.set_value("audio", "muted", "false")
 	config.set_value("audio", "effects_volume_db", Vector2.ONE)
 	config.set_value("display", "grid_enabled", [])
+	config.set_value("display", "limit_gameplay_fps", "true")
 	config.save(settings_path)
 	var settings := SettingsService.new()
 	settings.settings_path = settings_path
@@ -252,6 +256,7 @@ func _malformed_settings_keep_safe_defaults() -> void:
 	check.expect_false(settings.is_muted, "strings are not accepted as saved booleans")
 	check.expect_equal(settings.effects_volume_db, 0.0, "invalid volume types keep the default")
 	check.expect_true(settings.grid_enabled, "invalid grid values keep the default")
+	check.expect_false(settings.limit_gameplay_fps, "invalid frame limit values keep the default")
 	for value in [NAN, INF, -INF]:
 		config.set_value("audio", "effects_volume_db", value)
 		config.save(settings_path)

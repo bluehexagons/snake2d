@@ -59,6 +59,7 @@ func _run() -> void:
 	_expect_pause_shortcuts()
 	_expect_first_move_timing()
 	_expect_idle_render_policy()
+	_expect_gameplay_fps_limit()
 	await _expect_buffered_keyboard_turns()
 	_expect_stick_turns()
 	if DisplayServer.get_name() != "headless":
@@ -67,13 +68,13 @@ func _run() -> void:
 	files.cleanup()
 	check.finish(self, "Window lifecycle test")
 
-func _create_main(rules: GameRules = null) -> Main:
+func _create_main(rules: GameRules = null, settings_filename := "settings.cfg") -> Main:
 	var main := MAIN.instantiate() as Main
 	if rules != null:
 		main.game_rules = rules
 	(main.get_node("Services/HighScoreStore") as HighScoreStore).save_path = files.path("scores.dat")
 	var settings := main.get_node("Services/SettingsService") as SettingsService
-	settings.settings_path = files.path("settings.cfg")
+	settings.settings_path = files.path(settings_filename)
 	settings.legacy_settings_path = files.path("legacy.dat")
 	root.add_child(main)
 	return main
@@ -243,6 +244,39 @@ func _expect_idle_render_policy() -> void:
 	check.expect_true(OS.low_processor_usage_mode, "returning to the menu keeps on-demand rendering")
 	main.free()
 	check.expect_equal(OS.low_processor_usage_mode, previous_mode, "removing Main restores the engine's rendering mode")
+
+func _expect_gameplay_fps_limit() -> void:
+	const SETTINGS_FILE := "frame-limit-settings.cfg"
+	var previous_max_fps := Engine.max_fps
+	Engine.max_fps = 60
+	var main := _create_main(null, SETTINGS_FILE)
+	var options := main.options_menu
+	main.main_menu.options_button.pressed.emit()
+	check.expect_false(options.fps_limit_button.button_pressed, "the frame limit starts off")
+	options.grid_button.grab_focus()
+	_push_key(KEY_DOWN)
+	check.expect_equal(root.gui_get_focus_owner(), options.fps_limit_button, "the limit is reachable below Gameplay Grid")
+	_push_key(KEY_ENTER)
+	check.expect_true(main.settings_service.limit_gameplay_fps, "selecting the limit saves the preference")
+	_push_key(KEY_ESCAPE)
+	main.start_new_round()
+	check.expect_equal(Engine.max_fps, 60, "waiting for input keeps normal frame pacing")
+	main.gameplay.request_direction(Vector2i.RIGHT)
+	check.expect_equal(Engine.max_fps, 30, "the first direction applies the gameplay limit")
+	main.game_session.pause_round()
+	check.expect_equal(Engine.max_fps, 60, "pause restores normal frame pacing")
+	main.game_session.resume_round()
+	check.expect_equal(Engine.max_fps, 30, "resume reapplies the gameplay limit")
+	main.free()
+	check.expect_equal(Engine.max_fps, 60, "removing Main restores the prior engine limit")
+	Engine.max_fps = 24
+	main = _create_main(null, SETTINGS_FILE)
+	check.expect_true(main.options_menu.fps_limit_button.button_pressed, "reopening the game restores the toggle")
+	main.start_new_round()
+	main.gameplay.request_direction(Vector2i.RIGHT)
+	check.expect_equal(Engine.max_fps, 24, "the gameplay option respects a lower launch limit")
+	main.free()
+	Engine.max_fps = previous_max_fps
 
 func _expect_buffered_keyboard_turns() -> void:
 	var main := _create_main()

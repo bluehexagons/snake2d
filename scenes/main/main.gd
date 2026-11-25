@@ -15,6 +15,7 @@ var using_mouse: bool:
 var _game_size_pixels := Vector2i.ZERO
 var _quitting := false
 var _previous_low_processor_mode := false
+var _previous_max_fps := 0
 
 @onready var ui_state_manager: UIStateManager = $UIStateManager
 @onready var audio_service: AudioService = %AudioService
@@ -47,9 +48,11 @@ var _previous_low_processor_mode := false
 
 func _enter_tree() -> void:
 	_previous_low_processor_mode = OS.low_processor_usage_mode
+	_previous_max_fps = Engine.max_fps
 
 func _exit_tree() -> void:
 	OS.low_processor_usage_mode = _previous_low_processor_mode
+	Engine.max_fps = _previous_max_fps
 
 func _ready() -> void:
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
@@ -75,6 +78,7 @@ func _ready() -> void:
 	ui_layer.gameplay_inset_changed.connect(camera_node.set_top_inset)
 	camera_node.set_top_inset(ui_layer.gameplay_top_inset())
 	settings_service.settings_changed.connect(_update_camera_motion)
+	settings_service.settings_changed.connect(_update_render_policy)
 	_update_camera_motion()
 
 	ui_state_manager.state_changed.connect(_on_ui_state_changed)
@@ -214,6 +218,13 @@ func _update_render_policy() -> void:
 	# Camera2D updates the canvas transform each frame even at a fixed position.
 	camera_node.process_mode = Node.PROCESS_MODE_INHERIT if moving else Node.PROCESS_MODE_DISABLED
 	OS.low_processor_usage_mode = not moving
+	if SettingsService.supports_gameplay_fps_limit():
+		var max_fps := _previous_max_fps
+		if moving and settings_service.limit_gameplay_fps:
+			max_fps = SettingsService.LIMITED_GAMEPLAY_FPS
+			if _previous_max_fps > 0:
+				max_fps = mini(_previous_max_fps, max_fps)
+		Engine.max_fps = max_fps
 
 func _on_session_state_changed(old_state: GameSession.State, new_state: GameSession.State) -> void:
 	_update_render_policy()

@@ -199,6 +199,10 @@ remain readable by earlier versions.
 
 `SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes.
 
+On desktop, `Main` applies the optional 30 FPS limit while the snake is moving.
+The limit respects any lower launch-time cap. Menus and the first-move screen
+use the launch-time frame limit and on-demand rendering.
+
 `AudioService` owns procedural synthesis and playback. It renders smooth
 attack and release envelopes and phase-continuous sweeps. Harmonics taper out
 as they approach Nyquist. The bounded PCM cache keys on waveform, quantized
