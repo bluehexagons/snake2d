@@ -106,6 +106,8 @@ the framing and pan limits, including while the game is paused.
 each input against the last accepted heading and consumes one turn per tick.
 The head arrow shows the direction that will apply on the next tick. Accepted
 turns stay queued during pause, while the input adapter clears active gestures.
+Each stick axis submits one direction per deflection. It must pass a lower
+release threshold before the same direction can be submitted again.
 
 At each movement tick, the body settles into its occupied grid cells. Only
 the head and the old tail cell animate between ticks.
@@ -160,7 +162,7 @@ is open.
 
 `SnakeGame` receives a `RandomNumberGenerator`. Normal play randomizes it; tests supply a seed. Tail colors are a deterministic presentation gradient and do not consume model randomness. Obstacle mode also sends the selected world seed through `ObstaclePatternGenerator`; that independent generator chooses and parameterizes a Gates, Islands, or Ribbons layout, so the same world seed always produces the same walls regardless of food placement.
 
-Pitfall mode adds a blocked cell at the configured food cadence. Its placement tiers prefer cells that are not directly ahead, are outside the snake's safety radius, and are not vertically below any body segment. Those preferences relax only when the remaining free cells make the safer tier impossible. Food selection excludes all blocked cells and is restricted to the connected region reachable from the snake. This reachability query treats the moving body as traversable and walls as permanent: it prevents food across a sealed wall, but does not promise that a legal sequence of turns can reach it. `FILLED_BOARD` means no free food cell remains in that region, which may be smaller than the whole board. Terminal steps retain their original outcome and reject new direction requests.
+Pitfall mode adds a blocked cell at the configured food cadence. Its placement tiers favor cells outside the snake's safety radius and away from the columns below its body. They keep the next cell open, including after a queued turn, whenever another cell is available. Food selection excludes all blocked cells and is restricted to the connected region reachable from the snake. This reachability query treats the moving body as traversable and walls as permanent: it prevents food across a sealed wall, but does not promise that a legal sequence of turns can reach it. `FILLED_BOARD` means no free food cell remains in that region, which may be smaller than the whole board. Terminal steps retain their original outcome and reject new direction requests.
 On wall-free boards, food placement can sample the column-ordered free-cell
 list directly. With walls, a set provides membership checks during the flood
 fill. Both paths keep the same candidate order for seeded randomness.

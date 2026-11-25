@@ -6,16 +6,26 @@ extends Node2D
 
 signal direction_requested(direction: Vector2i)
 
+const DIRECTION_ACTIONS: Dictionary[StringName, Vector2i] = {
+	&"up": Vector2i.UP,
+	&"down": Vector2i.DOWN,
+	&"left": Vector2i.LEFT,
+	&"right": Vector2i.RIGHT,
+}
+const STICK_RELEASE_DEADZONE_FRACTION := 0.7
+
 @export_category("Touch Gestures")
 @export_range(0.005, 0.1, 0.005) var drag_threshold_window_ratio := 0.025
 @export_range(8.0, 96.0, 1.0) var minimum_drag_threshold_pixels := 16.0
 
 var _gameplay: Gameplay
 var _touch_gestures: Dictionary[int, TouchGesture] = {}
+var _held_stick_actions: Dictionary[Vector2i, StringName] = {}
 var _enabled := false
 
 func _ready() -> void:
 	set_process_unhandled_input(_enabled)
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 func configure(gameplay: Gameplay) -> void:
 	_gameplay = gameplay
@@ -25,22 +35,21 @@ func set_enabled(enabled: bool) -> void:
 	set_process_unhandled_input(enabled)
 	if not enabled:
 		_touch_gestures.clear()
+		_held_stick_actions.clear()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _enabled:
 		return
 
+	var action := _pressed_direction_action(event)
+	if event is InputEventJoypadMotion and not _is_new_stick_press(event, action):
+		return
+
 	var requested := Vector2i.ZERO
 	var consume_touch_event := false
 
-	if event.is_action_pressed("up"):
-		requested = Vector2i.UP
-	elif event.is_action_pressed("down"):
-		requested = Vector2i.DOWN
-	elif event.is_action_pressed("left"):
-		requested = Vector2i.LEFT
-	elif event.is_action_pressed("right"):
-		requested = Vector2i.RIGHT
+	if not action.is_empty():
+		requested = DIRECTION_ACTIONS[action]
 	elif event is InputEventMouseButton:
 		if (
 			event.device != InputEvent.DEVICE_ID_EMULATION
@@ -81,6 +90,34 @@ func _unhandled_input(event: InputEvent) -> void:
 		var viewport := get_viewport()
 		if viewport != null:
 			viewport.set_input_as_handled()
+
+func _pressed_direction_action(event: InputEvent) -> StringName:
+	for action in DIRECTION_ACTIONS:
+		if event.is_action_pressed(action):
+			return action
+	return &""
+
+func _is_new_stick_press(event: InputEventJoypadMotion, action: StringName) -> bool:
+	var axis := Vector2i(event.device, event.axis)
+	var previous: StringName = _held_stick_actions.get(axis, &"")
+	if action.is_empty():
+		# Require a deeper return toward center so jitter at the press threshold
+		# cannot rearm an axis and fill the follow-up turn slot.
+		if not previous.is_empty():
+			var release_threshold := InputMap.action_get_deadzone(previous) * STICK_RELEASE_DEADZONE_FRACTION
+			if absf(event.axis_value) <= release_threshold:
+				_held_stick_actions.erase(axis)
+		return false
+	if action == previous:
+		return false
+	_held_stick_actions[axis] = action
+	return true
+
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if not connected:
+		for axis in _held_stick_actions.keys():
+			if axis.x == device:
+				_held_stick_actions.erase(axis)
 
 static func cardinal_direction(vector: Vector2) -> Vector2i:
 	return TouchGesture.cardinal_direction(vector)

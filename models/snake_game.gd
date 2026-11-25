@@ -146,7 +146,7 @@ func _place_pit() -> void:
 	if candidates.is_empty():
 		return
 
-	var next_cell := snake.body[0] + snake.direction
+	var next_cell := snake.next_head_cell()
 	var preferred: Array[Vector2i] = []
 	var not_near: Array[Vector2i] = []
 	for cell in candidates:

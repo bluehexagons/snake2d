@@ -56,6 +56,7 @@ func _run() -> void:
 	_expect_obstacle_replay()
 	_expect_first_move_timing()
 	await _expect_buffered_keyboard_turns()
+	_expect_stick_turns()
 	if DisplayServer.get_name() != "headless":
 		# Earlier fixtures free scenes mid-cue. Let the native mixer retire them.
 		await create_timer(AudioService.SHUTDOWN_DRAIN_SECONDS).timeout
@@ -184,6 +185,46 @@ func _push_key(code: Key) -> void:
 	key = key.duplicate() as InputEventKey
 	key.pressed = false
 	root.push_input(key, true)
+
+func _expect_stick_turns() -> void:
+	var main := _create_main()
+	main.start_new_round()
+	var gameplay := main.gameplay
+	var spawn := gameplay.model.snake.body[0]
+	gameplay.model.food_cell = Vector2i.ZERO
+	_push_stick(JOY_AXIS_LEFT_X, 0.95)
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i.RIGHT, "deflecting the stick starts a round")
+	_push_stick(JOY_AXIS_LEFT_Y, -0.95)
+	_push_stick(JOY_AXIS_LEFT_X, 0.91)
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i(1, -1), "a new stick axis can turn while another is held")
+	check.expect_equal(gameplay.snake.queued_direction, Vector2i.UP, "held-axis updates cannot queue a follow-up turn")
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i(1, -2), "a held axis leaves the snake on its chosen heading")
+	_push_stick(JOY_AXIS_LEFT_X, 0.0)
+	_push_stick(JOY_AXIS_LEFT_X, 0.95)
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i(2, -2), "releasing and deflecting a stick axis makes a fresh turn")
+	_push_stick(JOY_AXIS_LEFT_Y, 0.95)
+	_push_stick(JOY_AXIS_LEFT_X, 0.48)
+	_push_stick(JOY_AXIS_LEFT_X, 0.55)
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i(2, -1), "the opposite sign on an axis can make a fresh turn")
+	check.expect_equal(gameplay.snake.queued_direction, Vector2i.DOWN, "brief dips below the press threshold cannot rearm a held axis")
+	var dpad := InputEventJoypadButton.new()
+	dpad.button_index = JOY_BUTTON_DPAD_LEFT
+	dpad.pressed = true
+	root.push_input(dpad, true)
+	gameplay.advance_one_tick_and_snap()
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i(1, -1), "D-pad turns remain independent of the stick")
+	main.free()
+
+func _push_stick(axis: JoyAxis, value: float) -> void:
+	var motion := InputEventJoypadMotion.new()
+	motion.axis = axis
+	motion.axis_value = value
+	root.push_input(motion, true)
 
 func _expect_pointer_gameplay_input(main: Main) -> void:
 	main.start_new_round()

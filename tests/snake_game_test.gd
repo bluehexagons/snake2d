@@ -10,6 +10,7 @@ func _initialize() -> void:
 	_the_departing_tail_cell_is_legal()
 	_food_is_deterministic_and_never_occupies_the_snake()
 	_pitfall_adds_safely_placed_pits_on_schedule()
+	_pitfall_keeps_the_buffered_turn_open_when_space_is_tight()
 	_obstacle_worlds_are_seeded_and_protect_the_spawn()
 	_colliding_with_an_obstacle_ends_the_round()
 	_eating_updates_score_length_and_speed()
@@ -107,6 +108,29 @@ func _pitfall_adds_safely_placed_pits_on_schedule() -> void:
 		var distance := absi(pit.x - segment.x) + absi(pit.y - segment.y)
 		check.expect_true(distance >= rules.pit_safe_distance_cells, "a pit keeps its safe distance")
 		check.expect_false(pit.x == segment.x and pit.y > segment.y, "a pit avoids cells below the snake")
+
+func _pitfall_keeps_the_buffered_turn_open_when_space_is_tight() -> void:
+	var rules := GameRules.new()
+	rules.columns = 5
+	rules.rows = 5
+	rules.foods_per_pit = 1
+	var random := RandomNumberGenerator.new()
+	random.seed = 23
+	var game := SnakeGame.new(rules, random, GameMode.Value.PITFALL)
+	game.reset()
+	var spawn := game.snake.body[0]
+	var meal := spawn + Vector2i.RIGHT
+	var next_cell := meal + Vector2i.UP
+	var straight_ahead := meal + Vector2i.RIGHT
+	for cell in game.board.available_cells([spawn, meal, next_cell, straight_ahead]):
+		game.obstacle_cells.append(cell)
+	game.food_cell = meal
+	game.request_direction(Vector2i.RIGHT)
+	game.request_direction(Vector2i.UP)
+	check.expect_equal(game.step(), SnakeGame.StepResult.ATE_FOOD, "the meal creates a pit between the two remaining cells")
+	check.expect_true(game.is_cell_blocked(straight_ahead), "the pit takes the cell the snake is no longer heading toward")
+	check.expect_false(game.is_cell_blocked(next_cell), "the queued turn retains the last free cell")
+	check.expect_equal(game.step(), SnakeGame.StepResult.FILLED_BOARD, "the queued turn can reach the last meal")
 
 func _obstacle_worlds_are_seeded_and_protect_the_spawn() -> void:
 	var first := _new_game(Vector2i(23, 18), 11, GameMode.Value.OBSTACLES, 777)
