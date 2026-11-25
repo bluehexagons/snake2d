@@ -17,6 +17,7 @@ enum State {
 
 var state: State = State.MAIN_MENU
 var current_score := 0
+var new_personal_best := false
 var high_scores_by_mode: Dictionary = {}
 var current_mode: GameMode.Value = GameMode.Value.CLASSIC
 var current_world_seed := 0
@@ -49,6 +50,7 @@ func start_new_round(
 		return
 
 	current_score = 0
+	new_personal_best = false
 	current_mode = mode
 	current_world_seed = world_seed
 	# Gameplay can report an immediately completed round while it starts. Set
@@ -84,6 +86,7 @@ func end_round(final_score: int) -> void:
 
 	if final_score > 0:
 		var previous_scores := get_high_scores(current_mode)
+		new_personal_best = previous_scores.is_empty() or final_score > previous_scores[0]
 		var high_scores := previous_scores.duplicate()
 		high_scores.append(final_score)
 		high_scores = _high_score_store.sanitize_high_scores(high_scores)
@@ -104,6 +107,7 @@ func return_to_menu() -> void:
 		return
 	_gameplay.cleanup()
 	current_score = 0
+	new_personal_best = false
 	_transition_to(State.MAIN_MENU)
 
 func clear_high_scores() -> void:

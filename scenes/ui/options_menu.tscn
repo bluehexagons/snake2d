@@ -31,14 +31,15 @@ layout_mode = 2
 [node name="MarginContainer" type="MarginContainer" parent="Content/PanelContainer" unique_id=1581295918]
 layout_mode = 2
 theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 32
+theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 32
+theme_override_constants/margin_bottom = 16
 
 [node name="MenuLayout" type="BoxContainer" parent="Content/PanelContainer/MarginContainer" unique_id=225798257]
 layout_mode = 2
 vertical = true
 script = ExtResource("99_menu_layout")
+stacked_separation = 8
 
 [node name="Primary" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout"]
 layout_mode = 2
@@ -54,11 +55,19 @@ theme_type_variation = &"TitleLabel"
 text = "OPTIONS"
 horizontal_alignment = 1
 
+[node name="BackButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=16760885]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+focus_neighbor_top = NodePath("../../Actions/ResetScoresButton")
+focus_neighbor_bottom = NodePath("../SoundButton")
+text = "Back to Menu"
+
 [node name="SoundButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=53595102]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
-focus_neighbor_top = NodePath("../../Actions/BackButton")
+focus_neighbor_top = NodePath("../BackButton")
 focus_neighbor_bottom = NodePath("../VolumeSlider")
 text = "Sound: On"
 
@@ -115,16 +124,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ResetSettingsButton")
-focus_neighbor_bottom = NodePath("../BackButton")
+focus_neighbor_bottom = NodePath("../../Primary/BackButton")
 text = "Reset High Scores"
-
-[node name="BackButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=16760885]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 44)
-layout_mode = 2
-focus_neighbor_top = NodePath("../ResetScoresButton")
-focus_neighbor_bottom = NodePath("../../Primary/SoundButton")
-text = "Back to Menu"
 
 [node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=1708904172]
 layout_mode = 2

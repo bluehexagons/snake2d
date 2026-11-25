@@ -91,6 +91,7 @@ process_mode = 1
 
 [node name="Gameplay" type="Node2D" parent="GameLayer/GameViewport/GameWorld" unique_id=1406371502]
 unique_name_in_owner = true
+z_index = 2
 script = ExtResource("4_5upsq")
 
 [node name="SnakeInputAdapter" type="Node2D" parent="GameLayer/GameViewport/GameWorld" unique_id=1593810277]
@@ -228,6 +229,7 @@ theme_override_constants/margin_bottom = 32
 layout_mode = 2
 vertical = true
 script = ExtResource("99_menu_layout")
+stacked_separation = 12
 stacked_minimum_width = 400.0
 
 [node name="Primary" type="VBoxContainer" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout"]
@@ -246,10 +248,25 @@ text = "GAME OVER"
 horizontal_alignment = 1
 autowrap_mode = 3
 
+[node name="CollisionCauseLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Primary"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.72, 0.49, 1)
+horizontal_alignment = 1
+
 [node name="FinalScoreLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=1394019066]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Final Score: 0"
+horizontal_alignment = 1
+
+[node name="PersonalBestLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Primary"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.443137, 1, 0.764706, 1)
+text = "New personal best"
 horizontal_alignment = 1
 
 [node name="RestartButton" type="Button" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=908194941]
@@ -259,6 +276,15 @@ layout_mode = 2
 focus_neighbor_top = NodePath("../GameOverMenuButton")
 focus_neighbor_bottom = NodePath("../GameOverMenuButton")
 text = "Play Again"
+
+[node name="NewSeedButton" type="Button" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Actions"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+focus_neighbor_top = NodePath("../RestartButton")
+focus_neighbor_bottom = NodePath("../GameOverMenuButton")
+text = "New Seed"
 
 [node name="GameOverMenuButton" type="Button" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=74369341]
 unique_name_in_owner = true

@@ -13,8 +13,14 @@ func _run() -> void:
 	var settings := main.get_node("Services/SettingsService") as SettingsService
 	settings.settings_path = files.path("settings.cfg")
 	settings.legacy_settings_path = files.path("legacy.dat")
+	root.size = Vector2i(844, 390)
 	root.add_child(main)
 	main.ui_state_manager.set_reduced_motion(true)
+	main.game_session.start_new_round(GameMode.Value.PITFALL)
+	for frame in 8:
+		await process_frame
+	check.expect_true(main.gameplay_hud.size.y <= 42.0, "the landscape HUD shrinks after the first label wrap settles")
+	main.game_session.return_to_menu()
 	var sizes: Array[Vector2i] = [Vector2i(390, 844), Vector2i(844, 390), Vector2i(320, 568), Vector2i(1280, 720), Vector2i(800, 410), Vector2i(820, 390), Vector2i(1280, 480)]
 	# KDE may constrain oversized native windows, changing the requested aspect.
 	# Headless coverage can exercise the full ultrawide size at every density.
@@ -39,7 +45,7 @@ func _run() -> void:
 				main.ui_state_manager.change_state(state)
 				var menu := main.ui_state_manager.ui_elements[state] as ScrollContainer
 				if menu is GameOverPanel:
-					menu.show_final_score(20, true)
+					menu.show_result(20, SnakeGame.StepResult.FILLED_BOARD, GameMode.Value.OBSTACLES, true)
 				for frame in 5:
 					await process_frame
 				if menu is GameOverPanel and dimensions == Vector2i(1280, 720):
@@ -62,6 +68,8 @@ func _run() -> void:
 					check.expect_true(primary.position.y + primary.size.y < actions.position.y, "regular menu groups stack: %s" % menu.name)
 				check.expect_true(menu.position.length() <= 1.0, "menu origin survives minimum-size changes: %s at %s (%s)" % [menu.name, dimensions, menu.position])
 				check.expect_true(panel.size.x <= menu.size.x + 1.0, "panel fits width: %s at %s (%s vs %s)" % [menu.name, dimensions, panel.size, menu.size])
+				if menu is OptionsMenu and dimensions == Vector2i(320, 568):
+					check.expect_true(panel.size.y <= menu.size.y + 1.0, "portrait Options fits without scrolling")
 				for button in menu.get_buttons():
 					for path in [button.focus_neighbor_top, button.focus_neighbor_bottom]:
 						if not path.is_empty():

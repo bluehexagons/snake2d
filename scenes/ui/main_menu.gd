@@ -102,7 +102,7 @@ func _on_mode_selected(_index: int) -> void:
 		GameMode.Value.PITFALL:
 			mode_description.text = "Every third meal creates a new pit. Keep moving carefully."
 		GameMode.Value.OBSTACLES:
-			mode_description.text = "Fresh seed each run. Type one, or use left/right, to override."
+			mode_description.text = "Steer through seeded walls. Edit the seed to revisit a layout."
 		_:
 			mode_description.text = "No obstacles — grab food, grow, and chase your best score."
 
@@ -113,6 +113,13 @@ func _prepare_next_world_seed() -> void:
 		next_seed = _seed_random.randi_range(MIN_WORLD_SEED, MAX_WORLD_SEED)
 	_last_generated_seed = next_seed
 	world_seed_spin_box.set_value_no_signal(next_seed)
+
+func take_next_world_seed(previous_seed: int) -> int:
+	if _selected_world_seed() == previous_seed:
+		_prepare_next_world_seed()
+	var next_seed := _selected_world_seed()
+	_prepare_next_world_seed()
+	return next_seed
 
 func _selected_world_seed() -> int:
 	var value := world_seed_spin_box.value

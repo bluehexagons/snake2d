@@ -106,8 +106,9 @@ At each movement tick, the body settles into its occupied grid cells. Only
 the head and the old tail cell animate between ticks.
 
 Gameplay settles the snake into its final cells before the session pauses the
-world. Completing the reachable board keeps the snake's live colors and displays
-a completion heading. The play area renders underneath both the food and its
+world. A collision marks the impact cell and the results panel names the cause.
+Completing the reachable board keeps the snake's live colors and displays a
+completion heading. The play area renders underneath both the food and its
 consumption animation.
 
 `ResponsiveUILayer` compensates only when the project's canvas stretch would

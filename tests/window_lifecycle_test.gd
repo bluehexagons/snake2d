@@ -52,6 +52,8 @@ func _run() -> void:
 	await process_frame
 	check.expect_false(paused, "removing the scene releases tree pause")
 	_expect_board_completion()
+	_expect_pitfall_hud_and_results()
+	_expect_obstacle_replay()
 	files.cleanup()
 	check.finish(self, "Window lifecycle test")
 
@@ -84,6 +86,44 @@ func _expect_board_completion() -> void:
 	main.gameplay.request_direction(Vector2i.RIGHT)
 	check.expect_equal(main.gameplay.advance_one_tick(), SnakeGame.StepResult.HIT_WALL, "the next round can end in a collision")
 	check.expect_equal(main.game_over_panel.title_label.text, "GAME OVER", "a collision restores the loss heading")
+	check.expect_equal(main.game_over_panel.cause_label.text, "Hit the wall", "wall collisions explain the loss")
+	main.free()
+
+func _expect_pitfall_hud_and_results() -> void:
+	var main := _create_main()
+	main.game_session.start_new_round(GameMode.Value.PITFALL)
+	var gameplay := main.gameplay
+	check.expect_true(main.mode_display_label.text.ends_with("3 meals"), "Pitfall shows the starting cadence")
+	gameplay.request_direction(Vector2i.RIGHT)
+	for expected in ["2 meals", "1 meal", "3 meals"]:
+		gameplay.model.food_cell = gameplay.model.snake.next_head_cell()
+		check.expect_equal(gameplay.advance_one_tick(), SnakeGame.StepResult.ATE_FOOD, "food advances the pit cadence")
+		check.expect_true(main.mode_display_label.text.ends_with(expected), "the HUD updates meals remaining")
+	check.expect_equal(gameplay.model.obstacle_cells.size(), 1, "the countdown restarts when a pit appears")
+	gameplay.model.obstacle_cells.append(gameplay.model.snake.next_head_cell())
+	gameplay.advance_one_tick()
+	check.expect_equal(main.game_over_panel.cause_label.text, "Fell into a pit", "Pitfall identifies its hazard")
+	check.expect_true(main.game_over_panel.personal_best_label.visible, "the results show a new best for the mode")
+	main.free()
+
+func _expect_obstacle_replay() -> void:
+	var main := _create_main()
+	var results := main.game_over_panel
+	main.game_session.start_new_round(GameMode.Value.OBSTACLES, 424242)
+	var walls := main.gameplay.model.obstacle_cells.duplicate()
+	main.game_session.end_round(0)
+	check.expect_equal(results.restart_button.text, "Retry Layout", "the seeded replay action names what it keeps")
+	check.expect_equal(root.gui_get_focus_owner(), results.restart_button, "retry receives focus on the results screen")
+	results.restart_button.pressed.emit()
+	check.expect_equal(main.game_session.current_world_seed, 424242, "retry keeps the seed")
+	check.expect_equal(main.gameplay.model.obstacle_cells, walls, "retry keeps the same walls")
+	main.main_menu.world_seed_spin_box.value = 424242
+	main.game_session.end_round(0)
+	results.new_seed_button.pressed.emit()
+	var new_seed := main.game_session.current_world_seed
+	check.expect_true(new_seed != 424242, "New Seed starts a different world seed even if the menu seed matches")
+	check.expect_equal(main.game_session.current_mode, GameMode.Value.OBSTACLES, "New Seed stays in Obstacles mode")
+	check.expect_true(main.mode_display_label.text.contains(str(new_seed)), "the HUD shows the new seed")
 	main.free()
 
 func _expect_pointer_gameplay_input(main: Main) -> void:

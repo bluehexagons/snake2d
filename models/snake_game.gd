@@ -105,6 +105,12 @@ func current_tick_seconds() -> float:
 func is_board_complete() -> bool:
 	return _terminal_result == StepResult.FILLED_BOARD
 
+func get_round_result() -> StepResult:
+	return _terminal_result
+
+func foods_until_next_pit() -> int:
+	return rules.foods_per_pit - foods_eaten % rules.foods_per_pit
+
 func is_cell_occupied(cell: Vector2i) -> bool:
 	return cell in snake.body
 

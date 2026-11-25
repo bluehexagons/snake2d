@@ -5,6 +5,9 @@ extends Control
 
 enum InputDevice { MOUSE, KEYBOARD, TOUCH, CONTROLLER }
 
+const PAUSE_SCRIM_ALPHA := 0.86
+const RESULT_SCRIM_ALPHA := 0.50
+
 var high_scores_by_mode: Dictionary = {}
 
 var _input_device := InputDevice.MOUSE
@@ -100,6 +103,7 @@ func _ready() -> void:
 	pause_menu.menu_requested.connect(_on_quit_to_menu_pressed)
 	gameplay_pause_button.pressed.connect(game_session.pause_round)
 	game_over_panel.restart_requested.connect(_on_restart_pressed)
+	game_over_panel.new_seed_requested.connect(_on_new_seed_pressed)
 	game_over_panel.menu_requested.connect(_on_quit_to_menu_pressed)
 
 	game_session.state_changed.connect(_on_session_state_changed)
@@ -189,7 +193,6 @@ func _on_resume_pressed() -> void:
 
 func _on_start_pressed(mode: GameMode.Value, world_seed: int) -> void:
 	game_session.start_new_round(mode, world_seed)
-	_update_mode_label()
 
 func _on_session_state_changed(old_state: GameSession.State, new_state: GameSession.State) -> void:
 	snake_input_adapter.set_enabled(new_state == GameSession.State.PLAYING)
@@ -203,7 +206,12 @@ func _on_session_state_changed(old_state: GameSession.State, new_state: GameSess
 		GameSession.State.PAUSED:
 			ui_state_manager.change_state(UIStateManager.UIState.PAUSED)
 		GameSession.State.GAME_OVER:
-			game_over_panel.show_final_score(game_session.current_score, gameplay.is_board_complete())
+			game_over_panel.show_result(
+				game_session.current_score,
+				gameplay.get_round_result(),
+				game_session.current_mode,
+				game_session.new_personal_best
+			)
 			ui_state_manager.change_state(UIStateManager.UIState.GAME_OVER)
 
 func _on_ui_state_changed(old_state: int, new_state: int) -> void:
@@ -221,9 +229,11 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 			game_world.visible = false
 			_update_cursor_visibility()
 		ui_state_manager.UIState.PAUSED:
+			ui_background.color.a = PAUSE_SCRIM_ALPHA
 			ui_background.visible = true
 			_update_cursor_visibility()
 		ui_state_manager.UIState.GAME_OVER:
+			ui_background.color.a = RESULT_SCRIM_ALPHA
 			ui_background.visible = true
 			_update_cursor_visibility()
 		_:
@@ -237,7 +247,6 @@ func is_round_active() -> bool:
 
 func start_new_round() -> void:
 	game_session.start_new_round(game_session.current_mode, game_session.current_world_seed)
-	_update_mode_label()
 
 func get_current_ui_state() -> UIStateManager.UIState:
 	return ui_state_manager.current_state
@@ -357,8 +366,12 @@ func _on_quit_to_menu_pressed() -> void:
 	game_session.return_to_menu()
 
 func _on_restart_pressed() -> void:
-	game_session.start_new_round(game_session.current_mode, game_session.current_world_seed)
-	_update_mode_label()
+	start_new_round()
+
+func _on_new_seed_pressed() -> void:
+	if game_session.state == GameSession.State.GAME_OVER and game_session.current_mode == GameMode.Value.OBSTACLES:
+		var seed := main_menu.take_next_world_seed(game_session.current_world_seed)
+		game_session.start_new_round(GameMode.Value.OBSTACLES, seed)
 
 func _on_options_back_pressed() -> void:
 	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
@@ -377,6 +390,7 @@ func reset_high_scores() -> void:
 
 func _on_score_updated(new_score: int) -> void:
 	score_display_label.text = "Score: " + str(new_score)
+	_update_mode_label()
 
 func _on_high_scores_updated(mode: GameMode.Value, new_high_scores: Array[int]) -> void:
 	high_scores_by_mode[GameMode.key(mode)] = new_high_scores
@@ -387,6 +401,9 @@ func _update_mode_label() -> void:
 		label_text += "  •  Seed %d" % game_session.current_world_seed
 		if gameplay.model != null and not gameplay.model.obstacle_pattern_name.is_empty():
 			label_text += "  •  %s" % gameplay.model.obstacle_pattern_name
+	elif game_session.current_mode == GameMode.Value.PITFALL and gameplay.model != null:
+		var remaining := gameplay.model.foods_until_next_pit()
+		label_text += "  •  Next pit in %d %s" % [remaining, "meal" if remaining == 1 else "meals"]
 	mode_display_label.text = label_text
 
 func _on_window_resize() -> void:

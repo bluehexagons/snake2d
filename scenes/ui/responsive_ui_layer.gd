@@ -7,6 +7,7 @@ signal gameplay_inset_changed(top_inset: float)
 ## Report the HUD space in game viewport units so the camera can frame around it.
 var _full_rect_controls: Array[Control] = []
 var _gameplay_pause_visible := false
+var _hud_height := 42.0
 
 @onready var _pause_button: Button = %GameplayPauseButton
 @onready var _hud: PanelContainer = %GameplayHUD
@@ -22,7 +23,8 @@ func _ready() -> void:
 			child.grow_horizontal = Control.GROW_DIRECTION_END
 			child.grow_vertical = Control.GROW_DIRECTION_END
 	get_viewport().size_changed.connect(_update_layout)
-	_hud.resized.connect(_layout_first_move_hint)
+	_hud.resized.connect(_on_hud_resized)
+	_hud.minimum_size_changed.connect(_fit_hud_height)
 	_update_layout()
 
 func _update_layout() -> void:
@@ -42,10 +44,17 @@ func fit_to_viewport(pixel_density: float) -> void:
 			layout.fit_to_size(available)
 		control.position = Vector2.ZERO
 		control.size = available
-	var hud_height := 60.0 if available.x < 440.0 else 42.0
-	_hud.size = Vector2(minf(460.0, available.x - 24.0), hud_height)
-	_layout_first_move_hint()
+	_hud_height = 60.0 if available.x < 440.0 else 42.0
+	_hud.size = Vector2(minf(460.0, available.x - 24.0), _hud_height)
 	_layout_pause_button()
+	_on_hud_resized()
+
+func _fit_hud_height() -> void:
+	# A wrapped label reports its new minimum after the container assigns its width.
+	_hud.size.y = _hud_height
+
+func _on_hud_resized() -> void:
+	_layout_first_move_hint()
 	gameplay_inset_changed.emit(gameplay_top_inset())
 
 func gameplay_top_inset() -> float:

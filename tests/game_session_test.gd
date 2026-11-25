@@ -78,6 +78,7 @@ func _initialize() -> void:
 	gameplay.game_over.emit(15)
 	check.expect_equal(game_session.state, GameSession.State.GAME_OVER, "game over ends the active round")
 	check.expect_equal(game_session.get_high_scores(), [30, 25, 20], "a final score is ranked and limited")
+	check.expect_false(game_session.new_personal_best, "ranking below the best does not set a record")
 	check.expect_equal(high_score_store.stored_tables.classic, [30, 25, 20], "the ranked Classic scores are persisted")
 
 	for score in [0, 5, 20]:
@@ -103,8 +104,13 @@ func _initialize() -> void:
 	check.expect_equal(gameplay.started_mode, GameMode.Value.OBSTACLES, "the selected mode reaches gameplay")
 	check.expect_equal(gameplay.started_seed, 123456, "the selected world seed reaches gameplay")
 	gameplay.game_over.emit(5)
+	check.expect_true(game_session.new_personal_best, "the first positive score sets a record for its mode")
 	check.expect_equal(game_session.get_high_scores(GameMode.Value.OBSTACLES), [5], "a score is stored in its selected mode")
 	check.expect_equal(game_session.get_high_scores(GameMode.Value.CLASSIC), [], "other mode tables remain separate")
+	game_session.start_new_round(GameMode.Value.OBSTACLES, 123456)
+	check.expect_false(game_session.new_personal_best, "starting another round clears the record flag")
+	gameplay.game_over.emit(5)
+	check.expect_false(game_session.new_personal_best, "matching a record does not set a new one")
 
 	game_session.start_new_round()
 	game_session.round_ended.connect(func(_score: int) -> void:

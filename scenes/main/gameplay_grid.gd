@@ -3,7 +3,8 @@ extends Node2D
 
 ## Draws a quiet cell-aligned guide behind every gameplay entity.
 
-const GRID_COLOR := Color(0.33, 0.65, 0.45, 0.12)
+const GRID_COLOR := Color(0.33, 0.65, 0.45, 0.16)
+const GRID_LINE_WIDTH := 1.5
 
 var columns := 0
 var rows := 0
@@ -27,7 +28,7 @@ func _draw() -> void:
 	var board_size := Vector2(columns * cell_size, rows * cell_size)
 	for column in range(1, columns):
 		var x := float(column * cell_size)
-		draw_line(Vector2(x, 0.0), Vector2(x, board_size.y), GRID_COLOR, 1.0)
+		draw_line(Vector2(x, 0.0), Vector2(x, board_size.y), GRID_COLOR, GRID_LINE_WIDTH, true)
 	for row in range(1, rows):
 		var y := float(row * cell_size)
-		draw_line(Vector2(0.0, y), Vector2(board_size.x, y), GRID_COLOR, 1.0)
+		draw_line(Vector2(0.0, y), Vector2(board_size.x, y), GRID_COLOR, GRID_LINE_WIDTH, true)

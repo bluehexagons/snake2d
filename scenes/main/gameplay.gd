@@ -17,6 +17,7 @@ const FoodViewScene := preload("res://scenes/food/food.tscn")
 const ObstacleViewScene := preload("res://scenes/obstacle/obstacle.tscn")
 const BODY_MID_COLOR := Color(0.075, 0.72, 0.16, 1)
 const TAIL_END_COLOR := Color(0.10, 0.61, 0.18, 1)
+const COLLISION_COLOR := Color(1.0, 0.63, 0.30)
 
 var model: SnakeGame
 var snake: SnakeView
@@ -70,6 +71,7 @@ func start_game(
 	current_world_seed = world_seed
 	model = SnakeGame.new(_rules, _model_random, current_mode, current_world_seed)
 	model.reset()
+	queue_redraw()
 	_render_all_obstacles()
 
 	snake = SnakeViewScene.instantiate() as SnakeView
@@ -189,6 +191,7 @@ func cleanup() -> void:
 	_clear_tail_retraction()
 	model = null
 	time_since_tick = 0.0
+	queue_redraw()
 
 func get_snake_position() -> Vector2:
 	return snake.position if snake else Vector2.ZERO
@@ -198,6 +201,9 @@ func get_snake_center() -> Vector2:
 
 func is_board_complete() -> bool:
 	return model != null and model.is_board_complete()
+
+func get_round_result() -> SnakeGame.StepResult:
+	return model.get_round_result() if model != null else SnakeGame.StepResult.NOT_RUNNING
 
 func get_food_position() -> Vector2:
 	return food.position if food else Vector2.ZERO
@@ -344,7 +350,16 @@ func _finish_round() -> void:
 		snake.mark_dead()
 		for segment in tail_segments:
 			segment.mark_dead()
+		queue_redraw()
 	game_over.emit(model.score)
+
+func _draw() -> void:
+	var result := get_round_result()
+	if result not in [SnakeGame.StepResult.HIT_WALL, SnakeGame.StepResult.HIT_SELF, SnakeGame.StepResult.HIT_OBSTACLE]:
+		return
+	var cell := model.snake.next_head_cell().clamp(Vector2i.ZERO, model.board.size - Vector2i.ONE)
+	var marker := Rect2(_cell_to_pixel(cell), Vector2.ONE * _rules.cell_size).grow(-2.0)
+	draw_rect(marker, COLLISION_COLOR, false, 3.0)
 
 func _recycle_active_tail() -> void:
 	for segment in tail_segments:
