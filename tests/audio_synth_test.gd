@@ -28,6 +28,7 @@ func _run() -> void:
 	_expect_voice_budget(audio_service)
 	await _expect_move_cues_do_not_stack()
 	_expect_voice_pool_reused()
+	await _expect_shutdown_releases_playback()
 	audio_service.free()
 
 	check.finish(self, "Audio synth test")
@@ -335,6 +336,19 @@ func _expect_voice_pool_reused() -> void:
 		or audio_service.audio_players.front() != first_player
 	):
 		_fail("Expected reattaching the service to reuse its existing voice pool.")
+	audio_service.free()
+
+func _expect_shutdown_releases_playback() -> void:
+	var audio_service := AudioServiceScript.new()
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+	audio_service.play_die()
+	var voice := audio_service.audio_players.back() as AudioStreamPlayer
+	check.expect_true(voice.playing, "the death cue plays before shutdown")
+	await audio_service.drain_for_quit()
+	check.expect_equal(voice.stream, null, "shutdown releases the active stream")
+	audio_service.play_die()
+	check.expect_false(voice.playing, "new cues cannot start during shutdown")
 	audio_service.free()
 
 func _fail(message: String) -> void:

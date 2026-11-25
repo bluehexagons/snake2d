@@ -21,7 +21,7 @@ func _run() -> void:
 		await process_frame
 	check.expect_true(main.gameplay_hud.size.y <= 42.0, "the landscape HUD shrinks after the first label wrap settles")
 	main.game_session.return_to_menu()
-	var sizes: Array[Vector2i] = [Vector2i(390, 844), Vector2i(844, 390), Vector2i(320, 568), Vector2i(1280, 720), Vector2i(800, 410), Vector2i(820, 390), Vector2i(1280, 480)]
+	var sizes: Array[Vector2i] = [Vector2i(390, 844), Vector2i(844, 390), Vector2i(320, 568), Vector2i(800, 600), Vector2i(1280, 720), Vector2i(800, 410), Vector2i(820, 390), Vector2i(1280, 480)]
 	# KDE may constrain oversized native windows, changing the requested aspect.
 	# Headless coverage can exercise the full ultrawide size at every density.
 	if DisplayServer.get_name() == "headless":
@@ -140,6 +140,7 @@ func _run() -> void:
 			check.expect_true(main.main_menu.seed_row.visible, "Obstacles reveals the seed editor")
 			check.expect_true(main.main_menu.seed_row.size.x <= main.main_menu.size.x, "seed row fits the menu")
 			check.expect_true(main.main_menu.world_seed_spin_box.size.y * pixel_scale >= 43.9, "seed editor has a 44px target")
+			main.main_menu.world_seed_spin_box.value = main.main_menu.world_seed_spin_box.max_value
 			main.main_menu.start_button.grab_focus()
 			for frame in 3:
 				await process_frame
@@ -150,13 +151,21 @@ func _run() -> void:
 			var tutorial := main.controls_tutorial
 			check.expect_true(tutorial.visible, "the tutorial is visible before the first turn")
 			check.expect_true(tutorial.size.is_equal_approx(root.get_visible_rect().size / layer.scale), "the tutorial fits the responsive UI")
-			var hint := main.first_move_hint
+			var hint := main.first_move_hint.get_parent() as PanelContainer
 			var hint_rect := hint.get_global_rect()
 			check.expect_true(Rect2(Vector2.ZERO, tutorial.size).grow(1.0).encloses(hint_rect), "the first-move prompt fits the viewport: %s in %s" % [hint_rect, tutorial.size])
-			check.expect_false(hint_rect.intersects(main.gameplay_hud.get_rect()), "the first-move prompt clears the HUD")
+			var hud_rect := main.gameplay_hud.get_rect()
+			check.expect_false(hint_rect.intersects(hud_rect), "the first-move prompt clears the HUD")
+			if dimensions == Vector2i(800, 410):
+				check.expect_true(hint_rect.position.x >= hud_rect.end.x, "the first-move prompt stays inline at 800px in landscape")
+			var pause_button := main.gameplay_pause_button
+			check.expect_false(hint_rect.intersects(pause_button.get_rect()), "the first-move prompt clears Pause")
+			check.expect_false(hud_rect.intersects(pause_button.get_rect()), "the HUD clears Pause")
 			var board := main.play_area_background
 			var board_rect := board.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, board.size)
 			check.expect_true(board_rect.position.y >= layer.gameplay_top_inset(), "the HUD stays above the board")
+			var pause_rect := pause_button.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, pause_button.size)
+			check.expect_false(board_rect.intersects(pause_rect), "Pause leaves the entire board playable")
 			if not capture_dir.is_empty() and DisplayServer.get_name() != "headless":
 				await RenderingServer.frame_post_draw
 				root.get_texture().get_image().save_png(capture_dir.path_join("%dx%d-Ready-dpi%s.png" % [dimensions.x, dimensions.y, density]))
@@ -178,7 +187,6 @@ func _run() -> void:
 			_key(KEY_P)
 			check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "P resumes through engine event routing")
 			check.expect_false(tutorial.visible, "resuming after a turn keeps the tutorial hidden")
-			var pause_button := main.gameplay_pause_button
 			check.expect_true(pause_button.visible, "pointer pause is available during gameplay")
 			check.expect_true(pause_button.size.y * pixel_scale >= 43.9, "pointer pause has a 44px target")
 			_click(pause_button)

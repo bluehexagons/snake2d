@@ -167,7 +167,7 @@ mouse_behavior_recursive = 1
 theme = ExtResource("10_theme")
 theme_type_variation = &"StatusPanel"
 
-[node name="Stats" type="HBoxContainer" parent="UILayer/GameplayHUD"]
+[node name="Stats" type="BoxContainer" parent="UILayer/GameplayHUD"]
 layout_mode = 2
 theme_override_constants/separation = 16
 

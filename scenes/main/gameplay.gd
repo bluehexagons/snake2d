@@ -87,7 +87,7 @@ func start_game(
 		_finish_round()
 
 func _physics_process(delta: float) -> void:
-	if model == null or model.game_over:
+	if model == null or model.game_over or model.snake.waiting_for_input:
 		return
 
 	time_since_tick += delta
@@ -170,6 +170,8 @@ func request_direction(direction: Vector2i) -> bool:
 		if snake.queued_direction != model.snake.queued_direction:
 			snake.show_queued_direction(model.snake.queued_direction)
 		if waiting_for_input:
+			# Start on the next physics frame, regardless of time spent at the prompt.
+			time_since_tick = model.current_tick_seconds()
 			first_direction_accepted.emit()
 	return accepted
 

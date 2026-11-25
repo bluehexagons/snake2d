@@ -50,6 +50,7 @@ const TONE_CACHE_FREQUENCY_STEP_HZ := 2.0
 const TONE_CACHE_CAPACITY := 128
 const MAX_TONE_DURATION_SECONDS := 1.0
 const MAX_TONE_FREQUENCY_HZ := HARMONIC_FADE_START_HZ
+const SHUTDOWN_DRAIN_SECONDS := 0.2
 
 var audio_players: Array[AudioStreamPlayer] = []
 var next_general_channel_index := 0
@@ -57,6 +58,7 @@ var _channel_cue_volume_db := PackedFloat32Array()
 var _movement_player: AudioStreamPlayer
 var _tone_cache: Dictionary[Vector4i, AudioStreamWAV] = {}
 var _tone_cache_order: Array[Vector4i] = []
+var _shutting_down := false
 
 var is_muted := false
 var effects_volume_db := 0.0
@@ -82,6 +84,16 @@ func _ensure_audio_players() -> void:
 	_update_players()
 
 func _exit_tree() -> void:
+	_release_players()
+
+func drain_for_quit() -> void:
+	_shutting_down = true
+	_release_players()
+	if not audio_players.is_empty():
+		# Godot keeps stopped playbacks on the mixer thread for its fade-out.
+		await get_tree().create_timer(SHUTDOWN_DRAIN_SECONDS, true, false, true).timeout
+
+func _release_players() -> void:
 	for player in audio_players:
 		player.stop()
 		player.stream = null
@@ -187,7 +199,10 @@ func _play_tone(
 	voice_group := VoiceGroup.GENERAL,
 	end_frequency := -1.0
 ) -> AudioStreamPlayer:
-	if is_muted or audio_players.is_empty() or not is_inside_tree() or not is_finite(volume_db):
+	if (
+		_shutting_down or is_muted or audio_players.is_empty()
+		or not is_inside_tree() or not is_finite(volume_db)
+	):
 		return null
 
 	var channel := _acquire_channel_index(voice_group)

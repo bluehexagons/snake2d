@@ -16,6 +16,7 @@ var using_mouse: bool:
 		return _input_device == InputDevice.MOUSE
 var _button_tweens: Dictionary[Button, Tween] = {}
 var _game_size_pixels := Vector2i.ZERO
+var _quitting := false
 
 @onready var ui_state_manager: UIStateManager = $UIStateManager
 @onready var audio_service: AudioService = %AudioService
@@ -56,6 +57,7 @@ func _ready() -> void:
 	# Alt-Tab/minimize must not advance a round the player cannot control.
 	# Focus returning leaves the pause menu up for an explicit resume.
 	get_window().focus_exited.connect(game_session.pause_round)
+	get_window().close_requested.connect(_quit_game)
 	gameplay.configure(game_rules, audio_service)
 	gameplay.first_direction_accepted.connect(controls_tutorial.hide)
 	gameplay_grid.configure(game_rules)
@@ -93,7 +95,7 @@ func _ready() -> void:
 	main_menu.scores_requested.connect(_on_scores_pressed)
 	main_menu.options_requested.connect(_on_options_pressed)
 	main_menu.credits_requested.connect(_on_credits_pressed)
-	main_menu.quit_requested.connect(_on_quit_game_pressed)
+	main_menu.quit_requested.connect(_quit_game)
 	options_menu.options_closed.connect(_on_options_back_pressed)
 	options_menu.reset_scores_requested.connect(reset_high_scores)
 	options_menu.volume_preview_requested.connect(audio_service.play_eat)
@@ -359,7 +361,11 @@ func _on_options_pressed() -> void:
 func _on_credits_pressed() -> void:
 	ui_state_manager.change_state(ui_state_manager.UIState.CREDITS_SCREEN)
 
-func _on_quit_game_pressed() -> void:
+func _quit_game() -> void:
+	if _quitting:
+		return
+	_quitting = true
+	await audio_service.drain_for_quit()
 	get_tree().quit()
 
 func _on_quit_to_menu_pressed() -> void:

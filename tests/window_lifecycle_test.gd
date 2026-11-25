@@ -54,7 +54,11 @@ func _run() -> void:
 	_expect_board_completion()
 	_expect_pitfall_hud_and_results()
 	_expect_obstacle_replay()
+	_expect_first_move_timing()
 	await _expect_buffered_keyboard_turns()
+	if DisplayServer.get_name() != "headless":
+		# Earlier fixtures free scenes mid-cue. Let the native mixer retire them.
+		await create_timer(AudioService.SHUTDOWN_DRAIN_SECONDS).timeout
 	files.cleanup()
 	check.finish(self, "Window lifecycle test")
 
@@ -125,6 +129,23 @@ func _expect_obstacle_replay() -> void:
 	check.expect_true(new_seed != 424242, "New Seed starts a different world seed even if the menu seed matches")
 	check.expect_equal(main.game_session.current_mode, GameMode.Value.OBSTACLES, "New Seed stays in Obstacles mode")
 	check.expect_true(main.mode_display_label.text.contains(str(new_seed)), "the HUD shows the new seed")
+	main.free()
+
+func _expect_first_move_timing() -> void:
+	var main := _create_main()
+	main.start_new_round()
+	var gameplay := main.gameplay
+	var spawn := gameplay.model.snake.body[0]
+	gameplay.model.food_cell = Vector2i.ZERO
+	var tick_duration := gameplay.model.current_tick_seconds()
+	gameplay._physics_process(tick_duration * 2.5)
+	check.expect_equal(gameplay.time_since_tick, 0.0, "the ready prompt does not start the tick clock")
+	check.expect_equal(gameplay.model.tick_count, 0, "waiting leaves the snake at spawn")
+	gameplay.request_direction(Vector2i.RIGHT)
+	gameplay._physics_process(tick_duration / 10.0)
+	check.expect_equal(gameplay.model.snake.body[0], spawn + Vector2i.RIGHT, "the first physics frame after input moves the snake")
+	gameplay._physics_process(tick_duration / 2.0)
+	check.expect_equal(gameplay.model.tick_count, 1, "the second move waits for the normal tick interval")
 	main.free()
 
 func _expect_buffered_keyboard_turns() -> void:
