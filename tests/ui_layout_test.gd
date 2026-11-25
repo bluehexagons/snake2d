@@ -52,6 +52,7 @@ func _run() -> void:
 					check.expect_equal(menu.title_label.get_line_count(), 1, "the desktop completion heading fits on one line")
 				var captures := OS.get_environment("SNAKE_UI_CAPTURE_DIR")
 				if not captures.is_empty() and DisplayServer.get_name() != "headless":
+					RenderingServer.force_draw.call_deferred()
 					await RenderingServer.frame_post_draw
 					var image := root.get_texture().get_image()
 					check.expect_equal(image.save_png(captures.path_join("%dx%d-%s-dpi%s.png" % [dimensions.x, dimensions.y, menu.name, density])), OK, "save layout capture")
@@ -243,6 +244,7 @@ func _expect_board_stays_visible_after_resize(main: Main) -> void:
 	camera_rules.camera_look_ahead_cells = 100.0
 	camera_rules.camera_smoothing = 1.0
 	main.camera_node.configure(camera_rules, main.gameplay)
+	main.gameplay.request_direction(Vector2i.RIGHT)
 	for frame in 5:
 		await physics_frame
 	var wide_camera_x := main.camera_node.position.x

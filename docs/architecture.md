@@ -87,6 +87,12 @@ scene changes cannot recreate a cleared gesture. Input modality changes from
 joypad motion only when it activates a mapped navigation/gameplay action, so
 neutral axes and stick drift do not hide a mouse-controlled cursor.
 
+Menus, pause, results and the first-move screen use Godot's low processor mode
+to skip redraws when the scene is static. The ready screen keeps its camera
+centered until the first move. Resizing still updates the framing directly.
+Desktop idle loops run roughly every 16 ms. Web keeps browser frame scheduling
+with no added sleep. Moving rounds use normal frame pacing and camera tracking.
+
 `GameSession` initializes the model and views before publishing `PLAYING`, so a state observer can inspect the new round immediately. Reconfiguration disconnects the previous gameplay dependency. Removing the session releases `SceneTree.paused`, which would otherwise survive the removed main scene.
 
 `GameSession` commits its game-over state before emitting round notifications. Ordinary signal connections run synchronously, so observers must see the completed state; otherwise a listener can end the same round twice or have its own menu transition overwritten. Starting an already active round, including a paused one, is a no-op.

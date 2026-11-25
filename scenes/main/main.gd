@@ -14,6 +14,7 @@ var using_mouse: bool:
 		return _input_device == InputDevice.MOUSE
 var _game_size_pixels := Vector2i.ZERO
 var _quitting := false
+var _previous_low_processor_mode := false
 
 @onready var ui_state_manager: UIStateManager = $UIStateManager
 @onready var audio_service: AudioService = %AudioService
@@ -44,6 +45,12 @@ var _quitting := false
 @onready var game_over_panel: GameOverPanel = %GameOverPanel
 @onready var debug_overlay: DebugOverlay = %DebugOverlay
 
+func _enter_tree() -> void:
+	_previous_low_processor_mode = OS.low_processor_usage_mode
+
+func _exit_tree() -> void:
+	OS.low_processor_usage_mode = _previous_low_processor_mode
+
 func _ready() -> void:
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
 
@@ -56,7 +63,7 @@ func _ready() -> void:
 	get_window().focus_exited.connect(game_session.pause_round)
 	get_window().close_requested.connect(_quit_game)
 	gameplay.configure(game_rules, audio_service)
-	gameplay.first_direction_accepted.connect(controls_tutorial.hide)
+	gameplay.first_direction_accepted.connect(_on_first_direction_accepted)
 	gameplay_grid.configure(game_rules)
 	snake_input_adapter.configure(gameplay)
 	snake_input_adapter.set_enabled(game_session.state == GameSession.State.PLAYING)
@@ -125,6 +132,7 @@ func _ready() -> void:
 	_update_menu_focus()
 	get_tree().root.size_changed.connect(_on_window_resize)
 	_on_window_resize()
+	_update_render_policy()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadMotion and not _has_active_joypad_action(event):
@@ -195,7 +203,20 @@ func _on_resume_pressed() -> void:
 func _on_start_pressed(mode: GameMode.Value, world_seed: int) -> void:
 	game_session.start_new_round(mode, world_seed)
 
+func _on_first_direction_accepted() -> void:
+	controls_tutorial.hide()
+	_update_render_policy()
+
+func _update_render_policy() -> void:
+	var moving := (
+		game_session.state == GameSession.State.PLAYING and not gameplay.is_waiting_for_input()
+	)
+	# Camera2D updates the canvas transform each frame even at a fixed position.
+	camera_node.process_mode = Node.PROCESS_MODE_INHERIT if moving else Node.PROCESS_MODE_DISABLED
+	OS.low_processor_usage_mode = not moving
+
 func _on_session_state_changed(old_state: GameSession.State, new_state: GameSession.State) -> void:
+	_update_render_policy()
 	snake_input_adapter.set_enabled(new_state == GameSession.State.PLAYING)
 	match new_state:
 		GameSession.State.MAIN_MENU:

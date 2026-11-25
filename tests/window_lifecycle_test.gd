@@ -58,6 +58,7 @@ func _run() -> void:
 	_expect_current_high_scores()
 	_expect_pause_shortcuts()
 	_expect_first_move_timing()
+	_expect_idle_render_policy()
 	await _expect_buffered_keyboard_turns()
 	_expect_stick_turns()
 	if DisplayServer.get_name() != "headless":
@@ -218,6 +219,30 @@ func _expect_first_move_timing() -> void:
 	gameplay._physics_process(tick_duration / 2.0)
 	check.expect_equal(gameplay.model.tick_count, 1, "the second move waits for the normal tick interval")
 	main.free()
+
+func _expect_idle_render_policy() -> void:
+	var previous_mode := OS.low_processor_usage_mode
+	var main := _create_main()
+	check.expect_true(OS.low_processor_usage_mode, "the main menu renders on demand")
+	main.start_new_round()
+	check.expect_true(OS.low_processor_usage_mode, "waiting for a direction renders on demand")
+	check.expect_equal(main.camera_node.process_mode, Node.PROCESS_MODE_DISABLED, "the ready camera keeps its framing without per-frame scroll updates")
+	main.game_session.pause_round()
+	main.game_session.resume_round()
+	check.expect_true(OS.low_processor_usage_mode, "resuming before the first direction stays idle")
+	main.gameplay.request_direction(Vector2i.RIGHT)
+	check.expect_false(OS.low_processor_usage_mode, "the first direction restores normal frame pacing")
+	check.expect_equal(main.camera_node.process_mode, Node.PROCESS_MODE_INHERIT, "the moving camera follows the game world")
+	main.game_session.pause_round()
+	check.expect_true(OS.low_processor_usage_mode, "a paused round renders on demand")
+	main.game_session.resume_round()
+	check.expect_false(OS.low_processor_usage_mode, "resuming a moving round restores normal frame pacing")
+	main.game_session.end_round(0)
+	check.expect_true(OS.low_processor_usage_mode, "results render on demand")
+	main.game_session.return_to_menu()
+	check.expect_true(OS.low_processor_usage_mode, "returning to the menu keeps on-demand rendering")
+	main.free()
+	check.expect_equal(OS.low_processor_usage_mode, previous_mode, "removing Main restores the engine's rendering mode")
 
 func _expect_buffered_keyboard_turns() -> void:
 	var main := _create_main()
