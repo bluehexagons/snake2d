@@ -14,6 +14,8 @@ enum StepResult {
 	NOT_RUNNING,
 }
 
+enum CellVisit { UNVISITED, BLOCKED, REACHABLE }
+
 var rules: GameRules
 var board: GridBoard
 var snake := SnakeState.new()
@@ -128,11 +130,7 @@ func _choose_food_cell() -> Vector2i:
 	if candidates.is_empty():
 		return Vector2i(-1, -1)
 
-	var reachable := _reachable_cells_from(snake.body[0])
-	var reachable_candidates: Array[Vector2i] = []
-	for cell in candidates:
-		if reachable.has(cell):
-			reachable_candidates.append(cell)
+	var reachable_candidates := _reachable_food_candidates(candidates)
 	if reachable_candidates.is_empty():
 		return Vector2i(-1, -1)
 	return reachable_candidates[_random.randi_range(0, reachable_candidates.size() - 1)]
@@ -147,15 +145,18 @@ func _place_pit() -> void:
 		return
 
 	var next_cell := snake.next_head_cell()
+	var nearby := _cells_near_snake()
+	var top_row_by_column: Dictionary[int, int] = {}
+	for segment in snake.body:
+		top_row_by_column[segment.x] = mini(top_row_by_column.get(segment.x, board.size.y), segment.y)
 	var preferred: Array[Vector2i] = []
 	var not_near: Array[Vector2i] = []
 	for cell in candidates:
-		if cell == next_cell or _is_too_near_snake(cell):
+		if cell == next_cell or nearby.has(cell):
 			continue
 		not_near.append(cell)
-		if _is_below_snake_segment(cell):
-			continue
-		preferred.append(cell)
+		if cell.y <= top_row_by_column.get(cell.x, board.size.y):
+			preferred.append(cell)
 
 	var pool := preferred
 	if pool.is_empty():
@@ -168,32 +169,63 @@ func _place_pit() -> void:
 		pool = candidates
 	obstacle_cells.append(pool[_random.randi_range(0, pool.size() - 1)])
 
-func _is_too_near_snake(cell: Vector2i) -> bool:
-	for segment in snake.body:
-		var distance := absi(cell.x - segment.x) + absi(cell.y - segment.y)
-		if distance < rules.pit_safe_distance_cells:
-			return true
-	return false
+func _cells_near_snake() -> Dictionary[Vector2i, bool]:
+	# Expand one Manhattan-distance ring at a time from the whole snake.
+	# Pits do not block distance, so every board cell is visited at most once.
+	var nearby: Dictionary[Vector2i, bool] = {}
+	var frontier: Array[Vector2i] = snake.body.duplicate()
+	for segment in frontier:
+		nearby[segment] = true
+	var first := 0
+	for _distance in range(1, rules.pit_safe_distance_cells):
+		var end := frontier.size()
+		if first == end:
+			break
+		for index in range(first, end):
+			for direction in SnakeState.CARDINAL_DIRECTIONS:
+				var next := frontier[index] + direction
+				if not nearby.has(next) and board.contains(next):
+					nearby[next] = true
+					frontier.append(next)
+		first = end
+	return nearby
 
-func _is_below_snake_segment(cell: Vector2i) -> bool:
-	for segment in snake.body:
-		if cell.x == segment.x and cell.y > segment.y:
-			return true
-	return false
-
-func _reachable_cells_from(start: Vector2i) -> Dictionary[Vector2i, bool]:
-	var blocked: Dictionary[Vector2i, bool] = {}
+func _reachable_food_candidates(candidates: Array[Vector2i]) -> Array[Vector2i]:
+	# The blocked border lets the flood fill check each neighbor with one lookup.
+	var stride := board.size.y + 2
+	var last_column := (board.size.x + 1) * stride
+	var visits := PackedByteArray()
+	visits.resize(last_column + stride)
+	for y in stride:
+		visits[y] = CellVisit.BLOCKED
+		visits[last_column + y] = CellVisit.BLOCKED
+	for column in range(stride, last_column, stride):
+		visits[column] = CellVisit.BLOCKED
+		visits[column + stride - 1] = CellVisit.BLOCKED
 	for cell in obstacle_cells:
-		blocked[cell] = true
-	var reachable: Dictionary[Vector2i, bool] = {start: true}
-	var frontier: Array[Vector2i] = [start]
+		if board.contains(cell):
+			visits[_padded_cell_index(cell, stride)] = CellVisit.BLOCKED
+
+	var start := _padded_cell_index(snake.body[0], stride)
+	visits[start] = CellVisit.REACHABLE
+	var frontier: Array[int] = [start]
+	var neighbor_offsets: Array[int] = [-stride, -1, 1, stride]
 	var index := 0
 	while index < frontier.size():
 		var current := frontier[index]
 		index += 1
-		for direction in SnakeState.CARDINAL_DIRECTIONS:
-			var next := current + direction
-			if board.contains(next) and not blocked.has(next) and not reachable.has(next):
-				reachable[next] = true
+		for offset in neighbor_offsets:
+			var next := current + offset
+			if visits[next] == CellVisit.UNVISITED:
+				visits[next] = CellVisit.REACHABLE
 				frontier.append(next)
+
+	# Keep the board's original column order for deterministic random selection.
+	var reachable: Array[Vector2i] = []
+	for cell in candidates:
+		if visits[_padded_cell_index(cell, stride)] == CellVisit.REACHABLE:
+			reachable.append(cell)
 	return reachable
+
+func _padded_cell_index(cell: Vector2i, stride: int) -> int:
+	return (cell.x + 1) * stride + cell.y + 1

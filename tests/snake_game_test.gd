@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_a_snake_dies_when_it_hits_its_body()
 	_the_departing_tail_cell_is_legal()
 	_food_is_deterministic_and_never_occupies_the_snake()
+	_food_stays_in_the_reachable_part_of_the_board()
 	_pitfall_adds_safely_placed_pits_on_schedule()
 	_pitfall_keeps_the_buffered_turn_open_when_space_is_tight()
 	_obstacle_worlds_are_seeded_and_protect_the_spawn()
@@ -86,6 +87,20 @@ func _food_is_deterministic_and_never_occupies_the_snake() -> void:
 	var second := _new_game(Vector2i(6, 6), 12345)
 	check.expect_equal(first.food_cell, second.food_cell, "equal seeds choose equal food cells")
 	check.expect_false(first.is_cell_occupied(first.food_cell), "food never starts on the snake")
+
+func _food_stays_in_the_reachable_part_of_the_board() -> void:
+	var game := _new_game(Vector2i(5, 5), 42)
+	var spawn := game.snake.body[0]
+	var meal := spawn + Vector2i.RIGHT
+	var last_reachable := meal + Vector2i.RIGHT
+	for cell in game.board.available_cells([spawn, meal, last_reachable]):
+		if cell.x > 0:
+			game.obstacle_cells.append(cell)
+	game.food_cell = meal
+	game.request_direction(Vector2i.RIGHT)
+	check.expect_equal(game.step(), SnakeGame.StepResult.ATE_FOOD, "the reachable strip still has room for food")
+	check.expect_equal(game.food_cell, last_reachable, "food avoids the disconnected column")
+	check.expect_equal(game.step(), SnakeGame.StepResult.FILLED_BOARD, "eating the last reachable meal completes the round")
 
 func _pitfall_adds_safely_placed_pits_on_schedule() -> void:
 	var rules := GameRules.new()
