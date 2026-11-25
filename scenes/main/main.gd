@@ -8,8 +8,6 @@ enum InputDevice { MOUSE, KEYBOARD, TOUCH, CONTROLLER }
 const PAUSE_SCRIM_ALPHA := 0.86
 const RESULT_SCRIM_ALPHA := 0.50
 
-var high_scores_by_mode: Dictionary = {}
-
 var _input_device := InputDevice.MOUSE
 var using_mouse: bool:
 	get:
@@ -88,8 +86,6 @@ func _ready() -> void:
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.PAUSED, pause_menu.get_default_focus())
 	ui_state_manager.register_focus_target(ui_state_manager.UIState.GAME_OVER, game_over_panel.get_default_focus())
 
-	high_scores_by_mode = game_session.get_all_high_scores()
-
 	main_menu.start_requested.connect(_on_start_pressed)
 	main_menu.scores_requested.connect(_on_scores_pressed)
 	main_menu.options_requested.connect(_on_options_pressed)
@@ -109,7 +105,6 @@ func _ready() -> void:
 
 	game_session.state_changed.connect(_on_session_state_changed)
 	game_session.score_updated.connect(_on_score_updated)
-	game_session.high_scores_updated.connect(_on_high_scores_updated)
 
 	ui_background.visible = false
 	main_menu.visible = true
@@ -151,6 +146,13 @@ func _input(event: InputEvent) -> void:
 		_update_input_hints()
 		_update_cursor_visibility()
 
+	# Space is also a menu Select binding. During a round, handle Pause
+	# before the focused button can react to the same key.
+	if game_session.is_round_active() and event.is_action(&"pause"):
+		get_viewport().set_input_as_handled()
+		if event.is_action_pressed(&"pause"):
+			game_session.toggle_pause()
+
 func _update_input_hints() -> void:
 	var menu_hint := "Enter  Select    Esc  Back"
 	match _input_device:
@@ -186,9 +188,6 @@ func _update_game_area() -> void:
 	var game_size := Vector2(_game_size_pixels)
 	game_world.position = (window_size - game_size) / 2.0
 	play_area_background.size = game_size
-
-func _toggle_pause() -> void:
-	game_session.toggle_pause()
 
 func _on_resume_pressed() -> void:
 	game_session.resume_round()
@@ -283,16 +282,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			_update_menu_focus()
 		return
 
-	if event.is_action_pressed("pause"):
-		if game_session.state == GameSession.State.PLAYING:
-			game_session.pause_round()
-		elif game_session.state == GameSession.State.PAUSED:
-			game_session.resume_round()
-		else:
-			return
-		get_viewport().set_input_as_handled()
-		return
-
 	if not event.is_action_pressed("ui_cancel"):
 		return
 
@@ -312,7 +301,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_scores_pressed() -> void:
 	high_scores_menu.mode_selector.select(main_menu.mode_selector.selected)
-	high_scores_menu.update_scores(high_scores_by_mode)
+	high_scores_menu.update_scores(game_session.get_all_high_scores())
 	ui_state_manager.change_state(ui_state_manager.UIState.HIGH_SCORES)
 
 func _on_options_pressed() -> void:
@@ -356,9 +345,6 @@ func reset_high_scores() -> void:
 func _on_score_updated(new_score: int) -> void:
 	score_display_label.text = "Score: " + str(new_score)
 	_update_mode_label()
-
-func _on_high_scores_updated(mode: GameMode.Value, new_high_scores: Array[int]) -> void:
-	high_scores_by_mode[GameMode.key(mode)] = new_high_scores
 
 func _update_mode_label() -> void:
 	var label_text := GameMode.display_name(game_session.current_mode)

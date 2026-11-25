@@ -16,8 +16,8 @@ The game saves your top 100 scores for each mode. In **Options**, you can adjust
 
 | Input | Steer or navigate | Select | Pause or go back |
 | --- | --- | --- | --- |
-| Keyboard | Arrow keys or WASD | Enter or Space | Space, Esc, or P to pause. Esc to go back. |
-| Gamepad | D-pad or left stick | A | Start to pause. B to go back. |
+| Keyboard | Arrow keys or WASD | Enter, or Space outside the pause menu | Space, Esc, or P to pause or resume. Esc to go back. |
+| Gamepad | D-pad or left stick | A | Start to pause or resume. B to go back. |
 | Mouse | Click or drag to steer | Click | Use the on-screen Pause or Back button. |
 | Touch | Tap or swipe to steer | Tap | Use the on-screen Pause or Back button. |
 

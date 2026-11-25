@@ -55,6 +55,8 @@ func _run() -> void:
 	_expect_pitfall_hud_and_results()
 	_expect_obstacle_replay()
 	_expect_submenu_focus()
+	_expect_current_high_scores()
+	_expect_pause_shortcuts()
 	_expect_first_move_timing()
 	await _expect_buffered_keyboard_turns()
 	_expect_stick_turns()
@@ -145,6 +147,59 @@ func _expect_submenu_focus() -> void:
 	main.main_menu.options_button.pressed.emit()
 	main.options_menu.back_button.pressed.emit()
 	check.expect_equal(root.gui_get_focus_owner(), main.main_menu.options_button, "Back returns focus to Options")
+	main.main_menu.credits_button.pressed.emit()
+	check.expect_equal(root.gui_get_focus_owner(), main.credits_screen.back_button, "Credits opens with Back focused")
+	_push_key(KEY_UP)
+	check.expect_equal(root.gui_get_focus_owner(), main.credits_screen.source_button, "Up reaches the GitHub source button")
+	_push_key(KEY_ESCAPE)
+	check.expect_equal(root.gui_get_focus_owner(), main.main_menu.credits_button, "Escape from the source button returns focus to Credits")
+	main.free()
+
+func _expect_current_high_scores() -> void:
+	var main := _create_main()
+	main.main_menu.mode_selector.select(GameMode.Value.OBSTACLES)
+	main.game_session.start_new_round(GameMode.Value.OBSTACLES, 424242)
+	main.game_session.end_round(12345)
+	main.game_session.return_to_menu()
+	main.main_menu.scores_button.pressed.emit()
+	var rows := main.high_scores_menu.scores_list
+	var first_score := rows.get_child(0).get_node_or_null("Score") as Label
+	check.expect_true(first_score != null and first_score.text == "12345", "High Scores shows the latest completed round")
+	_push_key(KEY_ESCAPE)
+	main.reset_high_scores()
+	main.main_menu.scores_button.pressed.emit()
+	check.expect_equal(rows.get_child(0).text, "No scores in this mode yet", "reopening High Scores shows the cleared table")
+	main.free()
+
+func _expect_pause_shortcuts() -> void:
+	var main := _create_main()
+	main.start_new_round()
+	_push_key(KEY_SPACE)
+	check.expect_equal(main.game_session.state, GameSession.State.PAUSED, "Space pauses gameplay")
+	_push_key(KEY_DOWN)
+	check.expect_equal(root.gui_get_focus_owner(), main.pause_menu.menu_button, "Down focuses End Run")
+	var end_run_presses: Array[bool] = []
+	main.pause_menu.menu_button.button_down.connect(func() -> void: end_run_presses.append(true))
+	_push_key(KEY_SPACE)
+	check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "Space resumes even when End Run has focus")
+	check.expect_true(end_run_presses.is_empty(), "Space never presses End Run while resuming")
+	_push_key(KEY_SPACE)
+	var repeat := InputEventKey.new()
+	repeat.physical_keycode = KEY_SPACE
+	repeat.keycode = KEY_SPACE
+	repeat.pressed = true
+	repeat.echo = true
+	root.push_input(repeat, true)
+	check.expect_equal(main.game_session.state, GameSession.State.PAUSED, "holding Space does not toggle pause again")
+	_push_key(KEY_P)
+	check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "P resumes the round")
+	_push_key(KEY_P)
+	_push_key(KEY_DOWN)
+	_push_key(KEY_ENTER)
+	check.expect_equal(main.game_session.state, GameSession.State.MAIN_MENU, "Enter can still select End Run")
+	main.main_menu.options_button.grab_focus()
+	_push_key(KEY_SPACE)
+	check.expect_equal(main.get_current_ui_state(), UIStateManager.UIState.OPTIONS_MENU, "Space still selects in the main menu")
 	main.free()
 
 func _expect_first_move_timing() -> void:

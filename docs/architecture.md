@@ -75,8 +75,10 @@ Only `GameSession` writes `SceneTree.paused`. `Main`, services, session state, a
 `Main` connects its owning window's focus loss to `GameSession.pause_round()`.
 Alt-Tab and minimizing freeze an active round, and the gameplay HUD routes its
 pointer and touch Pause button to the same session method. Pausing clears
-pending touch gestures through the input-adapter state transition. The player
-resumes explicitly through the pause menu after returning to the window.
+pending touch gestures through the input-adapter state transition. After
+returning to the window, the player can resume from the menu or use a pause
+shortcut. During a round, `Main` handles the Pause action before focused
+controls receive input because Space also selects menu items.
 The first-move hint lives in the responsive UI layer so its text stays readable
 as the board scales. `Main` selects the hint and menu prompts from the active
 input device and hides the first-move hint when gameplay accepts a direction.
@@ -88,6 +90,8 @@ neutral axes and stick drift do not hide a mouse-controlled cursor.
 `GameSession` initializes the model and views before publishing `PLAYING`, so a state observer can inspect the new round immediately. Reconfiguration disconnects the previous gameplay dependency. Removing the session releases `SceneTree.paused`, which would otherwise survive the removed main scene.
 
 `GameSession` commits its game-over state before emitting round notifications. Ordinary signal connections run synchronously, so observers must see the completed state; otherwise a listener can end the same round twice or have its own menu transition overwritten. Starting an already active round, including a paused one, is a no-op.
+
+High Scores reads a snapshot from `GameSession` each time it opens.
 
 `UIStateManager` presents the screens selected by `Main`. It immediately
 hides the outgoing panel and turns off its processing, recursive mouse input
