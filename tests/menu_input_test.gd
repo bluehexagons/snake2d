@@ -66,7 +66,7 @@ func _expect_score_mode_starts_at_top() -> void:
 	scores.mode_selector.select(GameMode.Value.PITFALL)
 	scores.mode_selector.item_selected.emit(GameMode.Value.PITFALL)
 	check.expect_equal(scores.scores_list.get_child_count(), 100, "switching modes replaces rows immediately")
-	check.expect_equal(scores.scores_list.get_child(0).text, "1. 2000", "the new mode's highest score appears first")
+	check.expect_equal(scores.scores_list.get_child(0).get_node("Score").text, "2000", "the new mode's highest score appears first")
 	check.expect_equal(scores.scroll_container.scroll_vertical, 0, "each score table opens at rank one")
 	scores.free()
 

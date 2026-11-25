@@ -14,7 +14,6 @@ var _input_device := InputDevice.MOUSE
 var using_mouse: bool:
 	get:
 		return _input_device == InputDevice.MOUSE
-var _button_tweens: Dictionary[Button, Tween] = {}
 var _game_size_pixels := Vector2i.ZERO
 var _quitting := false
 
@@ -24,6 +23,7 @@ var _quitting := false
 @onready var settings_service: SettingsService = %SettingsService
 @onready var game_session: GameSession = %GameSession
 @onready var ui_layer: ResponsiveUILayer = $UILayer
+@onready var menu_backdrop: TextureRect = %MenuBackdrop
 @onready var ui_background: ColorRect = %UIBackground
 @onready var gameplay_hud: PanelContainer = %GameplayHUD
 @onready var score_display_label: Label = %HUDScoreLabel
@@ -70,8 +70,8 @@ func _ready() -> void:
 	camera_node.configure(game_rules, gameplay)
 	ui_layer.gameplay_inset_changed.connect(camera_node.set_top_inset)
 	camera_node.set_top_inset(ui_layer.gameplay_top_inset())
-	settings_service.settings_changed.connect(_apply_motion_setting)
-	_apply_motion_setting()
+	settings_service.settings_changed.connect(_update_camera_motion)
+	_update_camera_motion()
 
 	ui_state_manager.state_changed.connect(_on_ui_state_changed)
 
@@ -96,11 +96,11 @@ func _ready() -> void:
 	main_menu.options_requested.connect(_on_options_pressed)
 	main_menu.credits_requested.connect(_on_credits_pressed)
 	main_menu.quit_requested.connect(_quit_game)
-	options_menu.options_closed.connect(_on_options_back_pressed)
+	options_menu.options_closed.connect(_close_main_submenu)
 	options_menu.reset_scores_requested.connect(reset_high_scores)
 	options_menu.volume_preview_requested.connect(audio_service.play_eat)
-	credits_screen.credits_screen_closed.connect(_on_credits_back_pressed)
-	high_scores_menu.high_scores_closed.connect(_on_high_scores_back_pressed)
+	credits_screen.credits_screen_closed.connect(_close_main_submenu)
+	high_scores_menu.high_scores_closed.connect(_close_main_submenu)
 	pause_menu.resume_requested.connect(_on_resume_pressed)
 	pause_menu.menu_requested.connect(_on_quit_to_menu_pressed)
 	gameplay_pause_button.pressed.connect(game_session.pause_round)
@@ -127,7 +127,6 @@ func _ready() -> void:
 			button.button_down.connect(audio_service.play_click)
 		if not button.focus_entered.is_connected(audio_service.play_focus):
 			button.focus_entered.connect(audio_service.play_focus)
-		_install_button_polish(button)
 
 	_update_menu_focus()
 	get_tree().root.size_changed.connect(_on_window_resize)
@@ -168,6 +167,8 @@ func _update_input_hints() -> void:
 	for menu in ui_state_manager.ui_elements.values():
 		var hint := menu.get_node("Content/PanelContainer/MarginContainer/MenuLayout/Actions/ButtonHints/Label") as Label
 		hint.text = menu_hint
+		if menu == main_menu:
+			hint.text = "A  Select" if _input_device == InputDevice.CONTROLLER else "Enter  Select"
 		hint.visible = _input_device != InputDevice.TOUCH
 
 func _has_active_joypad_action(event: InputEventJoypadMotion) -> bool:
@@ -212,13 +213,17 @@ func _on_session_state_changed(old_state: GameSession.State, new_state: GameSess
 				game_session.current_score,
 				gameplay.get_round_result(),
 				game_session.current_mode,
-				game_session.new_personal_best
+				game_session.new_personal_best,
+				game_session.current_world_seed
 			)
 			ui_state_manager.change_state(UIStateManager.UIState.GAME_OVER)
 
 func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 	ui_layer.set_gameplay_pause_visible(new_state == UIStateManager.UIState.GAMEPLAY)
 	controls_tutorial.visible = new_state == UIStateManager.UIState.GAMEPLAY and gameplay.is_waiting_for_input()
+	menu_backdrop.visible = new_state not in [
+		UIStateManager.UIState.GAMEPLAY, UIStateManager.UIState.PAUSED, UIStateManager.UIState.GAME_OVER
+	]
 	match new_state:
 		ui_state_manager.UIState.GAMEPLAY:
 			ui_background.visible = false
@@ -235,14 +240,13 @@ func _on_ui_state_changed(old_state: int, new_state: int) -> void:
 			ui_background.visible = true
 			_update_cursor_visibility()
 		ui_state_manager.UIState.GAME_OVER:
+			gameplay_hud.visible = false
 			ui_background.color.a = RESULT_SCRIM_ALPHA
 			ui_background.visible = true
 			_update_cursor_visibility()
 		_:
 			if old_state == ui_state_manager.UIState.GAMEPLAY:
 				ui_background.visible = true
-
-	_update_menu_focus()
 
 func is_round_active() -> bool:
 	return game_session.is_round_active()
@@ -264,49 +268,8 @@ func _get_all_buttons() -> Array[Button]:
 	buttons.append(gameplay_pause_button)
 	return buttons
 
-# Adds a subtle scale animation on focus/hover/press transitions for any Button.
-func _install_button_polish(btn: Button) -> void:
-	btn.pivot_offset = btn.size * 0.5
-	btn.resized.connect(func() -> void:
-		btn.pivot_offset = btn.size * 0.5
-	)
-	var animate_to := func(target_scale: Vector2, duration: float) -> void:
-		if _button_tweens.has(btn):
-			_button_tweens[btn].kill()
-			_button_tweens.erase(btn)
-		if settings_service.reduced_motion:
-			btn.scale = Vector2.ONE
-			return
-		var tween := btn.create_tween()
-		_button_tweens[btn] = tween
-		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-		tween.tween_property(btn, "scale", target_scale, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	btn.focus_entered.connect(func() -> void: animate_to.call(Vector2(1.06, 1.06), 0.14))
-	btn.focus_exited.connect(func() -> void: animate_to.call(Vector2.ONE, 0.18))
-	btn.mouse_entered.connect(func() -> void:
-		if btn.has_focus():
-			return
-		animate_to.call(Vector2(1.04, 1.04), 0.12)
-	)
-	btn.mouse_exited.connect(func() -> void:
-		if btn.has_focus():
-			return
-		animate_to.call(Vector2.ONE, 0.16)
-	)
-	btn.button_down.connect(func() -> void: animate_to.call(Vector2(0.96, 0.96), 0.06))
-	btn.button_up.connect(func() -> void:
-		var dest := Vector2(1.06, 1.06) if btn.has_focus() else Vector2.ONE
-		animate_to.call(dest, 0.12)
-	)
-
-func _apply_motion_setting() -> void:
+func _update_camera_motion() -> void:
 	camera_node.set_reduced_motion(settings_service.reduced_motion)
-	if not settings_service.reduced_motion:
-		return
-	for button in _button_tweens:
-		_button_tweens[button].kill()
-		button.scale = Vector2.ONE
-	_button_tweens.clear()
 
 func _update_menu_focus() -> void:
 	var current_state = ui_state_manager.current_state
@@ -347,11 +310,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		GameSession.State.MAIN_MENU:
 			if ui_state_manager.current_state == UIStateManager.UIState.MAIN_MENU:
 				return
-			ui_state_manager.go_back()
+			_close_main_submenu()
 
 	get_viewport().set_input_as_handled()
 
 func _on_scores_pressed() -> void:
+	high_scores_menu.mode_selector.select(main_menu.mode_selector.selected)
 	high_scores_menu.update_scores(high_scores_by_mode)
 	ui_state_manager.change_state(ui_state_manager.UIState.HIGH_SCORES)
 
@@ -379,17 +343,16 @@ func _on_new_seed_pressed() -> void:
 		var seed := main_menu.take_next_world_seed(game_session.current_world_seed)
 		game_session.start_new_round(GameMode.Value.OBSTACLES, seed)
 
-func _on_options_back_pressed() -> void:
-	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
-	_update_menu_focus()
-
-func _on_credits_back_pressed() -> void:
-	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
-	_update_menu_focus()
-
-func _on_high_scores_back_pressed() -> void:
-	ui_state_manager.change_state(ui_state_manager.UIState.MAIN_MENU)
-	_update_menu_focus()
+func _close_main_submenu() -> void:
+	var opener: Control
+	match ui_state_manager.current_state:
+		UIStateManager.UIState.OPTIONS_MENU:
+			opener = main_menu.options_button
+		UIStateManager.UIState.CREDITS_SCREEN:
+			opener = main_menu.credits_button
+		UIStateManager.UIState.HIGH_SCORES:
+			opener = main_menu.scores_button
+	ui_state_manager.change_state(UIStateManager.UIState.MAIN_MENU, opener)
 
 func reset_high_scores() -> void:
 	game_session.clear_high_scores()
@@ -404,9 +367,9 @@ func _on_high_scores_updated(mode: GameMode.Value, new_high_scores: Array[int]) 
 func _update_mode_label() -> void:
 	var label_text := GameMode.display_name(game_session.current_mode)
 	if game_session.current_mode == GameMode.Value.OBSTACLES:
-		label_text += "  •  Seed %d" % game_session.current_world_seed
 		if gameplay.model != null and not gameplay.model.obstacle_pattern_name.is_empty():
 			label_text += "  •  %s" % gameplay.model.obstacle_pattern_name
+		label_text += "  •  Seed\u00a0%d" % game_session.current_world_seed
 	elif game_session.current_mode == GameMode.Value.PITFALL and gameplay.model != null:
 		var remaining := gameplay.model.foods_until_next_pit()
 		label_text += "  •  Next pit in %d %s" % [remaining, "meal" if remaining == 1 else "meals"]

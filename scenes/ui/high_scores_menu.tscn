@@ -47,7 +47,7 @@ size_flags_horizontal = 3
 [node name="TitleLabel" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=748515834]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
-text = "HIGH SCORES"
+text = "High Scores"
 horizontal_alignment = 1
 
 [node name="ModeSelector" type="OptionButton" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary"]
@@ -58,8 +58,9 @@ focus_neighbor_top = NodePath("../../Actions/BackButton")
 focus_neighbor_bottom = NodePath("../../Actions/BackButton")
 
 [node name="ScoresContainer" type="PanelContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=463625250]
-custom_minimum_size = Vector2(240, 200)
+custom_minimum_size = Vector2(240, 172)
 layout_mode = 2
+theme_type_variation = &"StatusPanel"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions/ScoresContainer" unique_id=991681394]
 unique_name_in_owner = true
@@ -70,14 +71,15 @@ horizontal_scroll_mode = 0
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+size_flags_vertical = 3
+theme_override_constants/separation = 4
 
 [node name="BackButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=2057911513]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../../Primary/ModeSelector")
-text = "Back to Menu"
+text = "Back"
 
 [node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=965546426]
 layout_mode = 2

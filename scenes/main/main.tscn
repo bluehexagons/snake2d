@@ -30,7 +30,7 @@ border_width_left = 4
 border_width_top = 4
 border_width_right = 4
 border_width_bottom = 4
-border_color = Color(0.443137, 1, 0.764706, 1)
+border_color = Color(0.31, 0.61, 0.46, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -39,6 +39,18 @@ expand_margin_left = 6.0
 expand_margin_top = 6.0
 expand_margin_right = 6.0
 expand_margin_bottom = 6.0
+
+[sub_resource type="Gradient" id="MenuGradient"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(0.13, 0.25, 0.20, 1, 0.065, 0.107, 0.089, 1, 0.038, 0.065, 0.054, 1)
+
+[sub_resource type="GradientTexture2D" id="MenuBackdropTexture"]
+gradient = SubResource("MenuGradient")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.32, 0.2)
+fill_to = Vector2(0.96, 0.86)
 
 [node name="Main" type="Control" unique_id=308419110]
 layout_mode = 3
@@ -123,6 +135,15 @@ script = ExtResource("3_yyfjg")
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=106770468]
 layer = 2
 script = ExtResource("20_ui_layout")
+
+[node name="MenuBackdrop" type="TextureRect" parent="UILayer"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = SubResource("MenuBackdropTexture")
+expand_mode = 1
 
 [node name="UIBackground" type="ColorRect" parent="UILayer" unique_id=1867130892]
 unique_name_in_owner = true
@@ -231,6 +252,7 @@ vertical = true
 script = ExtResource("99_menu_layout")
 stacked_separation = 12
 stacked_minimum_width = 400.0
+wide_minimum_width = 560.0
 
 [node name="Primary" type="VBoxContainer" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout"]
 layout_mode = 2
@@ -244,7 +266,7 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
-text = "GAME OVER"
+text = "Game Over"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -258,6 +280,7 @@ horizontal_alignment = 1
 [node name="FinalScoreLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=1394019066]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"ScoreLabel"
 text = "Final Score: 0"
 horizontal_alignment = 1
 
@@ -269,12 +292,20 @@ theme_override_colors/font_color = Color(0.443137, 1, 0.764706, 1)
 text = "New personal best"
 horizontal_alignment = 1
 
+[node name="RoundDetailsLabel" type="Label" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Primary"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HintLabel"
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="RestartButton" type="Button" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=908194941]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../GameOverMenuButton")
 focus_neighbor_bottom = NodePath("../GameOverMenuButton")
+theme_type_variation = &"PrimaryButton"
 text = "Play Again"
 
 [node name="NewSeedButton" type="Button" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Actions"]
@@ -292,8 +323,7 @@ custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../RestartButton")
 focus_neighbor_bottom = NodePath("../RestartButton")
-theme_type_variation = &"QuitButton"
-text = "Quit to Menu"
+text = "Main Menu"
 
 [node name="ButtonHints" type="HBoxContainer" parent="UILayer/GameOverPanel/Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=1211534793]
 layout_mode = 2

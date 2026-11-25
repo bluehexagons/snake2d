@@ -5,12 +5,12 @@ signal options_closed
 signal reset_scores_requested
 signal volume_preview_requested
 
-var sound_button: Button
+var sound_button: SettingToggle
 var volume_label: Label
 var volume_slider: HSlider
-var fullscreen_button: Button
-var reduced_motion_button: Button
-var grid_button: Button
+var fullscreen_button: SettingToggle
+var reduced_motion_button: SettingToggle
+var grid_button: SettingToggle
 var reset_settings_button: Button
 var reset_scores_button: Button
 var back_button: Button
@@ -87,7 +87,8 @@ func _on_grid_toggled() -> void:
 func _on_reset_settings_pressed() -> void:
 	_show_confirmation_dialog(
 		"Reset Settings",
-		"Are you sure you want to reset all settings?",
+		"Restore the default sound, display, and accessibility settings?",
+		"Reset",
 		func() -> void:
 			_settings_service.reset_settings()
 			update_button_states()
@@ -95,8 +96,9 @@ func _on_reset_settings_pressed() -> void:
 
 func _on_reset_scores_pressed() -> void:
 	_show_confirmation_dialog(
-		"Reset High Scores",
-		"Are you sure you want to reset all high scores?",
+		"Clear High Scores",
+		"Delete the saved scores for all three modes?",
+		"Clear scores",
 		func() -> void:
 			reset_scores_requested.emit()
 	)
@@ -130,37 +132,51 @@ func update_button_states() -> void:
 	update_grid_button()
 
 func update_sound_button() -> void:
-	sound_button.text = str("Sound: ", "Off" if _settings_service.is_muted else "On")
+	sound_button.show_setting(not _settings_service.is_muted)
 
 func update_volume_label() -> void:
 	var linear_volume := db_to_linear(_settings_service.effects_volume_db)
 	volume_label.text = "Effects Volume: %d%%" % roundi(linear_volume * 100.0)
 
 func update_fullscreen_button() -> void:
-	fullscreen_button.text = str("Fullscreen: ", "On" if _settings_service.is_fullscreen else "Off")
+	fullscreen_button.show_setting(_settings_service.is_fullscreen)
 
 func update_reduced_motion_button() -> void:
-	reduced_motion_button.text = str(
-		"Reduced Motion: ",
-		"On" if _settings_service.reduced_motion else "Off"
-	)
+	reduced_motion_button.show_setting(_settings_service.reduced_motion)
 
 func update_grid_button() -> void:
-	grid_button.text = str("Gameplay Grid: ", "On" if _settings_service.grid_enabled else "Off")
+	grid_button.show_setting(_settings_service.grid_enabled)
 
-func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable) -> void:
+func _show_confirmation_dialog(title: String, text: String, confirmation: String, on_confirm: Callable) -> void:
 	if is_instance_valid(_confirmation_dialog):
 		return
 	var dialog := ConfirmationDialog.new()
 	_confirmation_dialog = dialog
 	dialog.title = title
-	dialog.dialog_text = text
-	dialog.dialog_autowrap = true
+	dialog.borderless = true
 	dialog.theme = theme
-	dialog.confirmed.connect(func() -> void: on_confirm.call(); dialog.queue_free())
-	dialog.close_requested.connect(dialog.queue_free)
-	dialog.canceled.connect(dialog.queue_free)
+	dialog.ok_button_text = confirmation
+	dialog.dialog_autowrap = true
+	dialog.dialog_text = "%s\n\n%s" % [title, text]
+	var opener := get_viewport().gui_get_focus_owner()
+	var close_dialog := func() -> void:
+		dialog.hide()
+		dialog.queue_free()
+		if is_instance_valid(opener) and can_process():
+			opener.grab_focus()
+	dialog.confirmed.connect(func() -> void:
+		on_confirm.call()
+		close_dialog.call()
+	)
+	dialog.close_requested.connect(close_dialog)
+	dialog.canceled.connect(close_dialog)
 	add_child(dialog)
+	var cancel_on_back := func(event: InputEvent) -> void:
+		if event.is_action_pressed("ui_cancel"):
+			dialog.set_input_as_handled()
+			close_dialog.call()
+	dialog.get_cancel_button().gui_input.connect(cancel_on_back)
+	dialog.get_ok_button().gui_input.connect(cancel_on_back)
 	# Autowrapped text can adjust the minimum height after the popup appears.
 	dialog.size_changed.connect(func() -> void:
 		dialog.position = Vector2i((get_viewport_rect().size - Vector2(dialog.size)) / 2.0)
@@ -169,6 +185,7 @@ func _show_confirmation_dialog(title: String, text: String, on_confirm: Callable
 	# A zero popup rect preserves these embedded viewport coordinates. Passing a
 	# rect to popup_centered_clamped also caps it against physical screen pixels.
 	dialog.popup()
+	dialog.get_cancel_button().grab_focus()
 
 func _update_confirmation_layout() -> void:
 	if not is_instance_valid(_confirmation_dialog):

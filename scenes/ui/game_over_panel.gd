@@ -9,6 +9,7 @@ signal menu_requested
 @onready var score_label: Label = %FinalScoreLabel
 @onready var cause_label: Label = %CollisionCauseLabel
 @onready var personal_best_label: Label = %PersonalBestLabel
+@onready var round_details_label: Label = %RoundDetailsLabel
 @onready var restart_button: Button = %RestartButton
 @onready var new_seed_button: Button = %NewSeedButton
 @onready var menu_button: Button = %GameOverMenuButton
@@ -18,8 +19,10 @@ func _ready() -> void:
 	new_seed_button.pressed.connect(new_seed_requested.emit)
 	menu_button.pressed.connect(menu_requested.emit)
 
-func show_result(final_score: int, result: SnakeGame.StepResult, mode: GameMode.Value, new_best: bool) -> void:
-	title_label.text = "BOARD COMPLETE" if result == SnakeGame.StepResult.FILLED_BOARD else "GAME OVER"
+func show_result(
+	final_score: int, result: SnakeGame.StepResult, mode: GameMode.Value, new_best: bool, world_seed: int
+) -> void:
+	title_label.text = "Board Complete" if result == SnakeGame.StepResult.FILLED_BOARD else "Game Over"
 	score_label.text = "Final Score: %d" % final_score
 	var cause := ""
 	match result:
@@ -33,6 +36,9 @@ func show_result(final_score: int, result: SnakeGame.StepResult, mode: GameMode.
 	cause_label.visible = not cause.is_empty()
 	personal_best_label.visible = new_best
 	var seeded := mode == GameMode.Value.OBSTACLES
+	round_details_label.text = GameMode.display_name(mode)
+	if seeded:
+		round_details_label.text += "  ·  Seed %d" % world_seed
 	new_seed_button.visible = seeded
 	restart_button.text = "Retry Layout" if seeded else "Play Again"
 	restart_button.focus_neighbor_bottom = restart_button.get_path_to(new_seed_button if seeded else menu_button)

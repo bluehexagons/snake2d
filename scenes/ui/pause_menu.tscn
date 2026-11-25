@@ -36,6 +36,9 @@ theme_override_constants/margin_bottom = 32
 layout_mode = 2
 vertical = true
 script = ExtResource("99_menu_layout")
+stacked_separation = 14
+stacked_minimum_width = 330.0
+wide_minimum_width = 520.0
 
 [node name="Primary" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout"]
 layout_mode = 2
@@ -48,7 +51,7 @@ size_flags_horizontal = 3
 [node name="TitleLabel" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=2001933904]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
-text = "PAUSED"
+text = "Paused"
 horizontal_alignment = 1
 
 [node name="ResumeButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=995427112]
@@ -57,6 +60,7 @@ custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../QuitButton")
 focus_neighbor_bottom = NodePath("../QuitButton")
+theme_type_variation = &"PrimaryButton"
 text = "Resume"
 
 [node name="QuitButton" type="Button" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=2047791310]
@@ -65,8 +69,8 @@ custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ResumeButton")
 focus_neighbor_bottom = NodePath("../ResumeButton")
-theme_type_variation = &"QuitButton"
-text = "Quit to Menu"
+theme_type_variation = &"DangerButton"
+text = "End Run"
 
 [node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=394879365]
 layout_mode = 2

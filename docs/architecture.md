@@ -89,7 +89,12 @@ neutral axes and stick drift do not hide a mouse-controlled cursor.
 
 `GameSession` commits its game-over state before emitting round notifications. Ordinary signal connections run synchronously, so observers must see the completed state; otherwise a listener can end the same round twice or have its own menu transition overwritten. Starting an already active round, including a paused one, is a no-op.
 
-`UIStateManager` does not own application state. It is a presentation helper that fades registered panels and restores focus after `Main` maps a session transition to the corresponding UI state. Registered panels are `Control` nodes, and a default focus target may be any `Control` (including a slider). Outgoing panels immediately disable processing, recursive mouse input, and recursive focus while their fade finishes. Transition tweens belong to the manager, and enabling reduced motion settles in-flight panel transitions. See the [Control input inheritance reference](https://docs.godotengine.org/en/stable/classes/class_control.html#class-control-property-mouse-behavior-recursive).
+`UIStateManager` presents the screens selected by `Main`. It immediately
+hides the outgoing panel and turns off its processing, recursive mouse input
+and recursive focus. Only the incoming panel fades, with its layout and hit
+targets fixed. Reduced Motion completes that fade immediately. A focus target
+may be any `Control`, and returning from a main-menu screen restores focus
+to the button that opened it. See the [Control input inheritance reference](https://docs.godotengine.org/en/stable/classes/class_control.html#class-control-property-mouse-behavior-recursive).
 
 ## Coordinates and timing
 
@@ -100,7 +105,7 @@ stays visible below the HUD when it fits. Larger boards can scroll to their
 edges. Reduced Motion centers and fits the entire board. Resizing recalculates
 the framing and pan limits, including while the game is paused.
 
-`Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption; button polish likewise has one active tween per button. Enabling reduced motion cancels and settles existing button polish.
+`Gameplay` uses a bounded accumulator in `_physics_process`. It can catch up after a long frame without allowing an unbounded spiral of simulation work. `SnakeGame` advances only through `step()`, and interpolation changes only the displayed node positions. `Gameplay` tracks its transient eaten-food views explicitly, so cleanup cannot delete unrelated siblings. Food views cancel their spawn tween before starting consumption.
 
 `SnakeState` keeps one follow-up direction behind the next turn. It validates
 each input against the last accepted heading and consumes one turn per tick.
@@ -139,9 +144,10 @@ wraps on narrow screens. Keep new panels in this layout so input coordinates,
 focus scrolling and board scaling remain independent.
 
 `ResponsiveMenuLayout` arranges each panel's authored `Primary` and `Actions`
-groups side by side at aspect ratios of at least 2:1 with at least 720 units of
-available UI width. It caps the wide panel at a 760-unit target width and uses
-compact spacing; other windows stack the groups. The same nodes and focus paths
+groups side by side when there are at least 720 UI units of width. The main
+menu and Options use columns at that width, while the other panels also
+require an aspect ratio of at least 2:1. Each panel has a target width that
+fits within the view. The same nodes and focus paths
 survive reflow, retaining the selected mode, seed and keyboard focus. Before
 resizing a menu root, `ResponsiveUILayer` updates its layout using the new
 available size so a stale wide-panel minimum cannot prevent portrait resizing.

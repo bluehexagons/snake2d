@@ -47,7 +47,7 @@ size_flags_horizontal = 3
 [node name="TitleLabel" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=85532416]
 layout_mode = 2
 theme_type_variation = &"TitleLabel"
-text = "CREDITS"
+text = "Credits"
 horizontal_alignment = 1
 
 [node name="CreditsRichText" type="RichTextLabel" parent="Content/PanelContainer/MarginContainer/MenuLayout/Primary" unique_id=653768451]
@@ -87,7 +87,7 @@ focus_neighbor_top = NodePath(".")
 focus_neighbor_bottom = NodePath(".")
 focus_next = NodePath(".")
 focus_previous = NodePath(".")
-text = "Back to Menu"
+text = "Back"
 
 [node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=1217405360]
 layout_mode = 2

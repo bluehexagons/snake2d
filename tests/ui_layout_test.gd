@@ -45,7 +45,7 @@ func _run() -> void:
 				main.ui_state_manager.change_state(state)
 				var menu := main.ui_state_manager.ui_elements[state] as ScrollContainer
 				if menu is GameOverPanel:
-					menu.show_result(20, SnakeGame.StepResult.FILLED_BOARD, GameMode.Value.OBSTACLES, true)
+					menu.show_result(20, SnakeGame.StepResult.FILLED_BOARD, GameMode.Value.OBSTACLES, true, 999999999)
 				for frame in 5:
 					await process_frame
 				if menu is GameOverPanel and dimensions == Vector2i(1280, 720):
@@ -59,7 +59,9 @@ func _run() -> void:
 				var layout := panel.get_node("MarginContainer/MenuLayout") as ResponsiveMenuLayout
 				var primary := layout.get_node("Primary") as Control
 				var actions := layout.get_node("Actions") as Control
-				var expect_wide: bool = dimensions.x >= 720 and dimensions.x >= dimensions.y * 2
+				var expect_wide: bool = dimensions.x >= 720 and (
+					menu is MainMenu or menu is OptionsMenu or dimensions.x >= dimensions.y * 2
+				)
 				check.expect_equal(not layout.vertical, expect_wide, "aspect ratio selects layout: %s at %s" % [menu.name, dimensions])
 				if expect_wide:
 					check.expect_true(primary.position.x + primary.size.x < actions.position.x, "wide menu groups sit side by side: %s" % menu.name)
@@ -91,6 +93,7 @@ func _run() -> void:
 					var dialog := menu.get_child(menu.get_child_count() - 1) as ConfirmationDialog
 					check.expect_true(dialog != null and dialog.visible, "pointer opens reset confirmation")
 					if dialog != null:
+						check.expect_equal(dialog.gui_get_focus_owner(), dialog.get_cancel_button(), "reset confirmation focuses Cancel")
 						check.expect_true((Vector2(dialog.position) + Vector2(dialog.size) / 2.0).distance_to(root.get_visible_rect().size / 2.0) <= 2.0, "dialog stays centered after minimum size settles")
 						var dialog_scale: float = root.get_stretch_transform().get_scale().x * dialog.content_scale_factor / density
 						check.expect_true(dialog_scale >= 0.99, "dialog text retains CSS pixel size")
@@ -107,8 +110,14 @@ func _run() -> void:
 						check.expect_true(is_equal_approx(dialog.content_scale_factor, layer.scale.x), "open dialog follows menu scale after resize")
 						check.expect_true(dialog.size.x <= root.get_visible_rect().size.x, "open dialog fits after resize")
 						check.expect_true((Vector2(dialog.position) + Vector2(dialog.size) / 2.0).distance_to(root.get_visible_rect().size / 2.0) <= 2.0, "open dialog recenters after resize")
-						dialog.canceled.emit()
+						dialog.get_ok_button().grab_focus()
+						var cancel := InputEventJoypadButton.new()
+						cancel.button_index = JOY_BUTTON_B
+						cancel.pressed = true
+						dialog.push_input(cancel, true)
 						await process_frame
+						check.expect_false(is_instance_valid(dialog), "gamepad Back dismisses the confirmation")
+						check.expect_equal(root.gui_get_focus_owner(), menu.reset_settings_button, "cancel restores focus to the reset control")
 						root.size = Vector2i(Vector2(dimensions) * density)
 						for frame in 5:
 							await process_frame
@@ -141,6 +150,9 @@ func _run() -> void:
 			check.expect_true(main.main_menu.seed_row.size.x <= main.main_menu.size.x, "seed row fits the menu")
 			check.expect_true(main.main_menu.world_seed_spin_box.size.y * pixel_scale >= 43.9, "seed editor has a 44px target")
 			main.main_menu.world_seed_spin_box.value = main.main_menu.world_seed_spin_box.max_value
+			if dimensions == Vector2i(320, 568):
+				var menu_panel := main.main_menu.get_node("Content/PanelContainer") as PanelContainer
+				check.expect_true(menu_panel.size.y <= main.main_menu.size.y + 1.0, "portrait Obstacles menu fits without scrolling")
 			main.main_menu.start_button.grab_focus()
 			for frame in 3:
 				await process_frame

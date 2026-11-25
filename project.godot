@@ -125,7 +125,7 @@ textures/default_filters/use_nearest_mipmap_filter=true
 anti_aliasing/quality/msaa_2d=0
 textures/decals/filter=2
 textures/light_projectors/filter=2
-environment/defaults/default_clear_color=Color(0.197458, 0.224211, 0.204302, 1)
+environment/defaults/default_clear_color=Color(0.058, 0.094, 0.078, 1)
 
 [gui]
 

@@ -14,23 +14,20 @@ enum UIState {
 }
 
 var current_state: UIState = UIState.MAIN_MENU
-var previous_state: UIState = UIState.MAIN_MENU
 
 var ui_elements: Dictionary[UIState, Control] = {}
 var focus_targets: Dictionary[UIState, Control] = {}
 
-const TRANSITION_DURATION := 0.18
-var _transition_tweens: Dictionary = {}
+const TRANSITION_DURATION := 0.14
+var _transition: Tween
 var _reduced_motion := false
 
 func set_reduced_motion(enabled: bool) -> void:
 	_reduced_motion = enabled
 	if enabled:
-		for state in ui_elements:
-			var panel := ui_elements[state]
-			_kill_transition(panel)
-			panel.visible = state == current_state
-			panel.modulate.a = 1.0
+		_stop_transition()
+		if ui_elements.has(current_state):
+			ui_elements[current_state].modulate.a = 1.0
 
 func register_ui_element(state: UIState, node: Control) -> void:
 	ui_elements[state] = node
@@ -40,30 +37,29 @@ func register_ui_element(state: UIState, node: Control) -> void:
 func register_focus_target(state: UIState, button: Control) -> void:
 	focus_targets[state] = button
 
-func change_state(new_state: UIState) -> void:
+func change_state(new_state: UIState, focus_override: Control = null) -> void:
 	if new_state == current_state:
 		return
-		
-	previous_state = current_state
+
+	_stop_transition()
+	var old_state := current_state
 	current_state = new_state
-	
 	for state in ui_elements:
-		var elem = ui_elements[state]
-		if elem == null:
-			continue
-		_set_interactive(elem, state == current_state)
-		if state == current_state:
-			_fade_in(elem)
-		elif elem.visible:
-			_fade_out(elem)
-	
-	if focus_targets.has(current_state) and focus_targets[current_state] != null:
-		focus_targets[current_state].grab_focus()
-	
-	state_changed.emit(previous_state, current_state)
+		var panel := ui_elements[state]
+		var active := state == current_state
+		_set_interactive(panel, active)
+		panel.visible = active
+		panel.modulate.a = 1.0
+		if active and not _reduced_motion:
+			_fade_in(panel)
+
+	var focus_target: Control = focus_override if focus_override != null else focus_targets.get(current_state)
+	if focus_target != null:
+		focus_target.grab_focus()
+	state_changed.emit(old_state, current_state)
 
 func _set_interactive(panel: Control, enabled: bool) -> void:
-	# A fading panel is still visible, but must stop handling input immediately.
+	# Disable input on the whole panel, including any focused child.
 	panel.mouse_behavior_recursive = (
 		Control.MOUSE_BEHAVIOR_ENABLED if enabled else Control.MOUSE_BEHAVIOR_DISABLED
 	)
@@ -72,59 +68,16 @@ func _set_interactive(panel: Control, enabled: bool) -> void:
 	)
 	panel.process_mode = Node.PROCESS_MODE_INHERIT if enabled else Node.PROCESS_MODE_DISABLED
 
-func _kill_transition(elem: CanvasItem) -> void:
-	if _transition_tweens.has(elem):
-		var t: Tween = _transition_tweens[elem]
-		if t and t.is_valid():
-			t.kill()
-		_transition_tweens.erase(elem)
-	if elem is Control:
-		(elem as Control).scale = Vector2.ONE
+func _stop_transition() -> void:
+	if _transition != null:
+		_transition.kill()
+		_transition = null
 
-func _fade_in(elem: CanvasItem) -> void:
-	if elem == null:
-		return
-	_kill_transition(elem)
-	elem.visible = true
-	if _reduced_motion:
-		elem.modulate.a = 1.0
-		if elem is Control:
-			(elem as Control).scale = Vector2.ONE
-		return
-	var start_mod := elem.modulate
-	start_mod.a = 0.0
-	elem.modulate = start_mod
-	var tween := create_tween()
-	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	tween.tween_property(elem, "modulate:a", 1.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	if elem is Control:
-		var ctrl: Control = elem
-		ctrl.pivot_offset = ctrl.size * 0.5
-		ctrl.scale = Vector2(0.96, 0.96)
-		tween.parallel().tween_property(ctrl, "scale", Vector2.ONE, TRANSITION_DURATION).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_transition_tweens[elem] = tween
-
-func _fade_out(elem: CanvasItem) -> void:
-	if elem == null:
-		return
-	_kill_transition(elem)
-	if _reduced_motion:
-		elem.visible = false
-		elem.modulate.a = 1.0
-		return
-	var tween := create_tween()
-	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	tween.tween_property(elem, "modulate:a", 0.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	tween.tween_callback(func() -> void:
-		elem.visible = false
-		var m := elem.modulate
-		m.a = 1.0
-		elem.modulate = m
-	)
-	_transition_tweens[elem] = tween
-
-func go_back() -> void:
-	change_state(previous_state)
+func _fade_in(panel: Control) -> void:
+	panel.modulate.a = 0.55
+	_transition = create_tween()
+	_transition.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_transition.tween_property(panel, "modulate:a", 1.0, TRANSITION_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func get_state_name() -> String:
 	return UIState.keys()[current_state]

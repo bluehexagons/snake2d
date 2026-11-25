@@ -54,6 +54,7 @@ func _run() -> void:
 	_expect_board_completion()
 	_expect_pitfall_hud_and_results()
 	_expect_obstacle_replay()
+	_expect_submenu_focus()
 	_expect_first_move_timing()
 	await _expect_buffered_keyboard_turns()
 	_expect_stick_turns()
@@ -84,14 +85,14 @@ func _expect_board_completion() -> void:
 	var result := main.gameplay.advance_one_tick()
 	check.expect_equal(result, SnakeGame.StepResult.FILLED_BOARD, "the only food completes the board")
 	check.expect_equal(main.game_session.state, GameSession.State.GAME_OVER, "completion ends the round")
-	check.expect_equal(main.game_over_panel.title_label.text, "BOARD COMPLETE", "completion displays its own heading")
+	check.expect_equal(main.game_over_panel.title_label.text, "Board Complete", "completion displays its own heading")
 	check.expect_equal(main.game_over_panel.score_label.text, "Final Score: %d" % rules.points_per_food, "completion shows the final score")
 	var head := main.gameplay.snake.get_node("Head") as SnakeSegment
 	check.expect_equal(head.color, SnakeView.HEAD_COLOR, "the winning snake keeps its live color")
 	main.start_new_round()
 	main.gameplay.request_direction(Vector2i.RIGHT)
 	check.expect_equal(main.gameplay.advance_one_tick(), SnakeGame.StepResult.HIT_WALL, "the next round can end in a collision")
-	check.expect_equal(main.game_over_panel.title_label.text, "GAME OVER", "a collision restores the loss heading")
+	check.expect_equal(main.game_over_panel.title_label.text, "Game Over", "a collision restores the loss heading")
 	check.expect_equal(main.game_over_panel.cause_label.text, "Hit the wall", "wall collisions explain the loss")
 	main.free()
 
@@ -118,6 +119,8 @@ func _expect_obstacle_replay() -> void:
 	main.game_session.start_new_round(GameMode.Value.OBSTACLES, 424242)
 	var walls := main.gameplay.model.obstacle_cells.duplicate()
 	main.game_session.end_round(0)
+	check.expect_false(main.gameplay_hud.visible, "the results replace the gameplay HUD")
+	check.expect_true(results.round_details_label.text.contains("424242"), "results identify the layout behind Retry")
 	check.expect_equal(results.restart_button.text, "Retry Layout", "the seeded replay action names what it keeps")
 	check.expect_equal(root.gui_get_focus_owner(), results.restart_button, "retry receives focus on the results screen")
 	results.restart_button.pressed.emit()
@@ -130,6 +133,18 @@ func _expect_obstacle_replay() -> void:
 	check.expect_true(new_seed != 424242, "New Seed starts a different world seed even if the menu seed matches")
 	check.expect_equal(main.game_session.current_mode, GameMode.Value.OBSTACLES, "New Seed stays in Obstacles mode")
 	check.expect_true(main.mode_display_label.text.contains(str(new_seed)), "the HUD shows the new seed")
+	main.free()
+
+func _expect_submenu_focus() -> void:
+	var main := _create_main()
+	main.main_menu.mode_selector.select(GameMode.Value.OBSTACLES)
+	main.main_menu.scores_button.pressed.emit()
+	check.expect_equal(main.high_scores_menu.mode_selector.get_selected_id(), GameMode.Value.OBSTACLES, "scores open to the selected game mode")
+	_push_key(KEY_ESCAPE)
+	check.expect_equal(root.gui_get_focus_owner(), main.main_menu.scores_button, "Escape returns focus to High Scores")
+	main.main_menu.options_button.pressed.emit()
+	main.options_menu.back_button.pressed.emit()
+	check.expect_equal(root.gui_get_focus_owner(), main.main_menu.options_button, "Back returns focus to Options")
 	main.free()
 
 func _expect_first_move_timing() -> void:

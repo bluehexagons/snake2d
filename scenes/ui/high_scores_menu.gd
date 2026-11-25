@@ -54,15 +54,27 @@ func _show_selected_scores() -> void:
 	scores.assign(_score_tables.get(GameMode.key(mode), []))
 	if scores.is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "No scores yet!"
+		empty_label.text = "No scores in this mode yet"
+		empty_label.theme_type_variation = &"HintLabel"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		empty_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scores_list.add_child(empty_label)
 	else:
 		for i in scores.size():
+			var row := HBoxContainer.new()
+			var rank_label := Label.new()
+			rank_label.text = str(i + 1)
+			rank_label.theme_type_variation = &"HintLabel"
+			rank_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var score_label := Label.new()
-			score_label.text = "%d. %d" % [i + 1, scores[i]]
-			score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			scores_list.add_child(score_label)
+			score_label.name = "Score"
+			score_label.text = str(scores[i])
+			if i == 0:
+				score_label.theme_type_variation = &"ScoreLabel"
+			row.add_child(rank_label)
+			row.add_child(score_label)
+			scores_list.add_child(row)
 
 func _on_back_pressed() -> void:
 	high_scores_closed.emit()

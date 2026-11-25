@@ -46,9 +46,7 @@ func _run_smoke_test() -> void:
 	if main.gameplay_grid.visible == original_grid_setting:
 		_fail("Expected the options toggle to update the gameplay grid immediately.")
 		return
-	if main.options_menu.grid_button.text != (
-		"Gameplay Grid: Off" if original_grid_setting else "Gameplay Grid: On"
-	):
+	if main.options_menu.grid_button.button_pressed == original_grid_setting:
 		_fail("Expected the gameplay-grid button to show its updated state.")
 		return
 	main.options_menu.grid_button.pressed.emit()
@@ -71,20 +69,6 @@ func _run_smoke_test() -> void:
 	if license_text == null or not license_text.text.contains("Version: " + project_version):
 		_fail("Expected the credits to show the configured project version.")
 		return
-
-	var polish_button := main.main_menu.get_default_focus()
-	polish_button.focus_entered.emit()
-	var first_polish: Tween = main.get("_button_tweens")[polish_button]
-	polish_button.button_down.emit()
-	if first_polish.is_valid():
-		_fail("Expected new button polish to cancel the previous tween.")
-		return
-	var active_polish: Tween = main.get("_button_tweens")[polish_button]
-	main.settings_service.toggle_reduced_motion()
-	if active_polish.is_valid() or polish_button.scale != Vector2.ONE:
-		_fail("Expected reduced motion to settle existing button polish immediately.")
-		return
-	main.settings_service.toggle_reduced_motion()
 
 	var start_button := main.main_menu.get_default_focus()
 	start_button.button_down.emit()

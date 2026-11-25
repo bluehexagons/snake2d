@@ -32,8 +32,6 @@ func _ready() -> void:
 	# Bound text before SpinBox parses it; very long integers overflow first.
 	_seed_line_edit.max_length = str(MAX_WORLD_SEED).length()
 	_prepare_next_world_seed()
-	var version_label: Label = $Content/PanelContainer/MarginContainer/Label
-	version_label.text = "v" + ProjectSettings.get_setting("application/config/version", "?")
 	for mode in GameMode.ALL:
 		mode_selector.add_item(GameMode.display_name(mode), mode)
 	mode_selector.select(GameMode.Value.CLASSIC)
@@ -100,11 +98,11 @@ func _on_mode_selected(_index: int) -> void:
 	start_button.focus_previous = start_button.focus_neighbor_top
 	match mode:
 		GameMode.Value.PITFALL:
-			mode_description.text = "Every third meal creates a new pit. Keep moving carefully."
+			mode_description.text = "A new pit appears every three meals."
 		GameMode.Value.OBSTACLES:
-			mode_description.text = "Steer through seeded walls. Edit the seed to revisit a layout."
+			mode_description.text = "Dodge walls. Reuse the seed to play the same layout."
 		_:
-			mode_description.text = "No obstacles — grab food, grow, and chase your best score."
+			mode_description.text = "Eat food, grow, and beat your best."
 
 func _prepare_next_world_seed() -> void:
 	var current_seed := _selected_world_seed()
