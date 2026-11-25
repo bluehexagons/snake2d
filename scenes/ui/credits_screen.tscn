@@ -27,14 +27,15 @@ layout_mode = 2
 [node name="MarginContainer" type="MarginContainer" parent="Content/PanelContainer" unique_id=1208349414]
 layout_mode = 2
 theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 32
+theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 32
+theme_override_constants/margin_bottom = 24
 
 [node name="MenuLayout" type="BoxContainer" parent="Content/PanelContainer/MarginContainer" unique_id=150770226]
 layout_mode = 2
 vertical = true
 script = ExtResource("99_menu_layout")
+stacked_separation = 16
 
 [node name="Primary" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout"]
 layout_mode = 2
@@ -60,7 +61,11 @@ text = "[center]A Simple Snake Game
 © 2025–2026
 
 [color=#4dc94d]Programming[/color] by bluehexagons
-Built with [color=#7affc3]Godot Engine {godot_version}[/color][/center]"
+Built with [color=#7affc3]Godot Engine {godot_version}[/color]
+
+Developed with AI assistance
+using open-source Basaltwater.
+Generative AI is used during development only.[/center]"
 fit_content = true
 
 [node name="LicenseText" type="RichTextLabel" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions"]

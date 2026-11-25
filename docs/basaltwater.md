@@ -1,6 +1,8 @@
 # Basaltwater integration
 
-Basaltwater supplies optional environment tooling; the project owns its Godot
+[Basaltwater](https://github.com/bluehexagons/basaltwater) is the open-source
+tooling used for AI-assisted development and playtesting on this project.
+Basaltwater supplies optional environment tooling. The project owns its Godot
 4.7.2 pin, export presets and native checks. Debian is the reference build
 profile; CachyOS KDE supports native development/testing and Windows has native
 PowerShell entry points. Windows CI copies setup-godot's extensionless engine
@@ -76,10 +78,25 @@ with a disposable child `APPDATA` profile. Headless startup and synthetic densit
 tests do not establish audible quality, physical devices or Windows DPI behavior.
 See the [recorded qualification and open checks](manual-testing.md).
 
-## Artifacts
+## Generated output and retention
 
-Inspect `.basaltwater/cleanup.json` through `basaltw agent storage project
-"$PWD" --json`. Exports in `out/` and release staging in `dist/` are generated;
-review captures and curated archives follow the README retention guidance.
-Preserve player settings/scores and active jobs. Cleanup preview grants no
-standing deletion authority. Keep raw operational records outside Git.
+`.basaltwater/cleanup.json` declares `out/` exports and `dist/` release staging
+as generated output. Retain any build or archive still needed for release or
+review. Stop running exports, tests and packaging jobs before cleanup. With an
+updated Basaltwater installation, preview with:
+
+```bash
+basaltw agent storage project "$PWD" --json
+basaltw agent storage clean-generated "$PWD" --rule generated-exports
+```
+
+Apply requires explicit cleanup authorization, `--apply` and project-root writes
+for isolation. Without Basaltwater, review those exact paths and Git tracking,
+then remove only authorized output with native filesystem tools. Preserve source,
+export presets and player settings/scores (`user://`), which are not build output.
+Use the shared [artifact curation guidance](https://github.com/bluehexagons/basaltwater/blob/main/docs/agents/project-cleanup.md)
+for future screenshots or videos: keep selected originals and provenance in an
+ignored `artifacts/archive/`, with uncurated captures in `artifacts/review/`.
+Keep `artifacts/.gdignore` so Godot does not import local evidence.
+Keep raw operational records outside Git.
+Archiving on this disk does not free space. No cleanup script is duplicated here.

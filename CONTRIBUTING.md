@@ -1,5 +1,9 @@
 # Contributing
 
+Open `project.godot` in Godot and run the project to start at the main menu.
+Use the [learning path](docs/learning-path.md) and [architecture guide](docs/architecture.md)
+to follow a round from scene composition through the grid rules.
+
 ## Requirements
 
 - Godot 4.7.2 available as `godot`, `godot4`, `GODOT`, or `GODOT4`
@@ -50,6 +54,9 @@ Add new script suites to
 - Update the architecture and learning-path documents when boundaries change.
 
 ## Exports
+
+See the [build and release guide](docs/build-and-release.md) for platform commands,
+engine selection, Web hosting, export smoke tests, and release publication.
 
 `./build.sh` builds Web, Windows, and Linux exports into `out/`. Export templates are not required for source tests.
 On Windows, `build.ps1 windows` builds the native preset and `test.ps1 all`
