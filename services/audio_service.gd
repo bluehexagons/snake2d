@@ -4,7 +4,7 @@ extends Node
 ## An explicitly owned service for procedural sound synthesis and playback.
 ## Main composes this node and supplies it only to components that need audio behavior.
 
-enum Waveform {SINE, SQUARE, TRIANGLE, SAW}
+enum Waveform {SINE, SQUARE, TRIANGLE, SAW, CHIME, ROUNDED_BUZZ}
 enum VoiceGroup {GENERAL, CRITICAL}
 
 const AppConstants = preload("res://core/app_constants.gd")
@@ -21,7 +21,7 @@ const HARMONIC_FADE_START_HZ := SAMPLE_HZ * 0.45
 
 # At maximum settings the sum of 11 general peaks and one death peak is
 # below -2 dBFS, including on Web where sample playback bypasses bus effects.
-const MAX_GENERAL_CUE_VOLUME_DB := -16.0
+const MAX_GENERAL_CUE_VOLUME_DB := -15.0
 
 ## Movement pitch follows normalized game-speed progress instead of elapsed moves.
 ## The power curve keeps most of the pitch rise in the latter half of a round.
@@ -29,23 +29,26 @@ const MOVE_START_FREQUENCY := AppConstants.BASE_FREQUENCY * 0.5
 const MOVE_END_FREQUENCY := AppConstants.BASE_FREQUENCY * 0.7
 const MOVE_PITCH_CURVE_EXPONENT := 1.6
 const MOVE_START_VOLUME_DB := -21.0
-const MOVE_END_VOLUME_DB := -24.0
+const MOVE_END_VOLUME_DB := -25.0
 const MOVE_START_DURATION_SECONDS := 0.044
-const MOVE_END_DURATION_SECONDS := 0.032
+const MOVE_END_DURATION_SECONDS := 0.030
 const MOVE_PROGRESS_STEPS := 24
+const MOVE_DUCK_DB := -5.0
 
 const EAT_START_FREQUENCY := AppConstants.BASE_FREQUENCY * 1.65
-const EAT_END_FREQUENCY := AppConstants.BASE_FREQUENCY * 2.05
-const EAT_TONE_SECONDS := 0.13
-const EAT_VOLUME_DB := -17.0
-const DIE_START_FREQUENCY := AppConstants.BASE_FREQUENCY * 0.55
-const DIE_END_FREQUENCY := AppConstants.BASE_FREQUENCY * 0.2
-const DIE_TONE_SECONDS := 0.34
-const DIE_VOLUME_DB := -7.0
-const CLICK_FREQUENCY := AppConstants.BASE_FREQUENCY * 2.5
-const CLICK_VOLUME_DB := -19.0
-const FOCUS_FREQUENCY := AppConstants.BASE_FREQUENCY * 2.0
-const FOCUS_VOLUME_DB := -25.0
+const EAT_END_FREQUENCY := AppConstants.BASE_FREQUENCY * 2.2
+const EAT_TONE_SECONDS := 0.115
+const EAT_VOLUME_DB := -15.0
+const DIE_START_FREQUENCY := AppConstants.BASE_FREQUENCY * 0.67
+const DIE_END_FREQUENCY := AppConstants.BASE_FREQUENCY * 0.36
+const DIE_TONE_SECONDS := 0.235
+const DIE_VOLUME_DB := -14.0
+const CLICK_FREQUENCY := AppConstants.BASE_FREQUENCY * 2.25
+const CLICK_TONE_SECONDS := 0.038
+const CLICK_VOLUME_DB := -20.0
+const FOCUS_FREQUENCY := AppConstants.BASE_FREQUENCY * 1.9
+const FOCUS_TONE_SECONDS := 0.032
+const FOCUS_VOLUME_DB := -27.0
 const TONE_CACHE_FREQUENCY_STEP_HZ := 2.0
 const TONE_CACHE_CAPACITY := 128
 const MAX_TONE_DURATION_SECONDS := 1.0
@@ -56,6 +59,7 @@ var audio_players: Array[AudioStreamPlayer] = []
 var next_general_channel_index := 0
 var _channel_cue_volume_db := PackedFloat32Array()
 var _movement_player: AudioStreamPlayer
+var _pickup_player: AudioStreamPlayer
 var _tone_cache: Dictionary[Vector4i, AudioStreamWAV] = {}
 var _tone_cache_order: Array[Vector4i] = []
 var _shutting_down := false
@@ -100,11 +104,14 @@ func _release_players() -> void:
 	# The players are still children if the service is detached for reuse.
 	next_general_channel_index = 0
 	_movement_player = null
+	_pickup_player = null
 
 func _on_audio_player_finished(player: AudioStreamPlayer) -> void:
 	player.stream = null
 	if player == _movement_player:
 		_movement_player = null
+	if player == _pickup_player:
+		_pickup_player = null
 
 func _update_players() -> void:
 	for channel in range(audio_players.size()):
@@ -135,10 +142,17 @@ func play_move(speed_progress: float) -> void:
 	# Catch-up ticks can arrive before the last movement cue has finished.
 	if _movement_player != null and _movement_player.playing:
 		return
+	var volume_db := movement_volume_db_for_progress(speed_progress)
+	# Set the gain for the whole tap at its silent onset. This works with Web
+	# sample playback and avoids altering an already audible waveform.
+	if not audio_players.is_empty() and (
+		audio_players.back().playing or (_pickup_player != null and _pickup_player.playing)
+	):
+		volume_db += MOVE_DUCK_DB
 	_movement_player = _play_tone(
 		movement_frequency_for_progress(speed_progress),
 		movement_duration_for_progress(speed_progress),
-		movement_volume_db_for_progress(speed_progress),
+		volume_db,
 		Waveform.SINE
 	)
 
@@ -163,30 +177,32 @@ func _quantized_move_progress(speed_progress: float) -> float:
 	return clampf(snappedf(clampf(speed_progress, 0.0, 1.0), step_size), 0.0, 1.0)
 
 func play_eat() -> void:
-	_play_tone(
+	var player := _play_tone(
 		EAT_START_FREQUENCY,
 		EAT_TONE_SECONDS,
 		EAT_VOLUME_DB,
-		Waveform.TRIANGLE,
+		Waveform.CHIME,
 		VoiceGroup.GENERAL,
 		EAT_END_FREQUENCY
 	)
+	if player != null:
+		_pickup_player = player
 
 func play_die() -> void:
 	_play_tone(
 		DIE_START_FREQUENCY,
 		DIE_TONE_SECONDS,
 		DIE_VOLUME_DB,
-		Waveform.SAW,
+		Waveform.ROUNDED_BUZZ,
 		VoiceGroup.CRITICAL,
 		DIE_END_FREQUENCY
 	)
 
 func play_click() -> void:
-	_play_tone(CLICK_FREQUENCY, 0.05, CLICK_VOLUME_DB, Waveform.TRIANGLE)
+	_play_tone(CLICK_FREQUENCY, CLICK_TONE_SECONDS, CLICK_VOLUME_DB, Waveform.TRIANGLE)
 
 func play_focus() -> void:
-	_play_tone(FOCUS_FREQUENCY, 0.05, FOCUS_VOLUME_DB, Waveform.TRIANGLE)
+	_play_tone(FOCUS_FREQUENCY, FOCUS_TONE_SECONDS, FOCUS_VOLUME_DB, Waveform.TRIANGLE)
 
 func play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
 	_play_tone(frequency, duration, volume_db, waveform)
@@ -217,6 +233,8 @@ func _play_tone(
 	var player := audio_players[channel]
 	if player == _movement_player:
 		_movement_player = null
+	if player == _pickup_player:
+		_pickup_player = null
 	_channel_cue_volume_db[channel] = volume_db
 	player.stream = stream
 	player.volume_db = _volume_db_for_channel(channel)
@@ -249,24 +267,24 @@ func _prewarm_fixed_cues() -> void:
 		EAT_START_FREQUENCY,
 		EAT_END_FREQUENCY,
 		EAT_TONE_SECONDS,
-		Waveform.TRIANGLE
+		Waveform.CHIME
 	)
 	_get_cached_tone_stream(
 		DIE_START_FREQUENCY,
 		DIE_END_FREQUENCY,
 		DIE_TONE_SECONDS,
-		Waveform.SAW
+		Waveform.ROUNDED_BUZZ
 	)
 	_get_cached_tone_stream(
 		CLICK_FREQUENCY,
 		CLICK_FREQUENCY,
-		0.05,
+		CLICK_TONE_SECONDS,
 		Waveform.TRIANGLE
 	)
 	_get_cached_tone_stream(
 		FOCUS_FREQUENCY,
 		FOCUS_FREQUENCY,
-		0.05,
+		FOCUS_TONE_SECONDS,
 		Waveform.TRIANGLE
 	)
 
@@ -280,7 +298,7 @@ func _get_cached_tone_stream(
 		not is_finite(start_frequency) or start_frequency <= 0.0
 		or not is_finite(end_frequency) or end_frequency <= 0.0
 		or not is_finite(duration) or duration <= 0.0 or duration > MAX_TONE_DURATION_SECONDS
-		or waveform < Waveform.SINE or waveform > Waveform.SAW
+		or waveform < Waveform.SINE or waveform > Waveform.ROUNDED_BUZZ
 	):
 		return null
 
@@ -330,6 +348,13 @@ func _render_tone_stream(
 	var radians_per_hz := TAU / SAMPLE_HZ
 	var initial_phase_step := start_frequency * radians_per_hz
 	var half_phase_acceleration := 0.5 * frequency_step * radians_per_hz
+	var decay := 0.0
+	match waveform:
+		Waveform.CHIME:
+			decay = 0.45
+		Waveform.ROUNDED_BUZZ:
+			decay = 0.68
+	var decay_per_sample := decay / last_sample
 	var samples := PackedFloat64Array()
 	samples.resize(sample_count)
 	var peak := 1.0
@@ -337,7 +362,7 @@ func _render_tone_stream(
 		var phase := i * (initial_phase_step + i * half_phase_acceleration)
 		var frequency := start_frequency + i * frequency_step
 		var gain := minf(float(i) / ATTACK_SAMPLES, float(last_sample - i) / RELEASE_SAMPLES)
-		var envelope := smoothstep(0.0, 1.0, gain)
+		var envelope := smoothstep(0.0, 1.0, gain) * (1.0 - i * decay_per_sample)
 		var sample := _wave_sample(phase, frequency, waveform) * envelope
 		samples[i] = sample
 		peak = maxf(peak, absf(sample))
@@ -390,6 +415,16 @@ func _wave_sample(phase: float, frequency: float, waveform: Waveform) -> float:
 					break
 				saw_sample += harmonic_gain * sin(phase * harmonic) / harmonic
 			return saw_sample * 4.0 / TAU
+		Waveform.CHIME:
+			return (
+				sin(phase) + 0.35 * _harmonic_gain(frequency * 2.0) * sin(phase * 2.0)
+				+ 0.12 * _harmonic_gain(frequency * 3.0) * sin(phase * 3.0)
+			)
+		Waveform.ROUNDED_BUZZ:
+			return (
+				sin(phase) + 0.22 * _harmonic_gain(frequency * 2.0) * sin(phase * 2.0)
+				+ 0.32 * _harmonic_gain(frequency * 3.0) * sin(phase * 3.0)
+			)
 		_:
 			return 0.0
 

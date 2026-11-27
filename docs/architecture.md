@@ -216,10 +216,12 @@ launch-time frame limit and on-demand rendering. The model continues ticking
 at the rate established by `GameRules`.
 
 `AudioService` owns procedural synthesis and playback. It renders smooth
-attack and release envelopes and phase-continuous sweeps. Harmonics taper out
-as they approach Nyquist. The bounded PCM cache keys on waveform, quantized
-pitch endpoints and exact sample count. Custom tone requests have a one-second
-duration limit to bound render work and PCM allocation.
+attack and release envelopes and phase-continuous sweeps. Food uses a rising
+chime with brighter overtones. Collision uses a short descending buzz with
+fewer harmonics than a saw wave. Both cues decay through the sweep. Harmonics
+taper out as they approach Nyquist. The bounded PCM cache keys on waveform,
+quantized pitch endpoints and exact sample count. Custom tone requests have
+a one-second duration limit to bound render work and PCM allocation.
 
 Playback applies cue gain and effects volume to the cached streams. Voices
 route directly to Master on native and Web. The PCM peak and per-voice gain
@@ -229,8 +231,12 @@ busy. The service drops overflow so active waveforms finish cleanly.
 
 Audio startup prewarms the four fixed cues. Short movement tones follow
 normalized game-speed progress from `GameRules` and enter the cache when their
-speed bucket is first played. A movement cue already in progress covers
-additional catch-up ticks, and food pickups use the food cue alone.
+speed bucket is first played. Faster movement uses shorter, quieter taps to
+balance the denser rhythm. A tap already in progress covers additional
+catch-up ticks, and food pickups use the food cue alone. New movement taps
+start 5 dB quieter while a pickup or collision is playing. The gain is set at
+the tap's onset, so the service can leave playing waveforms at a steady gain
+and needs no per-frame audio update.
 
 Settings migration writes the new format only after validating a complete
 legacy record. Invalid or truncated legacy files retain defaults without

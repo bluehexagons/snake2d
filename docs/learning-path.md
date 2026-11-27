@@ -118,9 +118,14 @@ Read `services/audio_service.gd` and `tests/audio_synth_test.gd`.
 - Tones are rendered into PCM data in `AudioStreamWAV`.
 - Attack and release envelopes make every complete stream begin and end at zero amplitude.
 - Linear frequency sweeps integrate frequency over time so their waveform phase remains continuous. Harmonic amplitudes taper as they approach Nyquist.
+- The pickup chime and collision buzz use different partial balances and
+  decay over the course of each sweep. Compare their active RMS levels and
+  durations when tuning the two cues.
 - A single gain for each rendered waveform caps its PCM peak without reshaping it. Cue and settings gain are applied during playback so the cache can reuse a tone at different volumes.
 - Movement pitch follows `GameRules.speed_progress_for_length()`. Its eased, quantized curve stays low early and reaches its high register near maximum speed. Each speed bucket is rendered on first use.
 - The player pool never cuts an active waveform; it drops overflow and reserves one critical voice for death.
+- New movement taps start quieter while a pickup or collision plays. This
+  ducking uses the tap's playback gain and leaves its cached PCM reusable.
 - Per-voice gain limits keep the combined output below clipping, including in Web sample playback.
 - Settings are injected from `SettingsService`; audio does not load files itself.
 

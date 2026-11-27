@@ -15,6 +15,8 @@ func _run() -> void:
 	_expect_tone_stream(audio_service, 210.0, 210.0, 0.044, AudioServiceScript.Waveform.SQUARE)
 	_expect_tone_stream(audio_service, 693.0, 861.0, 0.13, AudioServiceScript.Waveform.TRIANGLE)
 	_expect_tone_stream(audio_service, 231.0, 84.0, 0.34, AudioServiceScript.Waveform.SAW)
+	_expect_tone_stream(audio_service, 693.0, 924.0, 0.115, AudioServiceScript.Waveform.CHIME)
+	_expect_tone_stream(audio_service, 281.0, 151.0, 0.235, AudioServiceScript.Waveform.ROUNDED_BUZZ)
 	_expect_waveform_coefficients(audio_service)
 	_expect_partial_fades_at_nyquist(audio_service)
 	_expect_invalid_tone_rejected(audio_service)
@@ -27,6 +29,7 @@ func _run() -> void:
 	_expect_channel_gain_composition(audio_service)
 	_expect_voice_budget(audio_service)
 	await _expect_move_cues_do_not_stack()
+	await _expect_pickup_ducks_new_movement()
 	_expect_voice_pool_reused()
 	await _expect_shutdown_releases_playback()
 	audio_service.free()
@@ -313,9 +316,39 @@ func _expect_move_cues_do_not_stack() -> void:
 	# Make voice retirement independent of the headless mixer's wall-clock timing.
 	first_voice.stop()
 	audio_service.play_move(1.0)
-	check.expect_true(audio_service.audio_players[1].playing, "movement can play again after its voice stops")
+	var next_move := audio_service.audio_players[1]
+	check.expect_true(next_move.playing, "movement can play again after its voice stops")
+	check.expect_equal(
+		next_move.volume_db,
+		AudioServiceScript.MOVE_END_VOLUME_DB + AudioServiceScript.MOVE_DUCK_DB,
+		"active collision lowers new movement taps"
+	)
 	audio_service.free()
 	await create_timer(0.3).timeout
+
+func _expect_pickup_ducks_new_movement() -> void:
+	var audio_service := AudioServiceScript.new()
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+	var normal_gain := audio_service.movement_volume_db_for_progress(0.0)
+	audio_service.play_move(0.0)
+	var first_move := audio_service.audio_players[0]
+	audio_service.play_eat()
+	var pickup := audio_service.audio_players[1]
+	check.expect_equal(first_move.volume_db, normal_gain, "pickup preserves a tap in progress")
+	check.expect_equal(pickup.volume_db, AudioServiceScript.EAT_VOLUME_DB, "pickup retains its cue gain")
+	first_move.stop()
+	audio_service.play_move(0.0)
+	var ducked_move := audio_service.audio_players[2]
+	check.expect_equal(ducked_move.volume_db, normal_gain + AudioServiceScript.MOVE_DUCK_DB,
+		"movement starts quieter while food is playing")
+	pickup.stop()
+	ducked_move.stop()
+	audio_service.play_move(0.0)
+	check.expect_equal(audio_service.audio_players[3].volume_db, normal_gain,
+		"movement returns to normal once the pickup stops")
+	await audio_service.drain_for_quit()
+	audio_service.free()
 
 func _expect_voice_pool_reused() -> void:
 	var audio_service := AudioServiceScript.new()
