@@ -1,7 +1,11 @@
 class_name ObstacleView
 extends Node2D
 
-## Draws either a solid seeded wall or a Pitfall hazard without texture assets.
+## Keeps solid Obstacles tiles and hollow Pitfall hazards distinct at small scales.
+
+const BLOCK_COLOR := Color("#687d73")
+const PIT_RIM_COLOR := Color("#bd7b86")
+const PIT_CENTER_COLOR := Color("#101214")
 
 var _cell_size := 32.0
 var _is_pit := false
@@ -22,29 +26,13 @@ func _draw() -> void:
 	if _is_pit:
 		_draw_pit()
 	else:
-		_draw_wall()
+		_draw_block()
 
 func _draw_pit() -> void:
 	var center := Vector2.ONE * _cell_size * 0.5
-	var radius := _cell_size * 0.43
-	draw_circle(center, radius, Color(0.025, 0.035, 0.03, 1.0))
-	draw_arc(center, radius, 0.0, TAU, 32, Color(0.47, 0.18, 0.25, 1.0), 2.0, true)
-	draw_arc(center, radius * 0.62, 0.0, TAU, 24, Color(0.18, 0.08, 0.12, 1.0), 2.0, true)
+	draw_circle(center, _cell_size * 0.43, PIT_RIM_COLOR, true, -1.0, true)
+	draw_circle(center, _cell_size * 0.34, PIT_CENTER_COLOR, true, -1.0, true)
 
-func _draw_wall() -> void:
-	var inset := maxf(2.0, _cell_size * 0.08)
-	var rect := Rect2(Vector2.ONE * inset, Vector2.ONE * (_cell_size - inset * 2.0))
-	draw_style_box(_wall_style(), rect)
-	var mortar := Color(0.12, 0.15, 0.14, 0.8)
-	var middle_y := _cell_size * 0.5
-	draw_line(Vector2(inset, middle_y), Vector2(_cell_size - inset, middle_y), mortar, 1.0)
-	draw_line(Vector2(_cell_size * 0.5, inset), Vector2(_cell_size * 0.5, middle_y), mortar, 1.0)
-	draw_line(Vector2(_cell_size * 0.32, middle_y), Vector2(_cell_size * 0.32, _cell_size - inset), mortar, 1.0)
-
-func _wall_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.25, 0.36, 0.32, 1.0)
-	style.border_color = Color(0.44, 1.0, 0.76, 0.7)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(3)
-	return style
+func _draw_block() -> void:
+	var cell := Rect2(Vector2.ZERO, Vector2.ONE * _cell_size)
+	draw_rect(cell.grow(-_cell_size * 0.08), BLOCK_COLOR)
