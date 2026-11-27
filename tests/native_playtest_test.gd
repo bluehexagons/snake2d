@@ -43,7 +43,7 @@ func _run() -> void:
 	if not ready_file.is_empty() and check.failure_count == 0:
 		check.expect_true(_publish_json(ready_file, {"Token": ready_token}), "publish the readiness token atomically")
 	if check.failure_count > 0:
-		_finish(temporary)
+		await _finish(temporary)
 		return
 	if not ready_file.is_empty():
 		# Leave the process live long enough for the guardian to acknowledge it.
@@ -54,7 +54,7 @@ func _run() -> void:
 	check.expect_true(main.gameplay.is_waiting_for_input(), "the new round waits for a direction")
 	await _record("started")
 	if check.failure_count > 0:
-		_finish(temporary)
+		await _finish(temporary)
 		return
 	var game := main.gameplay
 	_key(KEY_RIGHT)
@@ -80,12 +80,12 @@ func _run() -> void:
 		"Play Again starts a fresh round")
 	await _record("retried")
 	main.game_session.return_to_menu()
+	await _finish(temporary)
+
+func _finish(temporary: TestFiles) -> void:
 	await main.audio_service.drain_for_quit()
 	if check.failure_count == 0:
 		await _record("finished", false)
-	_finish(temporary)
-
-func _finish(temporary: TestFiles) -> void:
 	if not evidence.is_empty():
 		var summary := {
 			"schema_version": 1,

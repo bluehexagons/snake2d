@@ -232,6 +232,10 @@ A reserved voice keeps the death sound available when all general voices are
 busy. The service drops overflow and merges repeated requests for each menu
 sound while a matching cue is already playing.
 
+On exit, the service stops accepting cues and gives the mixer a 200 ms
+wall-clock window to fade and release stopped voices. A monotonic deadline
+keeps a long frame from shortening that window.
+
 Audio startup prewarms the four fixed cues. Short movement tones follow
 normalized game-speed progress from `GameRules` and enter the cache when their
 speed bucket is first played. Faster movement uses shorter, quieter taps to

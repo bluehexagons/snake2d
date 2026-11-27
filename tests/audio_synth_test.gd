@@ -418,7 +418,10 @@ func _expect_shutdown_releases_playback() -> void:
 	audio_service.play_die()
 	var voice := audio_service.audio_players.back() as AudioStreamPlayer
 	check.expect_true(voice.playing, "the death cue plays before shutdown")
+	var started_usec := Time.get_ticks_usec()
 	await audio_service.drain_for_quit()
+	check.expect_true(Time.get_ticks_usec() - started_usec >= AudioServiceScript.SHUTDOWN_DRAIN_USEC,
+		"stopped voices get the full wall-clock drain interval")
 	check.expect_equal(voice.stream, null, "shutdown releases the active stream")
 	audio_service.play_die()
 	check.expect_false(voice.playing, "new cues cannot start during shutdown")

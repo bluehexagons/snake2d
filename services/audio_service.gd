@@ -53,7 +53,7 @@ const TONE_CACHE_FREQUENCY_STEP_HZ := 2.0
 const TONE_CACHE_CAPACITY := 128
 const MAX_TONE_DURATION_SECONDS := 1.0
 const MAX_TONE_FREQUENCY_HZ := HARMONIC_FADE_START_HZ
-const SHUTDOWN_DRAIN_SECONDS := 0.2
+const SHUTDOWN_DRAIN_USEC := 200_000
 
 var audio_players: Array[AudioStreamPlayer] = []
 var next_general_channel_index := 0
@@ -89,9 +89,16 @@ func _exit_tree() -> void:
 func drain_for_quit() -> void:
 	_shutting_down = true
 	_release_players()
-	if not audio_players.is_empty():
-		# Godot keeps stopped playbacks on the mixer thread for its fade-out.
-		await get_tree().create_timer(SHUTDOWN_DRAIN_SECONDS, true, false, true).timeout
+	if audio_players.is_empty():
+		return
+
+	# The mixer fades stopped voices in real time. A scene timer can consume
+	# time from the frame in which it started, before the mixer had that time.
+	var deadline := Time.get_ticks_usec() + SHUTDOWN_DRAIN_USEC
+	var remaining := deadline - Time.get_ticks_usec()
+	while remaining > 0:
+		await get_tree().create_timer(remaining / 1_000_000.0, true, false, true).timeout
+		remaining = deadline - Time.get_ticks_usec()
 
 func _release_players() -> void:
 	for player in audio_players:
