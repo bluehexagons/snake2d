@@ -17,6 +17,11 @@ func _run() -> void:
 	_expect_tone_stream(audio_service, 231.0, 84.0, 0.34, AudioServiceScript.Waveform.SAW)
 	_expect_tone_stream(audio_service, 693.0, 924.0, 0.115, AudioServiceScript.Waveform.CHIME)
 	_expect_tone_stream(audio_service, 281.0, 151.0, 0.235, AudioServiceScript.Waveform.ROUNDED_BUZZ)
+	for cue: Vector2 in [
+		Vector2(AudioServiceScript.CLICK_FREQUENCY, AudioServiceScript.CLICK_TONE_SECONDS),
+		Vector2(AudioServiceScript.FOCUS_FREQUENCY, AudioServiceScript.FOCUS_TONE_SECONDS),
+	]:
+		_expect_tone_stream(audio_service, cue.x, cue.x, cue.y, AudioServiceScript.Waveform.TRIANGLE)
 	_expect_waveform_coefficients(audio_service)
 	_expect_partial_fades_at_nyquist(audio_service)
 	_expect_invalid_tone_rejected(audio_service)
@@ -26,8 +31,9 @@ func _run() -> void:
 	_expect_sweep_changes_pcm(audio_service)
 	_expect_delayed_movement_progression(audio_service)
 	_expect_movement_cues_are_cached_on_demand(audio_service)
-	_expect_channel_gain_composition(audio_service)
+	await _expect_gain_changes_apply_at_onset()
 	_expect_voice_budget(audio_service)
+	await _expect_menu_cues_do_not_stack()
 	await _expect_move_cues_do_not_stack()
 	await _expect_pickup_ducks_new_movement()
 	_expect_voice_pool_reused()
@@ -63,12 +69,16 @@ func _expect_tone_stream(
 	var first_sample: int = abs(int(stream.data.decode_s16(0)))
 	var last_sample: int = abs(int(stream.data.decode_s16(stream.data.size() - AudioServiceScript.PCM_16_BYTES_PER_SAMPLE)))
 	var max_allowed := int(AudioServiceScript.TONE_RENDER_PEAK * AudioServiceScript.PCM_16_SCALE)
+	var edge_bytes := int(AudioServiceScript.SAMPLE_HZ * 0.0002) * AudioServiceScript.PCM_16_BYTES_PER_SAMPLE
 
 	for offset in range(0, stream.data.size(), AudioServiceScript.PCM_16_BYTES_PER_SAMPLE):
 		var sample: int = abs(int(stream.data.decode_s16(offset)))
 		peak = maxi(peak, sample)
 		if sample > max_allowed:
 			_fail("Expected rendered tone samples to stay below the synth clip ceiling.")
+			return
+		if (offset < edge_bytes or offset >= stream.data.size() - edge_bytes) and sample > max_allowed * 0.01:
+			_fail("Expected the first and last 0.2 ms to stay below one percent of the PCM peak ceiling.")
 			return
 
 	if first_sample > 1 or last_sample > 1:
@@ -270,33 +280,63 @@ func _expect_movement_cues_are_cached_on_demand(audio_service: AudioService) -> 
 	if audio_service._tone_cache.size() > AudioServiceScript.TONE_CACHE_CAPACITY:
 		_fail("Expected all speed buckets to fit within the bounded tone cache.")
 
-func _expect_channel_gain_composition(audio_service: AudioService) -> void:
-	audio_service._channel_cue_volume_db.append(-22.0)
-	audio_service.set_effects_volume_db(-3.0)
+func _expect_gain_changes_apply_at_onset() -> void:
+	var audio_service := AudioServiceScript.new()
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+	audio_service.play_eat()
+	var pickup := audio_service.audio_players[0]
+	audio_service.set_effects_volume_db(-12.0)
 	audio_service.set_effects_volume_db(NAN)
-	var expected_volume := -3.0 - 22.0
-	if not is_equal_approx(audio_service._volume_db_for_channel(0), expected_volume):
-		_fail("Expected cue and settings gain to be composed at playback time.")
+	audio_service.play_click()
+	var click := audio_service.audio_players[1]
+	check.expect_equal(click.volume_db, AudioServiceScript.CLICK_VOLUME_DB - 12.0,
+		"the next cue uses the new effects volume")
 	audio_service.set_muted(true)
-	if audio_service._volume_db_for_channel(0) > -900.0:
-		_fail("Expected mute to silence a channel without changing its cue gain.")
+	audio_service.play_focus()
+	check.expect_false(audio_service.audio_players[2].playing, "mute blocks new cues")
+	check.expect_true(pickup.playing, "mute lets an active cue reach its release envelope")
+	check.expect_equal(pickup.volume_db, AudioServiceScript.EAT_VOLUME_DB,
+		"volume and mute leave the active pickup at its starting gain")
+	audio_service.set_muted(false)
+	audio_service.play_focus()
+	check.expect_equal(audio_service.audio_players[2].volume_db, AudioServiceScript.FOCUS_VOLUME_DB - 12.0,
+		"unmute resumes new playback at the selected volume")
+	await audio_service.drain_for_quit()
+	audio_service.free()
 
 func _expect_voice_budget(audio_service: AudioService) -> void:
 	audio_service.set_muted(false)
 	audio_service.set_effects_volume_db(0.0)
-	audio_service._channel_cue_volume_db.resize(AudioServiceScript.CHANNEL_COUNT)
-	audio_service._channel_cue_volume_db.fill(20.0)
+	const LOUD_REQUEST_DB := 20.0
 	var peak_sum := 0.0
 	for channel in range(AudioServiceScript.CHANNEL_COUNT):
 		peak_sum += AudioServiceScript.TONE_RENDER_PEAK * db_to_linear(
-			audio_service._volume_db_for_channel(channel)
+			audio_service._volume_db_for_channel(channel, LOUD_REQUEST_DB)
 		)
 	check.expect_true(peak_sum < db_to_linear(-2.0), "all voices combined leave 2 dB of sample headroom")
 	check.expect_equal(
-		audio_service._volume_db_for_channel(AudioServiceScript.CHANNEL_COUNT - 1),
+		audio_service._volume_db_for_channel(AudioServiceScript.CHANNEL_COUNT - 1, LOUD_REQUEST_DB),
 		AudioServiceScript.DIE_VOLUME_DB,
 		"the reserved voice keeps the death cue's gain"
 	)
+
+func _expect_menu_cues_do_not_stack() -> void:
+	var audio_service := AudioServiceScript.new()
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+	for repeat in range(3):
+		audio_service.play_focus()
+		audio_service.play_click()
+	var focus := audio_service.audio_players[0]
+	var click := audio_service.audio_players[1]
+	check.expect_true(focus.playing and click.playing, "focus and click still play together")
+	check.expect_false(audio_service.audio_players[2].playing, "identical menu cues do not stack")
+	focus.stop()
+	audio_service.play_focus()
+	check.expect_true(audio_service.audio_players[2].playing, "focus can play after its previous cue ends")
+	await audio_service.drain_for_quit()
+	audio_service.free()
 
 func _expect_move_cues_do_not_stack() -> void:
 	var audio_service := AudioServiceScript.new()

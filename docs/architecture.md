@@ -223,11 +223,14 @@ taper out as they approach Nyquist. The bounded PCM cache keys on waveform,
 quantized pitch endpoints and exact sample count. Custom tone requests have
 a one-second duration limit to bound render work and PCM allocation.
 
-Playback applies cue gain and effects volume to the cached streams. Voices
-route directly to Master on native and Web. The PCM peak and per-voice gain
+Playback applies cue gain and effects volume at the silent onset of each
+cached stream. In-flight cues finish at their starting gain, avoiding an
+abrupt gain step in Web sample playback. Muting blocks new cues immediately.
+Voices route directly to Master on native and Web. The PCM peak and per-voice gain
 limits leave at least 2 dB of sample headroom even with every voice active.
 A reserved voice keeps the death sound available when all general voices are
-busy. The service drops overflow so active waveforms finish cleanly.
+busy. The service drops overflow and merges repeated requests for each menu
+sound while a matching cue is already playing.
 
 Audio startup prewarms the four fixed cues. Short movement tones follow
 normalized game-speed progress from `GameRules` and enter the cache when their

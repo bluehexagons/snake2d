@@ -16,7 +16,7 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | Layout | Resize while playing and in every menu; try narrow/tall and wide/short windows | Controls remain reachable and grid, food, snake, and camera stay aligned |
 | Reduced Motion | Enable in Options, visit the menus and play a round on a small window | Panels appear immediately and the camera fits the full board without tracking the snake |
 | 30 FPS Limit | Enable in desktop Options, play a round, pause and resume, then restart the app | Moving play uses up to 30 FPS with the same grid speed, menus and pause use the normal idle policy, and the setting survives restart. Web Options omits the setting. |
-| Audio | Play at starting and maximum speed, eat, lose, pause, browse the menu, and adjust Effects Volume with sound on and muted | Food and collision cues are distinct and close in level. Fast movement stays in the background, and focus sounds stay quieter than button presses. Volume applies immediately and one food cue previews the settled level when sound is on. |
+| Audio | Play at starting and maximum speed, eat, lose, pause and navigate menus quickly. Adjust Effects Volume again during the food preview, then mute and unmute. | Food and collision cues stay distinct. Fast movement and menu focus stay quiet. Active cues end without a click or sudden cut. New cues use the selected volume, and mute prevents new playback while active cues finish. |
 | Save/reload | Change settings and earn scores in all modes; restart the application | Settings persist and scores remain separated by mode |
 
 Use a temporary OS account or back up saves before manually testing reset actions. Automated persistence and smoke tests already use disposable paths.

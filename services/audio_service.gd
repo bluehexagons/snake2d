@@ -5,7 +5,7 @@ extends Node
 ## Main composes this node and supplies it only to components that need audio behavior.
 
 enum Waveform {SINE, SQUARE, TRIANGLE, SAW, CHIME, ROUNDED_BUZZ}
-enum VoiceGroup {GENERAL, CRITICAL}
+enum VoiceGroup {GENERAL, CRITICAL, MENU}
 
 const AppConstants = preload("res://core/app_constants.gd")
 const CHANNEL_COUNT := 12
@@ -57,7 +57,6 @@ const SHUTDOWN_DRAIN_SECONDS := 0.2
 
 var audio_players: Array[AudioStreamPlayer] = []
 var next_general_channel_index := 0
-var _channel_cue_volume_db := PackedFloat32Array()
 var _movement_player: AudioStreamPlayer
 var _pickup_player: AudioStreamPlayer
 var _tone_cache: Dictionary[Vector4i, AudioStreamWAV] = {}
@@ -83,9 +82,6 @@ func _ensure_audio_players() -> void:
 		add_child(player)
 
 		audio_players.append(player)
-		_channel_cue_volume_db.append(0.0)
-
-	_update_players()
 
 func _exit_tree() -> void:
 	_release_players()
@@ -113,30 +109,20 @@ func _on_audio_player_finished(player: AudioStreamPlayer) -> void:
 	if player == _pickup_player:
 		_pickup_player = null
 
-func _update_players() -> void:
-	for channel in range(audio_players.size()):
-		var player := audio_players[channel]
-		player.volume_db = _volume_db_for_channel(channel)
-
-func _volume_db_for_channel(channel: int) -> float:
-	if is_muted:
-		return -999.0
-	var cue_volume_db := 0.0
-	if channel >= 0 and channel < _channel_cue_volume_db.size():
-		cue_volume_db = _channel_cue_volume_db[channel]
+func _volume_db_for_channel(channel: int, cue_volume_db: float) -> float:
 	var is_critical := channel >= CHANNEL_COUNT - CRITICAL_CHANNEL_COUNT
 	var max_cue_volume_db := DIE_VOLUME_DB if is_critical else MAX_GENERAL_CUE_VOLUME_DB
 	return effects_volume_db + minf(cue_volume_db, max_cue_volume_db)
 
+## Settings apply at each cue's silent onset. Web sample gain changes can
+## otherwise cut a playing waveform mid-cycle. Muting blocks new cues.
 func set_muted(muted: bool) -> void:
 	is_muted = muted
-	_update_players()
 
 func set_effects_volume_db(volume_db: float) -> void:
 	if not is_finite(volume_db):
 		return
 	effects_volume_db = clampf(volume_db, -30.0, 0.0)
-	_update_players()
 
 func play_move(speed_progress: float) -> void:
 	# Catch-up ticks can arrive before the last movement cue has finished.
@@ -199,10 +185,10 @@ func play_die() -> void:
 	)
 
 func play_click() -> void:
-	_play_tone(CLICK_FREQUENCY, CLICK_TONE_SECONDS, CLICK_VOLUME_DB, Waveform.TRIANGLE)
+	_play_tone(CLICK_FREQUENCY, CLICK_TONE_SECONDS, CLICK_VOLUME_DB, Waveform.TRIANGLE, VoiceGroup.MENU)
 
 func play_focus() -> void:
-	_play_tone(FOCUS_FREQUENCY, FOCUS_TONE_SECONDS, FOCUS_VOLUME_DB, Waveform.TRIANGLE)
+	_play_tone(FOCUS_FREQUENCY, FOCUS_TONE_SECONDS, FOCUS_VOLUME_DB, Waveform.TRIANGLE, VoiceGroup.MENU)
 
 func play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
 	_play_tone(frequency, duration, volume_db, waveform)
@@ -221,13 +207,17 @@ func _play_tone(
 	):
 		return null
 
-	var channel := _acquire_channel_index(voice_group)
-	if channel == -1:
-		return null
-
 	var resolved_end_frequency := frequency if end_frequency <= 0.0 else end_frequency
 	var stream := _get_cached_tone_stream(frequency, resolved_end_frequency, duration, waveform)
 	if stream == null:
+		return null
+	if voice_group == VoiceGroup.MENU and audio_players.any(
+		func(player: AudioStreamPlayer) -> bool: return player.playing and player.stream == stream
+	):
+		return null
+
+	var channel := _acquire_channel_index(voice_group)
+	if channel == -1:
 		return null
 
 	var player := audio_players[channel]
@@ -235,9 +225,8 @@ func _play_tone(
 		_movement_player = null
 	if player == _pickup_player:
 		_pickup_player = null
-	_channel_cue_volume_db[channel] = volume_db
 	player.stream = stream
-	player.volume_db = _volume_db_for_channel(channel)
+	player.volume_db = _volume_db_for_channel(channel, volume_db)
 	player.play()
 	return player
 

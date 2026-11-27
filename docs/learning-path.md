@@ -121,7 +121,7 @@ Read `services/audio_service.gd` and `tests/audio_synth_test.gd`.
 - The pickup chime and collision buzz use different partial balances and
   decay over the course of each sweep. Compare their active RMS levels and
   durations when tuning the two cues.
-- A single gain for each rendered waveform caps its PCM peak without reshaping it. Cue and settings gain are applied during playback so the cache can reuse a tone at different volumes.
+- A single gain for each rendered waveform caps its PCM peak without reshaping it. Cue and settings gain are applied at playback onset so the cache can reuse a tone at different volumes. Active cues keep their gain until they finish.
 - Movement pitch follows `GameRules.speed_progress_for_length()`. Its eased, quantized curve stays low early and reaches its high register near maximum speed. Each speed bucket is rendered on first use.
 - The player pool never cuts an active waveform; it drops overflow and reserves one critical voice for death.
 - New movement taps start quieter while a pickup or collision plays. This
