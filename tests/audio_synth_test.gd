@@ -32,6 +32,7 @@ func _run() -> void:
 	_expect_delayed_movement_progression(audio_service)
 	_expect_movement_cues_are_cached_on_demand(audio_service)
 	await _expect_gain_changes_apply_at_onset()
+	await _expect_independent_cue_volumes()
 	_expect_voice_budget(audio_service)
 	await _expect_menu_cues_do_not_stack()
 	await _expect_move_cues_do_not_stack()
@@ -302,6 +303,43 @@ func _expect_gain_changes_apply_at_onset() -> void:
 	audio_service.play_focus()
 	check.expect_equal(audio_service.audio_players[2].volume_db, AudioServiceScript.FOCUS_VOLUME_DB - 12.0,
 		"unmute resumes new playback at the selected volume")
+	await audio_service.drain_for_quit()
+	audio_service.free()
+
+func _expect_independent_cue_volumes() -> void:
+	var audio_service := AudioServiceScript.new()
+	root.add_child(audio_service)
+	audio_service._ensure_audio_players()
+	audio_service.set_effects_volume_db(-3.0)
+	audio_service.set_cue_volume_percent(AudioService.Cue.FOOD, 0.0)
+	audio_service.set_cue_volume_percent(AudioService.Cue.MOVEMENT, 50.0)
+	audio_service.set_cue_volume_percent(AudioService.Cue.COLLISION, 25.0)
+	audio_service.set_cue_volume_percent(AudioService.Cue.MENU, 75.0)
+	audio_service.play_eat()
+	check.expect_false(audio_service.audio_players[0].playing, "a silent pickup uses no voice")
+	audio_service.preview_volume(AudioService.Cue.ALL)
+	var movement := audio_service.audio_players[0]
+	check.expect_true(movement.playing, "effects preview uses movement when food is silent")
+	var starting_gain := movement.volume_db
+	check.expect_true(is_equal_approx(starting_gain, AudioServiceScript.MOVE_START_VOLUME_DB - 3.0 + linear_to_db(0.5)),
+		"movement uses its category plus overall gain without ducking for silent food")
+	audio_service.set_cue_volume_percent(AudioService.Cue.MOVEMENT, 0.0)
+	check.expect_true(movement.playing, "zero volume lets an active tap finish")
+	check.expect_equal(movement.volume_db, starting_gain,
+		"category changes leave the active cue at its starting gain")
+	audio_service.preview_volume(AudioService.Cue.COLLISION)
+	check.expect_true(is_equal_approx(audio_service.audio_players.back().volume_db, AudioServiceScript.DIE_VOLUME_DB - 3.0 + linear_to_db(0.25)),
+		"collision uses its category plus overall gain on the reserved voice")
+	audio_service.preview_volume(AudioService.Cue.MENU)
+	check.expect_true(is_equal_approx(audio_service.audio_players[1].volume_db, AudioServiceScript.CLICK_VOLUME_DB - 3.0 + linear_to_db(0.75)),
+		"the menu preview uses the click at its selected level")
+	audio_service.play_focus()
+	check.expect_true(is_equal_approx(audio_service.audio_players[2].volume_db, AudioServiceScript.FOCUS_VOLUME_DB - 3.0 + linear_to_db(0.75)),
+		"menu focus shares the click's category")
+	audio_service.set_cue_volume_percent(AudioService.Cue.FOOD, 40.0)
+	audio_service.preview_volume(AudioService.Cue.FOOD)
+	check.expect_true(is_equal_approx(audio_service.audio_players[3].volume_db, AudioServiceScript.EAT_VOLUME_DB - 3.0 + linear_to_db(0.4)),
+		"food preview uses the pickup at its selected level")
 	await audio_service.drain_for_quit()
 	audio_service.free()
 

@@ -3,11 +3,18 @@ extends ScrollContainer
 
 signal options_closed
 signal reset_scores_requested
-signal volume_preview_requested
+signal volume_preview_requested(cue: AudioService.Cue)
+
+const VOLUME_LABELS: Dictionary[AudioService.Cue, String] = {
+	AudioService.Cue.ALL: "Effects volume",
+	AudioService.Cue.MOVEMENT: "Movement",
+	AudioService.Cue.FOOD: "Food pickup",
+	AudioService.Cue.COLLISION: "Collision",
+	AudioService.Cue.MENU: "Menu sounds",
+}
 
 var sound_button: SettingToggle
-var volume_label: Label
-var volume_slider: HSlider
+var volume_sliders: Dictionary[AudioService.Cue, HSlider] = {}
 var fullscreen_button: SettingToggle
 var reduced_motion_button: SettingToggle
 var grid_button: SettingToggle
@@ -17,13 +24,13 @@ var reset_scores_button: Button
 var back_button: Button
 var _settings_service: SettingsService
 var _confirmation_dialog: ConfirmationDialog
+var _volume_values: Dictionary[AudioService.Cue, Label] = {}
+var _preview_cue := AudioService.Cue.ALL
 
 @onready var _volume_preview_timer: Timer = $VolumePreviewTimer
 
 func _ready() -> void:
 	sound_button = %SoundButton
-	volume_label = %VolumeLabel
-	volume_slider = %VolumeSlider
 	fullscreen_button = %FullscreenButton
 	reduced_motion_button = %ReducedMotionButton
 	grid_button = %GridButton
@@ -33,7 +40,7 @@ func _ready() -> void:
 	back_button = %BackButton
 
 	sound_button.pressed.connect(_on_sound_toggled)
-	volume_slider.value_changed.connect(_on_volume_changed)
+	_create_volume_controls()
 	_volume_preview_timer.timeout.connect(_preview_volume)
 	fullscreen_button.pressed.connect(_on_fullscreen_toggled)
 	reduced_motion_button.pressed.connect(_on_reduced_motion_toggled)
@@ -65,16 +72,62 @@ func set_settings_service(service: SettingsService) -> void:
 func _on_sound_toggled() -> void:
 	_settings_service.toggle_mute()
 
-func _on_volume_changed(volume_db: float) -> void:
+func _create_volume_controls() -> void:
+	var controls: VBoxContainer = %VolumeControls
+	var previous: Control = sound_button
+	for cue in VOLUME_LABELS:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var label := Label.new()
+		label.text = VOLUME_LABELS[cue]
+		label.custom_minimum_size.x = 104.0
+		row.add_child(label)
+
+		var slider := HSlider.new()
+		slider.accessibility_name = label.text
+		slider.custom_minimum_size = Vector2(70, 44)
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.scrollable = false
+		if cue == AudioService.Cue.ALL:
+			slider.min_value = -30.0
+			slider.max_value = 0.0
+			slider.step = 1.0
+		else:
+			slider.step = 5.0
+		slider.value_changed.connect(_on_volume_changed.bind(cue))
+		row.add_child(slider)
+		volume_sliders[cue] = slider
+
+		var value := Label.new()
+		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		value.custom_minimum_size.x = 40.0
+		row.add_child(value)
+		_volume_values[cue] = value
+
+		controls.add_child(row)
+		previous.focus_neighbor_bottom = previous.get_path_to(slider)
+		slider.focus_neighbor_top = slider.get_path_to(previous)
+		previous = slider
+	previous.focus_neighbor_bottom = previous.get_path_to(fullscreen_button)
+	fullscreen_button.focus_neighbor_top = fullscreen_button.get_path_to(previous)
+
+func _on_volume_changed(value: float, cue: AudioService.Cue) -> void:
 	if _settings_service == null:
 		return
-	_settings_service.set_effects_volume_db(volume_db)
-	if can_process() and is_visible_in_tree() and not _settings_service.is_muted:
+	if cue == AudioService.Cue.ALL:
+		_settings_service.set_effects_volume_db(value)
+	else:
+		_settings_service.set_cue_volume_percent(cue, value)
+	if (
+		can_process() and is_visible_in_tree() and not _settings_service.is_muted
+		and _settings_service.get_cue_volume_percent(cue) > 0.0
+	):
+		_preview_cue = cue
 		_volume_preview_timer.start()
 
 func _preview_volume() -> void:
 	if is_visible_in_tree() and _settings_service != null and not _settings_service.is_muted:
-		volume_preview_requested.emit()
+		volume_preview_requested.emit(_preview_cue)
 
 func _on_fullscreen_toggled() -> void:
 	_settings_service.toggle_fullscreen()
@@ -133,9 +186,12 @@ func _update_button_states() -> void:
 		return
 	sound_button.show_setting(not _settings_service.is_muted)
 	var volume_db := _settings_service.effects_volume_db
-	volume_slider.set_value_no_signal(volume_db)
-	var linear_volume := db_to_linear(volume_db)
-	volume_label.text = "Effects Volume: %d%%" % roundi(linear_volume * 100.0)
+	volume_sliders[AudioService.Cue.ALL].set_value_no_signal(volume_db)
+	_volume_values[AudioService.Cue.ALL].text = "%d%%" % roundi(db_to_linear(volume_db) * 100.0)
+	for cue in SettingsService.CUE_VOLUME_KEYS:
+		var percent := _settings_service.get_cue_volume_percent(cue)
+		volume_sliders[cue].set_value_no_signal(percent)
+		_volume_values[cue].text = "%d%%" % roundi(percent)
 	fullscreen_button.show_setting(_settings_service.is_fullscreen)
 	reduced_motion_button.show_setting(_settings_service.reduced_motion)
 	grid_button.show_setting(_settings_service.grid_enabled)

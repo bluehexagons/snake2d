@@ -114,15 +114,19 @@ func _expect_volume_preview() -> void:
 	root.add_child(settings)
 	root.add_child(options)
 	options.set_settings_service(settings)
-	var previews: Array[float] = []
-	options.volume_preview_requested.connect(func() -> void: previews.append(settings.effects_volume_db))
+	var previews: Array[AudioService.Cue] = []
+	options.volume_preview_requested.connect(func(cue: AudioService.Cue) -> void: previews.append(cue))
 	var timer := options.get_node("VolumePreviewTimer") as Timer
+	var overall := options.volume_sliders[AudioService.Cue.ALL]
+	var movement := options.volume_sliders[AudioService.Cue.MOVEMENT]
 
 	settings.set_effects_volume_db(-10.0)
-	check.expect_equal(options.volume_slider.value, -10.0, "settings updates synchronize the slider")
+	check.expect_equal(overall.value, -10.0, "settings updates synchronize the effects slider")
 	check.expect_true(timer.is_stopped(), "settings synchronization schedules no preview")
-	options.volume_slider.grab_focus()
+	options.sound_button.grab_focus()
 	await process_frame
+	_key(KEY_DOWN)
+	check.expect_equal(root.gui_get_focus_owner(), overall, "Down from Sound reaches the effects slider")
 	_key(KEY_LEFT)
 	_key(KEY_LEFT)
 	check.expect_equal(settings.effects_volume_db, -12.0, "keyboard adjustment applies immediately")
@@ -130,17 +134,34 @@ func _expect_volume_preview() -> void:
 	if not timer.is_stopped():
 		await timer.timeout
 		await process_frame
-	check.expect_equal(previews, [-12.0], "one preview uses the final adjusted level")
+	check.expect_equal(previews, [AudioService.Cue.ALL], "one preview plays after the last effects adjustment")
+
+	var controller := InputEventJoypadButton.new()
+	controller.button_index = JOY_BUTTON_DPAD_DOWN
+	controller.pressed = true
+	root.push_input(controller, true)
+	check.expect_equal(root.gui_get_focus_owner(), movement, "the controller can reach the movement slider")
+	_key(KEY_LEFT)
+	_key(KEY_LEFT)
+	check.expect_equal(settings.get_cue_volume_percent(AudioService.Cue.MOVEMENT), 90.0, "keyboard adjusts movement independently")
+	check.expect_equal(settings.effects_volume_db, -12.0, "movement does not change overall gain")
+	if not timer.is_stopped():
+		await timer.timeout
+		await process_frame
+	check.expect_equal(previews, [AudioService.Cue.ALL, AudioService.Cue.MOVEMENT], "category changes preview the matching cue once")
+
+	movement.value = 0.0
+	check.expect_true(timer.is_stopped(), "turning off a category schedules no preview")
 
 	_key(KEY_RIGHT)
 	check.expect_false(timer.is_stopped(), "an adjustment queues a preview")
 	options.process_mode = Node.PROCESS_MODE_DISABLED
 	check.expect_true(timer.is_stopped(), "leaving Options cancels a pending preview")
 	options.process_mode = Node.PROCESS_MODE_ALWAYS
-	options.volume_slider.grab_focus()
+	overall.grab_focus()
 	settings.toggle_mute()
 	_key(KEY_LEFT)
-	check.expect_equal(settings.effects_volume_db, -12.0, "muted adjustments still update the setting")
+	check.expect_equal(settings.effects_volume_db, -13.0, "muted adjustments still update the setting")
 	check.expect_true(timer.is_stopped(), "muted adjustments schedule no preview")
 	options.free()
 	settings.free()

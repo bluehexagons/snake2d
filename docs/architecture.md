@@ -223,8 +223,11 @@ taper out as they approach Nyquist. The bounded PCM cache keys on waveform,
 quantized pitch endpoints and exact sample count. Custom tone requests have
 a one-second duration limit to bound render work and PCM allocation.
 
-Playback applies cue gain and effects volume at the silent onset of each
-cached stream. In-flight cues finish at their starting gain, avoiding an
+Playback applies cue gain, per-category attenuation, and overall effects
+volume at the silent onset of each cached stream. Movement, food pickups,
+collisions, and menu sounds have separate saved levels. Older saves default
+each category to 100%. Setting a category to 0% skips its new cues entirely.
+In-flight cues finish at their starting gain, avoiding an
 abrupt gain step in Web sample playback. Muting blocks new cues immediately.
 Voices route directly to Master on native and Web. The PCM peak and per-voice gain
 limits leave at least 2 dB of sample headroom even with every voice active.

@@ -27,7 +27,9 @@ The game pauses when its window loses focus. Select **Resume** when you’re rea
 
 ## Options
 
-Adjust effects volume, mute sound, switch to fullscreen, or hide the grid.
+Adjust overall effects volume or mix movement, food pickups, collisions, and
+menu sounds separately. Set a cue to 0% to silence it, or turn **Sound** off to
+mute the game. Options also lets you switch to fullscreen or hide the grid.
 **Reduced Motion** skips menu fades and keeps the whole board in view. In the
 desktop download, **30 FPS Limit** reduces rendering work while the snake is
 moving. The snake keeps the same speed.

@@ -6,6 +6,7 @@ extends Node
 
 enum Waveform {SINE, SQUARE, TRIANGLE, SAW, CHIME, ROUNDED_BUZZ}
 enum VoiceGroup {GENERAL, CRITICAL, MENU}
+enum Cue {ALL, MOVEMENT, FOOD, COLLISION, MENU}
 
 const AppConstants = preload("res://core/app_constants.gd")
 const CHANNEL_COUNT := 12
@@ -62,6 +63,7 @@ var _pickup_player: AudioStreamPlayer
 var _tone_cache: Dictionary[Vector4i, AudioStreamWAV] = {}
 var _tone_cache_order: Array[Vector4i] = []
 var _shutting_down := false
+var _cue_volume_percent: Dictionary[Cue, float] = {}
 
 var is_muted := false
 var effects_volume_db := 0.0
@@ -131,6 +133,27 @@ func set_effects_volume_db(volume_db: float) -> void:
 		return
 	effects_volume_db = clampf(volume_db, -30.0, 0.0)
 
+func set_cue_volume_percent(cue: Cue, percent: float) -> void:
+	if cue != Cue.ALL and is_finite(percent):
+		_cue_volume_percent[cue] = clampf(percent, 0.0, 100.0)
+
+func preview_volume(cue: Cue) -> void:
+	if cue == Cue.ALL:
+		# Preview a cue that the current mix still lets the player hear.
+		for candidate: Cue in [Cue.FOOD, Cue.MOVEMENT, Cue.MENU, Cue.COLLISION]:
+			if _cue_volume_percent.get(candidate, 100.0) > 0.0:
+				cue = candidate
+				break
+	match cue:
+		Cue.MOVEMENT:
+			play_move(0.0)
+		Cue.FOOD:
+			play_eat()
+		Cue.COLLISION:
+			play_die()
+		Cue.MENU:
+			play_click()
+
 func play_move(speed_progress: float) -> void:
 	# Catch-up ticks can arrive before the last movement cue has finished.
 	if _movement_player != null and _movement_player.playing:
@@ -146,7 +169,8 @@ func play_move(speed_progress: float) -> void:
 		movement_frequency_for_progress(speed_progress),
 		movement_duration_for_progress(speed_progress),
 		volume_db,
-		Waveform.SINE
+		Waveform.SINE,
+		Cue.MOVEMENT
 	)
 
 func movement_frequency_for_progress(speed_progress: float) -> float:
@@ -175,6 +199,7 @@ func play_eat() -> void:
 		EAT_TONE_SECONDS,
 		EAT_VOLUME_DB,
 		Waveform.CHIME,
+		Cue.FOOD,
 		VoiceGroup.GENERAL,
 		EAT_END_FREQUENCY
 	)
@@ -187,15 +212,16 @@ func play_die() -> void:
 		DIE_TONE_SECONDS,
 		DIE_VOLUME_DB,
 		Waveform.ROUNDED_BUZZ,
+		Cue.COLLISION,
 		VoiceGroup.CRITICAL,
 		DIE_END_FREQUENCY
 	)
 
 func play_click() -> void:
-	_play_tone(CLICK_FREQUENCY, CLICK_TONE_SECONDS, CLICK_VOLUME_DB, Waveform.TRIANGLE, VoiceGroup.MENU)
+	_play_tone(CLICK_FREQUENCY, CLICK_TONE_SECONDS, CLICK_VOLUME_DB, Waveform.TRIANGLE, Cue.MENU, VoiceGroup.MENU)
 
 func play_focus() -> void:
-	_play_tone(FOCUS_FREQUENCY, FOCUS_TONE_SECONDS, FOCUS_VOLUME_DB, Waveform.TRIANGLE, VoiceGroup.MENU)
+	_play_tone(FOCUS_FREQUENCY, FOCUS_TONE_SECONDS, FOCUS_VOLUME_DB, Waveform.TRIANGLE, Cue.MENU, VoiceGroup.MENU)
 
 func play_tone(frequency: float, duration: float, volume_db: float, waveform: Waveform) -> void:
 	_play_tone(frequency, duration, volume_db, waveform)
@@ -205,12 +231,14 @@ func _play_tone(
 	duration: float,
 	volume_db: float,
 	waveform: Waveform,
+	cue := Cue.ALL,
 	voice_group := VoiceGroup.GENERAL,
 	end_frequency := -1.0
 ) -> AudioStreamPlayer:
+	var percent: float = _cue_volume_percent.get(cue, 100.0)
 	if (
 		_shutting_down or is_muted or audio_players.is_empty()
-		or not is_inside_tree() or not is_finite(volume_db)
+		or not is_inside_tree() or not is_finite(volume_db) or percent <= 0.0
 	):
 		return null
 
@@ -233,7 +261,7 @@ func _play_tone(
 	if player == _pickup_player:
 		_pickup_player = null
 	player.stream = stream
-	player.volume_db = _volume_db_for_channel(channel, volume_db)
+	player.volume_db = _volume_db_for_channel(channel, volume_db) + linear_to_db(percent / 100.0)
 	player.play()
 	return player
 

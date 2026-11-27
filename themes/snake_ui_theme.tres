@@ -167,6 +167,9 @@ content_margin_right = 4.0
 content_margin_bottom = 4.0
 bg_color = Color(0.3333, 0.4706, 0.4078, 1)
 
+[sub_resource type="StyleBoxFlat" id="SliderHighlight"]
+bg_color = Color(0.6471, 0.9569, 0.7961, 1)
+
 [sub_resource type="StyleBoxFlat" id="Dialog"]
 content_margin_left = 16.0
 content_margin_top = 16.0
@@ -257,7 +260,7 @@ PopupMenu/colors/font_hover_color = Color(0.9490, 1.0000, 0.9647, 1)
 PopupMenu/constants/v_separation = 24
 HSlider/styles/slider = SubResource("ScrollTrack")
 HSlider/styles/grabber_area = SubResource("ScrollThumb")
-HSlider/styles/grabber_area_highlight = SubResource("ScrollThumb")
+HSlider/styles/grabber_area_highlight = SubResource("SliderHighlight")
 VScrollBar/styles/scroll = SubResource("ScrollTrack")
 VScrollBar/styles/grabber = SubResource("ScrollThumb")
 VScrollBar/styles/grabber_highlight = SubResource("Hover")

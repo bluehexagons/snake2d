@@ -68,9 +68,11 @@ func _run() -> void:
 					check.expect_true(primary.position.y + primary.size.y < actions.position.y, "regular menu groups stack: %s" % menu.name)
 				check.expect_true(menu.position.length() <= 1.0, "menu origin survives minimum-size changes: %s at %s (%s)" % [menu.name, dimensions, menu.position])
 				check.expect_true(panel.size.x <= menu.size.x + 1.0, "panel fits width: %s at %s (%s vs %s)" % [menu.name, dimensions, panel.size, menu.size])
-				if menu is OptionsMenu and dimensions == Vector2i(320, 568):
-					check.expect_true(panel.size.y <= menu.size.y + 1.0, "portrait Options fits without scrolling")
-				for button in menu.get_buttons():
+				var focus_targets: Array[Control] = []
+				focus_targets.assign(menu.get_buttons())
+				if menu is OptionsMenu:
+					focus_targets.append_array(menu.volume_sliders.values())
+				for button in focus_targets:
 					for path in [button.focus_neighbor_top, button.focus_neighbor_bottom]:
 						if not path.is_empty():
 							check.expect_true(button.get_node_or_null(path) is Control, "focus neighbor resolves: %s/%s" % [menu.name, button.name])

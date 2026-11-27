@@ -10,6 +10,12 @@ const CURRENT_VERSION := 1
 const DEFAULT_SETTINGS_PATH := "user://settings.cfg"
 const LEGACY_SETTINGS_PATH := "user://settings.dat"
 const LIMITED_GAMEPLAY_FPS := 30
+const CUE_VOLUME_KEYS: Dictionary[AudioService.Cue, String] = {
+	AudioService.Cue.MOVEMENT: "movement_percent",
+	AudioService.Cue.FOOD: "food_percent",
+	AudioService.Cue.COLLISION: "collision_percent",
+	AudioService.Cue.MENU: "menu_percent",
+}
 
 @export var settings_path := DEFAULT_SETTINGS_PATH
 @export var legacy_settings_path := LEGACY_SETTINGS_PATH
@@ -21,6 +27,7 @@ var reduced_motion := false
 var grid_enabled := true
 var limit_gameplay_fps := false
 
+var _cue_volume_percent: Dictionary[AudioService.Cue, float] = {}
 var _audio_service: AudioService
 var _ui_state_manager: UIStateManager
 var _gameplay_grid: GameplayGrid
@@ -67,9 +74,9 @@ func load_settings() -> void:
 		var version = config.get_value("meta", "version", 0)
 		if version is int and version == CURRENT_VERSION:
 			is_muted = _read_bool(config, "audio", "muted", false)
-			var volume = config.get_value("audio", "effects_volume_db", 0.0)
-			if (volume is float or volume is int) and is_finite(float(volume)):
-				effects_volume_db = clampf(float(volume), -30.0, 0.0)
+			effects_volume_db = _read_volume(config, "effects_volume_db", 0.0, -30.0, 0.0)
+			for cue in CUE_VOLUME_KEYS:
+				_cue_volume_percent[cue] = _read_volume(config, CUE_VOLUME_KEYS[cue], 100.0, 0.0, 100.0)
 			is_fullscreen = _read_bool(config, "display", "fullscreen", false)
 			grid_enabled = _read_bool(config, "display", "grid_enabled", true)
 			limit_gameplay_fps = _read_bool(config, "display", "limit_gameplay_fps", false)
@@ -85,6 +92,8 @@ func save_settings() -> void:
 	config.set_value("meta", "version", CURRENT_VERSION)
 	config.set_value("audio", "muted", is_muted)
 	config.set_value("audio", "effects_volume_db", effects_volume_db)
+	for cue in CUE_VOLUME_KEYS:
+		config.set_value("audio", CUE_VOLUME_KEYS[cue], get_cue_volume_percent(cue))
 	config.set_value("display", "fullscreen", is_fullscreen)
 	config.set_value("display", "grid_enabled", grid_enabled)
 	config.set_value("display", "limit_gameplay_fps", limit_gameplay_fps)
@@ -105,6 +114,18 @@ func set_effects_volume_db(volume_db: float) -> void:
 	if is_equal_approx(clamped, effects_volume_db):
 		return
 	effects_volume_db = clamped
+	_commit_change()
+
+func get_cue_volume_percent(cue: AudioService.Cue) -> float:
+	return _cue_volume_percent.get(cue, 100.0)
+
+func set_cue_volume_percent(cue: AudioService.Cue, percent: float) -> void:
+	if not CUE_VOLUME_KEYS.has(cue) or not is_finite(percent):
+		return
+	var clamped := clampf(percent, 0.0, 100.0)
+	if is_equal_approx(clamped, get_cue_volume_percent(cue)):
+		return
+	_cue_volume_percent[cue] = clamped
 	_commit_change()
 
 func toggle_fullscreen() -> bool:
@@ -138,6 +159,7 @@ func reset_settings() -> void:
 func _reset_values() -> void:
 	is_muted = false
 	effects_volume_db = 0.0
+	_cue_volume_percent.clear()
 	is_fullscreen = false
 	reduced_motion = false
 	grid_enabled = true
@@ -152,6 +174,8 @@ func _apply_settings() -> void:
 	if _audio_service:
 		_audio_service.set_muted(is_muted)
 		_audio_service.set_effects_volume_db(effects_volume_db)
+		for cue in CUE_VOLUME_KEYS:
+			_audio_service.set_cue_volume_percent(cue, get_cue_volume_percent(cue))
 	if _ui_state_manager:
 		_ui_state_manager.set_reduced_motion(reduced_motion)
 	if _gameplay_grid:
@@ -180,3 +204,9 @@ func _load_legacy_settings() -> bool:
 func _read_bool(config: ConfigFile, section: String, key: String, fallback: bool) -> bool:
 	var value = config.get_value(section, key, fallback)
 	return value if value is bool else fallback
+
+func _read_volume(config: ConfigFile, key: String, fallback: float, minimum: float, maximum: float) -> float:
+	var value = config.get_value("audio", key, fallback)
+	if (value is float or value is int) and is_finite(float(value)):
+		return clampf(float(value), minimum, maximum)
+	return fallback
