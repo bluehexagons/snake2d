@@ -53,7 +53,7 @@ const TONE_CACHE_FREQUENCY_STEP_HZ := 2.0
 const TONE_CACHE_CAPACITY := 128
 const MAX_TONE_DURATION_SECONDS := 1.0
 const MAX_TONE_FREQUENCY_HZ := HARMONIC_FADE_START_HZ
-const SHUTDOWN_DRAIN_USEC := 200_000
+const SHUTDOWN_DRAIN_SECONDS := 0.2
 
 var audio_players: Array[AudioStreamPlayer] = []
 var next_general_channel_index := 0
@@ -94,7 +94,7 @@ func drain_for_quit() -> void:
 
 	# The mixer fades stopped voices in real time. A scene timer can consume
 	# time from the frame in which it started, before the mixer had that time.
-	var deadline := Time.get_ticks_usec() + SHUTDOWN_DRAIN_USEC
+	var deadline := Time.get_ticks_usec() + int(SHUTDOWN_DRAIN_SECONDS * 1_000_000.0)
 	var remaining := deadline - Time.get_ticks_usec()
 	while remaining > 0:
 		await get_tree().create_timer(remaining / 1_000_000.0, true, false, true).timeout

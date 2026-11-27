@@ -420,7 +420,8 @@ func _expect_shutdown_releases_playback() -> void:
 	check.expect_true(voice.playing, "the death cue plays before shutdown")
 	var started_usec := Time.get_ticks_usec()
 	await audio_service.drain_for_quit()
-	check.expect_true(Time.get_ticks_usec() - started_usec >= AudioServiceScript.SHUTDOWN_DRAIN_USEC,
+	var elapsed_seconds := (Time.get_ticks_usec() - started_usec) / 1_000_000.0
+	check.expect_true(elapsed_seconds >= AudioServiceScript.SHUTDOWN_DRAIN_SECONDS,
 		"stopped voices get the full wall-clock drain interval")
 	check.expect_equal(voice.stream, null, "shutdown releases the active stream")
 	audio_service.play_die()
