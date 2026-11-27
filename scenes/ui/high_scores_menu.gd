@@ -8,8 +8,6 @@ signal high_scores_closed
 @onready var scroll_container: ScrollContainer = %ScrollContainer
 @onready var mode_selector: OptionButton = %ModeSelector
 
-const SCROLL_SPEED := 400.0
-var _scroll_position := 0.0
 var _score_tables: Dictionary = {}
 
 func _ready() -> void:
@@ -17,23 +15,19 @@ func _ready() -> void:
 	for mode in GameMode.ALL:
 		mode_selector.add_item(GameMode.display_name(mode), mode)
 	mode_selector.item_selected.connect(_on_mode_selected)
-	set_process(false)
-	visibility_changed.connect(_on_visibility_changed)
+	scroll_container.gui_input.connect(_on_score_list_input)
 
-func _on_visibility_changed() -> void:
-	set_process(self.visible)
-	_scroll_position = float(scroll_container.scroll_vertical)
-
-func _process(delta: float) -> void:
-	var scroll_input: float = Input.get_axis("ui_up", "ui_down")
-	if scroll_input != 0:
-		_scroll_position += scroll_input * SCROLL_SPEED * delta
-		var requested_scroll := roundi(_scroll_position)
-		scroll_container.scroll_vertical = requested_scroll
-		if scroll_container.scroll_vertical != requested_scroll:
-			_scroll_position = float(scroll_container.scroll_vertical)
-	else:
-		_scroll_position = float(scroll_container.scroll_vertical)
+func _on_score_list_input(event: InputEvent) -> void:
+	var down := event.is_action_pressed(&"ui_down", true, true)
+	var up := event.is_action_pressed(&"ui_up", true, true)
+	if not (down or up):
+		return
+	var previous := scroll_container.scroll_vertical
+	var step := maxi(1, roundi(scroll_container.get_v_scroll_bar().page / 2.0))
+	scroll_container.scroll_vertical = previous + (step if down else -step)
+	# A fresh press at either end moves focus. Holding a key stops at the edge.
+	if scroll_container.scroll_vertical != previous or event.is_echo():
+		scroll_container.accept_event()
 
 func update_scores(score_tables: Dictionary) -> void:
 	_score_tables = score_tables.duplicate(true)
@@ -44,7 +38,6 @@ func _on_mode_selected(_index: int) -> void:
 
 func _show_selected_scores() -> void:
 	scroll_container.scroll_vertical = 0
-	_scroll_position = 0.0
 	for child in scores_list.get_children():
 		scores_list.remove_child(child)
 		child.queue_free()

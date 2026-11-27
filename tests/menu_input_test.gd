@@ -52,6 +52,7 @@ func _run() -> void:
 func _expect_score_mode_starts_at_top() -> void:
 	root.size = Vector2i(800, 600)
 	var scores := SCORES_MENU.instantiate() as HighScoresMenu
+	scores.process_mode = Node.PROCESS_MODE_ALWAYS
 	root.add_child(scores)
 	var classic: Array[int] = []
 	var pitfall: Array[int] = []
@@ -62,12 +63,45 @@ func _expect_score_mode_starts_at_top() -> void:
 	for frame in 5:
 		await process_frame
 	scores.scroll_container.scroll_vertical = 500
-	check.expect_true(scores.scroll_container.scroll_vertical > 0, "the first score table can scroll")
+	var position := scores.scroll_container.scroll_vertical
+	check.expect_true(position > 0, "the first score table can scroll")
+	scores.back_button.grab_focus()
+	_key(KEY_UP)
+	check.expect_equal(root.gui_get_focus_owner(), scores.scroll_container, "Up from Back focuses the score list")
+	check.expect_equal(scores.scroll_container.scroll_vertical, position, "moving focus onto the list keeps its position")
+	_key(KEY_DOWN)
+	check.expect_true(scores.scroll_container.scroll_vertical > position, "Down scrolls the focused list")
+	check.expect_equal(root.gui_get_focus_owner(), scores.scroll_container, "scrolling keeps focus on the list")
+	var controller := InputEventJoypadButton.new()
+	controller.button_index = JOY_BUTTON_DPAD_UP
+	controller.pressed = true
+	root.push_input(controller, true)
+	check.expect_equal(scores.scroll_container.scroll_vertical, position, "the D-pad scrolls the focused list")
+	_key(KEY_RIGHT)
+	check.expect_equal(root.gui_get_focus_owner(), scores.back_button, "Right leaves the middle of the list for Back")
+	_key(KEY_UP)
+	_key(KEY_LEFT)
+	check.expect_equal(root.gui_get_focus_owner(), scores.mode_selector, "Left leaves the middle of the list for the mode picker")
+	scores.mode_selector.show_popup()
+	Input.action_press(&"ui_down")
+	await create_timer(0.08).timeout
+	Input.action_release(&"ui_down")
+	check.expect_equal(scores.scroll_container.scroll_vertical, position, "mode picker input leaves the background table alone")
+	scores.mode_selector.get_popup().hide()
 	scores.mode_selector.select(GameMode.Value.PITFALL)
 	scores.mode_selector.item_selected.emit(GameMode.Value.PITFALL)
 	check.expect_equal(scores.scores_list.get_child_count(), 100, "switching modes replaces rows immediately")
 	check.expect_equal(scores.scores_list.get_child(0).get_node("Score").text, "2000", "the new mode's highest score appears first")
 	check.expect_equal(scores.scroll_container.scroll_vertical, 0, "each score table opens at rank one")
+	scores.scroll_container.grab_focus()
+	var repeated_up := InputEventKey.new()
+	repeated_up.keycode = KEY_UP
+	repeated_up.pressed = true
+	repeated_up.echo = true
+	root.push_input(repeated_up, true)
+	check.expect_equal(root.gui_get_focus_owner(), scores.scroll_container, "a held key stops at the list boundary")
+	_key(KEY_UP)
+	check.expect_equal(root.gui_get_focus_owner(), scores.mode_selector, "a new press at the top moves focus to the mode picker")
 	scores.free()
 
 func _expect_volume_preview() -> void:

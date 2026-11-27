@@ -82,6 +82,14 @@ expand_margin_top = 4.0
 expand_margin_right = 4.0
 expand_margin_bottom = 4.0
 
+[sub_resource type="StyleBoxFlat" id="ScrollFocus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.6471, 0.9569, 0.7961, 1)
+
 [sub_resource type="StyleBoxFlat" id="Primary"]
 content_margin_left = 14.0
 content_margin_top = 8.0
@@ -233,6 +241,9 @@ ScoreLabel/font_sizes/font_size = 24
 PanelContainer/styles/panel = SubResource("Panel")
 StatusPanel/base_type = &"PanelContainer"
 StatusPanel/styles/panel = SubResource("Status")
+ScoreList/base_type = &"ScrollContainer"
+ScoreList/styles/panel = SubResource("Status")
+ScoreList/styles/focus = SubResource("ScrollFocus")
 LineEdit/styles/normal = SubResource("Field")
 LineEdit/styles/read_only = SubResource("Disabled")
 LineEdit/styles/focus = SubResource("Focus")

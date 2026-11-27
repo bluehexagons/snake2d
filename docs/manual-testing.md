@@ -11,6 +11,7 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | World seed bounds | Type or paste an oversized integer in Obstacles, then start with keyboard/controller | Input stays within nine characters and launches a seed in 1–999999999 without engine errors |
 | Web touch seed entry | On a phone, select Obstacles, tap the World Seed field, replace the seed, dismiss the keyboard and start | The on-screen keyboard opens and the round shows the edited seed in its HUD |
 | Fast menu changes | Open Options and immediately go back; press Start then immediately move or pause | Fading panels cannot take focus, activate buttons, or swallow gameplay input |
+| High Scores | Open a long score table, focus the list, scroll with keyboard or controller, and switch modes | Focus is visible on the list. Up and Down scroll it, Left and Right return to the mode selector or Back, and the mode picker leaves the list alone. Each table opens at rank one. |
 | Native touch | Tap, swipe, cancel a touch, add a second finger, pause/resume mid-gesture | One direction per gesture; no duplicate emulated mouse turn; old gestures are cleared |
 | Web pointer | Switch between touch and mouse, drag outside the canvas and release, return to the game | No stuck drag or duplicate turn; direction matches the visible snake |
 | Layout | Resize while playing and in every menu; try narrow/tall and wide/short windows | Controls remain reachable and grid, food, snake, and camera stay aligned |

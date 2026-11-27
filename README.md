@@ -11,7 +11,8 @@ The snake waits for your first direction before it moves.
 - **Pitfall** adds a pit every third meal when there’s room.
 - **Obstacles** starts with a wall layout. Enter the same seed to replay that layout or share it with a friend.
 
-The game saves your top 100 scores for each mode. Open **High Scores** to see them.
+The game saves your top 100 scores for each mode. Open **High Scores** to see
+them. With a keyboard or controller, focus the list and press Up or Down to scroll.
 
 ## Controls
 

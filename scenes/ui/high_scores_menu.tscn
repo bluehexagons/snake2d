@@ -55,19 +55,27 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
 focus_neighbor_top = NodePath("../../Actions/BackButton")
-focus_neighbor_bottom = NodePath("../../Actions/BackButton")
+focus_neighbor_bottom = NodePath("../../Actions/ScrollContainer")
+focus_next = NodePath("../../Actions/ScrollContainer")
+focus_previous = NodePath("../../Actions/BackButton")
 
-[node name="ScoresContainer" type="PanelContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=463625250]
+[node name="ScrollContainer" type="ScrollContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=991681394]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 172)
 layout_mode = 2
-theme_type_variation = &"StatusPanel"
-
-[node name="ScrollContainer" type="ScrollContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions/ScoresContainer" unique_id=991681394]
-unique_name_in_owner = true
-layout_mode = 2
+focus_neighbor_left = NodePath("../../Primary/ModeSelector")
+focus_neighbor_top = NodePath("../../Primary/ModeSelector")
+focus_neighbor_right = NodePath("../BackButton")
+focus_neighbor_bottom = NodePath("../BackButton")
+focus_next = NodePath("../BackButton")
+focus_previous = NodePath("../../Primary/ModeSelector")
+focus_mode = 2
+accessibility_name = "Score list"
+theme_type_variation = &"ScoreList"
+draw_focus_border = true
 horizontal_scroll_mode = 0
 
-[node name="ScoresList" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions/ScoresContainer/ScrollContainer" unique_id=1908229226]
+[node name="ScoresList" type="VBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions/ScrollContainer" unique_id=1908229226]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -78,7 +86,10 @@ theme_override_constants/separation = 4
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
-focus_neighbor_top = NodePath("../../Primary/ModeSelector")
+focus_neighbor_top = NodePath("../ScrollContainer")
+focus_neighbor_bottom = NodePath("../../Primary/ModeSelector")
+focus_next = NodePath("../../Primary/ModeSelector")
+focus_previous = NodePath("../ScrollContainer")
 text = "Back"
 
 [node name="ButtonHints" type="HBoxContainer" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions" unique_id=965546426]
