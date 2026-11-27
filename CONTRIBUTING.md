@@ -18,15 +18,18 @@ Run the complete source suite before submitting a change:
 ./test.sh source
 ```
 
-The command imports the project, rejects parse/compile errors, runs deterministic model and service tests, and finishes with the composed-scene smoke test.
+The command imports the project, rejects parse and compile errors, and runs
+model, service, input, menu, window lifecycle and scripted Classic playtest
+checks. It finishes with the composed-scene smoke test.
 
 After Bash tooling changes, run `python3 tests/script_runner_test.py` (Python 3,
 standard library only). It checks missing engines, failure exit codes, stderr
 errors, missing success markers, deadlines, output validation, and packaged
 startup outside the checkout using paths with spaces and non-ASCII characters.
 
-See [Basaltwater integration](docs/basaltwater.md) for CachyOS prerequisite,
-export-template and native runtime checks.
+Use the [manual testing matrix](docs/manual-testing.md) for physical devices,
+browser interaction and audible quality. The [Basaltwater guide](docs/basaltwater.md)
+covers hosted previews, native checks and a repeatable rendered Classic playtest.
 
 On Windows use `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1 source`.
 Run `tests\Run-ScriptTests.ps1` with the same PowerShell options after tooling

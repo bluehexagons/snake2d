@@ -91,7 +91,8 @@ Menus, pause, results and the first-move screen use Godot's low processor mode
 to skip redraws when the scene is static. The ready screen keeps its camera
 centered until the first move. Resizing still updates the framing directly.
 Desktop idle loops run roughly every 16 ms. Web keeps browser frame scheduling
-with no added sleep. Moving rounds use normal frame pacing and camera tracking.
+with no added sleep. Moving rounds restore camera tracking and use normal
+frame pacing unless the native 30 FPS limit is enabled.
 
 `GameSession` initializes the model and views before publishing `PLAYING`, so a state observer can inspect the new round immediately. Reconfiguration disconnects the previous gameplay dependency. Removing the session releases `SceneTree.paused`, which would otherwise survive the removed main scene.
 
@@ -178,10 +179,19 @@ is open.
 
 `SnakeGame` receives a `RandomNumberGenerator`. Normal play randomizes it; tests supply a seed. Tail colors are a deterministic presentation gradient and do not consume model randomness. Obstacle mode also sends the selected world seed through `ObstaclePatternGenerator`; that independent generator chooses and parameterizes a Gates, Islands, or Ribbons layout, so the same world seed always produces the same walls regardless of food placement.
 
-Pitfall mode adds a blocked cell at the configured food cadence. Its placement tiers favor cells outside the snake's safety radius and away from the columns below its body. They keep the next cell open, including after a queued turn, whenever another cell is available. Food selection excludes all blocked cells and is restricted to the connected region reachable from the snake. This reachability query treats the moving body as traversable and walls as permanent: it prevents food across a sealed wall, but does not promise that a legal sequence of turns can reach it. `FILLED_BOARD` means no free food cell remains in that region, which may be smaller than the whole board. Terminal steps retain their original outcome and reject new direction requests.
-On wall-free boards, food placement can sample the column-ordered free-cell
-list directly. With walls, a set provides membership checks during the flood
-fill. Both paths keep the same candidate order for seeded randomness.
+Pitfall mode adds a blocked cell at the configured food cadence. It builds the
+safety radius once by expanding Manhattan-distance rings from the snake, then
+favors cells outside that radius and away from the columns below its body.
+It keeps the next cell open, including after a queued turn, whenever another
+cell is available.
+
+On wall-free boards, food placement samples the column-ordered free-cell list
+directly. With walls, a flood fill stores blocked and visited flags in a
+`PackedByteArray`. It treats the moving body as traversable and walls as
+permanent. This keeps food out of sealed areas, though finding a legal sequence
+of turns can still be impossible. Both paths preserve candidate order for
+seeded randomness. `FILLED_BOARD` means the reachable region has no free food
+cell. Terminal steps retain their original outcome and reject new directions.
 
 ## Persistence and audio
 
@@ -199,9 +209,11 @@ remain readable by earlier versions.
 
 `SettingsService` owns a versioned `ConfigFile`, migrates the old two-byte settings file, validates field types and finite volume values before applying them, and applies mute, effects volume, fullscreen, reduced motion, and gameplay-grid visibility. `GameplayGrid` draws its interior boundaries from `GameRules`, keeping the guide aligned when the board or cell size changes.
 
-On desktop, `Main` applies the optional 30 FPS limit while the snake is moving.
-The limit respects any lower launch-time cap. Menus and the first-move screen
-use the launch-time frame limit and on-demand rendering.
+`SettingsService` saves the optional 30 FPS limit alongside the other display
+settings. On desktop, `Main` applies it only while the snake is moving and
+respects any lower launch-time cap. Menus and the first-move screen use the
+launch-time frame limit and on-demand rendering. The model continues ticking
+at the rate established by `GameRules`.
 
 `AudioService` owns procedural synthesis and playback. It renders smooth
 attack and release envelopes and phase-continuous sweeps. Harmonics taper out
@@ -247,6 +259,10 @@ The source suite covers four boundaries:
   target sizes, scaled pointer hit testing and
   keyboard pause/resume with frozen ticks and interpolation.
 - The smoke scene instantiates `Main`, starts a round through its public API, and verifies the composed world reaches a playable state.
+
+The source suite also runs a scripted Classic round from the menu through
+pause, wall collision and retry. A native rendering run can retain milestone
+captures and assertion results. See the [Basaltwater playtest recipe](basaltwater.md#repeatable-classic-playtest).
 
 Run all source checks with `./test.sh source`. Each suite must print its explicit success marker as well as exit without errors; reaching the smoke scene frame limit is not success. Persistence tests and the composed scene use per-process disposable save paths, injected before configuration runs.
 

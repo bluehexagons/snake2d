@@ -11,6 +11,25 @@ launch it through Windows process APIs. Follow [CONTRIBUTING.md](../CONTRIBUTING
 setup without Basaltwater. No service, portal or account setup is required by
 `build.sh`, `test.sh`, `build.ps1` or `test.ps1`.
 
+## Refresh an existing Web preview
+
+The managed development build is a copied Godot export. After changing the
+game, list the configured sites and confirm `snake2d-playtest` belongs to the
+active checkout before replacing it. Reuse its `godot` profile and release
+`Web` preset.
+
+```bash
+basaltw agent doctor --capability development --json
+basaltwater-web site list --json
+basaltwater-web publish site snake2d-playtest --project . --profile godot --preset Web --verify --json
+basaltwater-web site url snake2d-playtest
+```
+
+Check that the development doctor reports matching Web templates. Publication
+rebuilds the export and verifies the files served over HTTPS. Open the exact
+URL returned by the gateway for interaction checks. The GitHub Pages release
+has its own [build and release workflow](build-and-release.md#releasing).
+
 ## CachyOS prerequisites and checks
 
 From the checkout, inspect the installed environment and matching templates:

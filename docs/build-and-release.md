@@ -31,7 +31,8 @@ from Linux still needs native Windows runtime testing.
 ```
 
 The exported files will be placed in the `out/` directory after the launcher
-and its required companion files pass validation. Bash commands enforce
+and its required companion files pass validation. The presets exclude source
+tests and the Basaltwater playtest manifest from player builds. Bash commands enforce
 a 120-second deadline per engine process; set `GODOT_TIMEOUT_SECONDS` (1–3600)
 for a deliberate override. A timed-out process group receives TERM, then KILL
 if it has not exited within five seconds. Engine discovery honors `GODOT_BIN`
@@ -43,6 +44,9 @@ The Linux export smoke runs from an empty temporary directory, isolates Godot's
 data through `XDG_DATA_HOME`, and requires no installed editor.
 
 ### Serving the Web build
+
+For the managed development snapshot, follow the
+[Basaltwater preview instructions](basaltwater.md#refresh-an-existing-web-preview).
 
 Serve the Web export files together over HTTPS, or use localhost for testing.
 Set the WASM response type to `application/wasm` and enable HTTP
@@ -112,7 +116,12 @@ For the built Linux export, run:
 ./test.sh linux-export
 ```
 
-`test.sh all` runs both paths end-to-end. The source suite imports and parses the project, tests audio synthesis, session lifecycle, deterministic rules, input translation, persistence, and input actions, then instantiates the main scene and verifies that a playable round starts without opening a game window. Persistence and composed-scene tests inject disposable save paths so they do not read or overwrite player settings or scores. Bash and PowerShell share the source suite list in `tests/source-suites.txt` and require each success marker, not just exit code zero.
+`test.sh all` runs both paths end to end. The source suite includes model,
+service, input, layout, window lifecycle and scripted Classic playtest checks.
+It ends with a smoke test that composes the main scene and starts a playable
+round. Tests that use saved data inject disposable paths. Bash and PowerShell
+share `tests/source-suites.txt` and require each suite to exit successfully and
+print its success marker.
 
 ## Releasing
 

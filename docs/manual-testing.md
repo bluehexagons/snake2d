@@ -14,11 +14,16 @@ Headless tests verify rules and scene behavior, but cannot establish real-device
 | Native touch | Tap, swipe, cancel a touch, add a second finger, pause/resume mid-gesture | One direction per gesture; no duplicate emulated mouse turn; old gestures are cleared |
 | Web pointer | Switch between touch and mouse, drag outside the canvas and release, return to the game | No stuck drag or duplicate turn; direction matches the visible snake |
 | Layout | Resize while playing and in every menu; try narrow/tall and wide/short windows | Controls remain reachable and grid, food, snake, and camera stay aligned |
-| Reduced motion | Enable during a panel transition; visit every menu and disable it again | Panel transitions settle immediately; verify button animation behavior separately |
+| Reduced Motion | Enable in Options, visit the menus and play a round on a small window | Panels appear immediately and the camera fits the full board without tracking the snake |
+| 30 FPS Limit | Enable in desktop Options, play a round, pause and resume, then restart the app | Moving play uses up to 30 FPS with the same grid speed, menus and pause use the normal idle policy, and the setting survives restart. Web Options omits the setting. |
 | Audio | Play at starting and maximum speed, eat, lose, pause, and adjust Effects Volume with sound on and muted | Playback stays free of clicks and clipping, and the death cue is audible. Volume applies immediately and one food cue previews the settled level when sound is on. |
 | Save/reload | Change settings and earn scores in all modes; restart the application | Settings persist and scores remain separated by mode |
 
 Use a temporary OS account or back up saves before manually testing reset actions. Automated persistence and smoke tests already use disposable paths.
+
+Use the [repeatable Classic playtest](basaltwater.md#repeatable-classic-playtest)
+to capture the menu, pause, wall collision and retry. Use the matrix for
+physical devices, actual focus changes and audible quality.
 
 ## Recorded Windows compatibility review — 2026-11-09
 

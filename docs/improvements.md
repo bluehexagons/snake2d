@@ -1,19 +1,7 @@
 # snake2d — Remaining Improvement Roadmap
 
-This roadmap reflects the current Godot 4.7.2 project after the architecture and learning-environment refinement. Completed historical findings have been removed rather than retained as an ever-growing checklist.
-
-## Current baseline
-
-- There are no Autoloads. `Main` visibly owns services, session state, gameplay, UI, and debug tooling.
-- `GameSession` is the sole owner of application state and `SceneTree.paused`.
-- `SnakeGame`, `SnakeState`, and `GridBoard` implement deterministic `Vector2i` rules independently of scenes and pixels.
-- `Gameplay` is a Godot adapter for ticking, interpolation, pooled views, signals, and audio.
-- `TouchGesture` and `SnakeInputAdapter` classify taps and scale-aware swipes per finger, use unscaled screen-relative drag motion, and ignore emulated duplicate mouse events without owning turn legality. Gameplay input is enabled only in the playing session state.
-- `GameRules` provides Inspector-editable presets for board, scoring, timing, and camera tuning.
-- Audio, settings, and high-score persistence are explicitly owned services with typed consumers. Synth tones have smooth envelopes, phase-continuous sweeps, tapered harmonics, playback-time cue gain, a bounded PCM cache, and non-stealing player channels. PCM peaks and per-voice gain limits preserve mix headroom on native and Web. Startup warms the fixed cues. Movement tones follow an eased game-speed curve and are cached on first use.
-- The F1 debug overlay exposes live state; F2 advances one paused tick.
-- Model, session, persistence, audio, input, input-map, and composed-scene tests run through `./test.sh source` and CI.
-- `docs/architecture.md` and `docs/learning-path.md` describe ownership and a recommended reading order.
+See the [architecture guide](architecture.md) for the current implementation
+and the [learning path](learning-path.md) for a tour of the code.
 
 ## Priority 1 — Validate real-device interaction
 
@@ -52,7 +40,9 @@ Keep this as a separate feature boundary. Do not move input interpretation back 
 
 ## Priority 3 — Surface persistence failures in the UI
 
-`SettingsService` warns when `ConfigFile.save()` fails, while `HighScoreStore` currently treats file-open failures as an empty table or unsuccessful write. If this project grows beyond a learning sample:
+Both persistence services write through `SaveFile` and log a warning when a
+write fails. Players currently get no feedback in the UI. If the project needs
+that feedback:
 
 - return typed error results from both persistence services
 - distinguish missing files from corrupt or unsupported files
@@ -63,7 +53,11 @@ Avoid showing errors for a normal first run where no file exists yet.
 
 ## Priority 4 — Add visual regression coverage only when visuals stabilize
 
-The headless smoke test verifies composition and startup behavior, not rendered output. If UI or interpolation regressions become common, add a small screenshot suite for one desktop renderer and a few stable states:
+The UI layout suite can save screenshots, and the
+[repeatable Classic playtest](basaltwater.md#repeatable-classic-playtest)
+retains rendered milestones. Checks currently cover geometry, focus and game
+behavior. If visual regressions become common, build on those captures with
+image comparisons for one desktop renderer and a few stable states:
 
 - main menu
 - active round with several body segments
@@ -71,7 +65,7 @@ The headless smoke test verifies composition and startup behavior, not rendered 
 - game over
 - options with reduced motion enabled
 
-Keep tolerances and renderer assumptions documented. Screenshot infrastructure is not currently worth adding solely for completeness.
+Keep tolerances and renderer assumptions documented.
 
 ## Priority 5 — Profile before adding more rendering abstractions
 

@@ -31,7 +31,7 @@ func _ready() -> void:
 	reset_settings_button = %ResetSettingsButton
 	reset_scores_button = %ResetScoresButton
 	back_button = %BackButton
-	
+
 	sound_button.pressed.connect(_on_sound_toggled)
 	volume_slider.value_changed.connect(_on_volume_changed)
 	_volume_preview_timer.timeout.connect(_preview_volume)
@@ -44,12 +44,10 @@ func _ready() -> void:
 		grid_button.focus_neighbor_bottom = grid_button.get_path_to(reset_settings_button)
 		reset_settings_button.focus_neighbor_top = reset_settings_button.get_path_to(grid_button)
 	reset_settings_button.pressed.connect(_on_reset_settings_pressed)
-	
 	reset_scores_button.pressed.connect(_on_reset_scores_pressed)
-	
 	back_button.pressed.connect(_on_back_pressed)
 	resized.connect(_update_confirmation_layout)
-	update_button_states()
+	_update_button_states()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DISABLED and is_instance_valid(_volume_preview_timer):
@@ -58,15 +56,14 @@ func _notification(what: int) -> void:
 ## Supplies the versioned settings boundary this menu edits.
 func set_settings_service(service: SettingsService) -> void:
 	if is_instance_valid(_settings_service):
-		_settings_service.settings_changed.disconnect(update_button_states)
+		_settings_service.settings_changed.disconnect(_update_button_states)
 	_settings_service = service
 	if _settings_service != null:
-		_settings_service.settings_changed.connect(update_button_states)
-	update_button_states()
+		_settings_service.settings_changed.connect(_update_button_states)
+	_update_button_states()
 
 func _on_sound_toggled() -> void:
 	_settings_service.toggle_mute()
-	update_sound_button()
 
 func _on_volume_changed(volume_db: float) -> void:
 	if _settings_service == null:
@@ -81,15 +78,12 @@ func _preview_volume() -> void:
 
 func _on_fullscreen_toggled() -> void:
 	_settings_service.toggle_fullscreen()
-	update_fullscreen_button()
 
 func _on_reduced_motion_toggled() -> void:
 	_settings_service.toggle_reduced_motion()
-	update_reduced_motion_button()
 
 func _on_grid_toggled() -> void:
 	_settings_service.toggle_grid()
-	update_grid_button()
 
 func _on_fps_limit_toggled() -> void:
 	_settings_service.toggle_gameplay_fps_limit()
@@ -101,7 +95,6 @@ func _on_reset_settings_pressed() -> void:
 		"Reset",
 		func() -> void:
 			_settings_service.reset_settings()
-			update_button_states()
 	)
 
 func _on_reset_scores_pressed() -> void:
@@ -134,33 +127,19 @@ func get_buttons() -> Array[Button]:
 func get_default_focus() -> Button:
 	return sound_button
 
-func update_button_states() -> void:
+func _update_button_states() -> void:
 	_volume_preview_timer.stop()
 	if _settings_service == null:
 		return
-	update_sound_button()
-	volume_slider.set_value_no_signal(_settings_service.effects_volume_db)
-	update_volume_label()
-	update_fullscreen_button()
-	update_reduced_motion_button()
-	update_grid_button()
-	fps_limit_button.show_setting(_settings_service.limit_gameplay_fps)
-
-func update_sound_button() -> void:
 	sound_button.show_setting(not _settings_service.is_muted)
-
-func update_volume_label() -> void:
-	var linear_volume := db_to_linear(_settings_service.effects_volume_db)
+	var volume_db := _settings_service.effects_volume_db
+	volume_slider.set_value_no_signal(volume_db)
+	var linear_volume := db_to_linear(volume_db)
 	volume_label.text = "Effects Volume: %d%%" % roundi(linear_volume * 100.0)
-
-func update_fullscreen_button() -> void:
 	fullscreen_button.show_setting(_settings_service.is_fullscreen)
-
-func update_reduced_motion_button() -> void:
 	reduced_motion_button.show_setting(_settings_service.reduced_motion)
-
-func update_grid_button() -> void:
 	grid_button.show_setting(_settings_service.grid_enabled)
+	fps_limit_button.show_setting(_settings_service.limit_gameplay_fps)
 
 func _show_confirmation_dialog(title: String, text: String, confirmation: String, on_confirm: Callable) -> void:
 	if is_instance_valid(_confirmation_dialog):

@@ -1,4 +1,4 @@
-# Godot 4.7.2 Learning Path
+# Godot learning path
 
 This project is intended to be read from ownership outward: begin with the main scene, follow one state transition into gameplay, then study the pure rules beneath the scene adapter.
 
@@ -45,7 +45,8 @@ Read the input actions in `project.godot`, followed by `TouchGesture`, `SnakeInp
 - Keyboard, gamepad, mouse, tap, and drag all become a cardinal `Vector2i`.
 - A touch remains undecided until release makes it a tap or physical screen motion crosses the swipe threshold.
 - `InputEventScreenDrag.screen_relative` keeps swipe motion independent of viewport content stretching.
-- `GameSession` enables the gameplay adapter only while a round is playing; menu navigation keeps its own focus handling.
+- `Main` enables the gameplay adapter when `GameSession` enters the playing
+  state. Menu navigation uses the UI's own focus handling.
 - The adapter does not reject reversals or rapid turns; the model does.
 - Observe how `_unhandled_input()` lets UI controls consume events before gameplay.
 - Only a tracked press can produce a touch drag; pause/cancellation must not
@@ -65,13 +66,22 @@ Read the model in this order:
 
 Set a breakpoint in `SnakeGame.step()` and inspect one movement tick. The model uses cells rather than pixels and has no scene-node references. The tests show why entering the departing tail cell is legal and how two quick turns are applied on consecutive ticks.
 
+Follow `_place_pit()` to see how the model expands Manhattan-distance rings
+around the snake once per placement. `_choose_food_cell()` checks reachability
+only when walls are present. Both use ordered candidate lists so a fixed seed
+continues to pick the same cells.
+
 ## 6. Physics ticks and visual interpolation
 
 Read `Gameplay._physics_process()`, `advance_one_tick()`, and `_apply_visual_interpolation()`.
 
 - The bounded accumulator advances deterministic grid ticks.
-- `SnakeView` and pooled `SnakeSegment` nodes interpolate between old and new pixel positions.
-- A separate visual RNG changes segment colors without consuming model randomness.
+- The head and departing tail interpolate between ticks. The other body
+  segments snap into their grid cells and reuse pooled `SnakeSegment` nodes.
+- Segment colors follow a deterministic gradient along the body.
+- `Main._update_render_policy()` enables on-demand rendering while the board
+  is waiting for the first move, paused or behind a menu. Follow that method
+  to see how the native 30 FPS limit changes frame pacing during movement.
 
 In a debug build, press F1 to open the teaching overlay. Pause and press F2 to advance one model tick at a time.
 
@@ -126,10 +136,13 @@ or grid settings change.
 
 - High scores use a versioned variant document with legacy support.
 - Settings use sectioned `ConfigFile` data and migrate the old format.
-- The options menu changes services through a typed boundary.
+- The options menu calls `SettingsService` and refreshes its controls when
+  `settings_changed` fires. The volume slider updates without emitting a
+  second change signal.
 - Minimizing a fullscreen window must preserve its saved preference until a
   real visible mode change can be observed.
-- Reduced motion changes both panel and button animation behavior.
+- Reduced Motion skips panel fades and fits the whole board in the viewport.
+  The native frame limit is a separate setting for moving rounds.
 - Treat deserialized values as untrusted types: a `ConfigFile` can parse successfully while containing an array where a boolean belongs. Follow the malformed-settings tests.
 - Notice how `TestFiles` and injected legacy/save paths isolate tests from player data before `Main._ready()` runs.
 
@@ -145,7 +158,9 @@ Run:
 ./test.sh linux-export
 ```
 
-The same source checks run in CI before platform exports are built. Read
+The same source checks run in CI before platform exports are built. The
+[repeatable Classic playtest](basaltwater.md#repeatable-classic-playtest) can
+also run with native rendering and retain captures of its stages. Read
 `ResponsiveUILayer` and `tests/ui_layout_test.gd` to see how menu coordinates
 compensate for viewport stretch while the board retains its scale. The layout
 suite checks narrow portrait, short landscape, ultrawide windows, focus scrolling
