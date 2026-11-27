@@ -78,6 +78,40 @@ with a disposable child `APPDATA` profile. Headless startup and synthetic densit
 tests do not establish audible quality, physical devices or Windows DPI behavior.
 See the [recorded qualification and open checks](manual-testing.md).
 
+## Repeatable Classic playtest
+
+The project-owned scenario starts Classic, makes a move, pauses, resumes,
+reaches a wall collision and retries. It injects game-side input and isolates
+saves. In a rendered run it retains PNGs of the menu, ready board, pause,
+results and retried board, plus `milestones.jsonl` with the observed stage
+order and elapsed times. `scenario-result.json` records the assertion outcome
+and last retained stage when the scenario exits. An interrupted process can
+leave only the journal prefix, so check the supervisor's terminal receipt as
+well. The source suite also runs the assertions headlessly.
+
+On Windows, use the session guardian from the project directory:
+
+```powershell
+basaltw desktop develop run --project (Get-Location).Path --test-session --timeout 45 -- --script res://tests/native_playtest_test.gd
+basaltw desktop develop ready TASK_ID --timeout 30
+basaltw desktop develop wait TASK_ID --timeout 45
+```
+
+On CachyOS, use the declared Linux playtest profile with a recorder for this
+project:
+
+```bash
+basaltw desktop --native evidence start --project "$PWD"
+basaltw desktop --native develop playtest classic-lifecycle --project "$PWD"
+basaltw desktop --native develop wait TASK_ID --timeout 45
+basaltw desktop --native evidence finish --task TASK_ID
+```
+
+On Debian XRDP, use the same commands without `--native`. The task's
+`artifacts` directory contains the project evidence on both platforms. This
+scenario covers game behavior and rendering. Use guarded desktop input for
+end-to-end input delivery and the manual matrix for physical devices and audio.
+
 ## Generated output and retention
 
 `.basaltwater/cleanup.json` declares `out/` exports and `dist/` release staging

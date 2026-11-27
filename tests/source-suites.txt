@@ -9,3 +9,4 @@ menu_input_test.gd|Menu input test passed.
 persistence_test.gd|Persistence test passed.
 ui_layout_test.gd|UI layout test passed.
 window_lifecycle_test.gd|Window lifecycle test passed.
+native_playtest_test.gd|Native playtest test passed.
