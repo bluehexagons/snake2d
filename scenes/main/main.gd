@@ -166,7 +166,8 @@ func _input(event: InputEvent) -> void:
 			game_session.toggle_pause()
 
 func _update_input_hints() -> void:
-	var menu_hint := "Enter  Select    Esc  Back"
+	var select_hint := "Enter  Select"
+	var back_key := "Esc"
 	match _input_device:
 		InputDevice.KEYBOARD:
 			first_move_hint.text = "Arrow keys or WASD to move"
@@ -176,12 +177,14 @@ func _update_input_hints() -> void:
 			first_move_hint.text = "Swipe or tap to move"
 		InputDevice.CONTROLLER:
 			first_move_hint.text = "D-pad or left stick to move"
-			menu_hint = "A  Select    B  Back"
+			select_hint = "A  Select"
+			back_key = "B"
 	for menu in ui_state_manager.ui_elements.values():
 		if menu == main_menu:
 			continue
 		var hint := menu.get_node("Content/PanelContainer/MarginContainer/MenuLayout/Actions/ButtonHints/Label") as Label
-		hint.text = menu_hint
+		var back_action := "Resume" if menu == pause_menu else "Back"
+		hint.text = "%s    %s  %s" % [select_hint, back_key, back_action]
 		hint.visible = _input_device != InputDevice.TOUCH
 
 func _has_active_joypad_action(event: InputEventJoypadMotion) -> bool:

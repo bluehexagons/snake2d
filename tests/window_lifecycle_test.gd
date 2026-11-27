@@ -178,6 +178,18 @@ func _expect_pause_shortcuts() -> void:
 	main.start_new_round()
 	_push_key(KEY_SPACE)
 	check.expect_equal(main.game_session.state, GameSession.State.PAUSED, "Space pauses gameplay")
+	var pause_hint := main.pause_menu.get_node("Content/PanelContainer/MarginContainer/MenuLayout/Actions/ButtonHints/Label") as Label
+	check.expect_equal(pause_hint.text, "Enter  Select    Esc  Resume", "pause identifies Escape as Resume")
+	_push_key(KEY_ESCAPE)
+	check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "the Escape prompt resumes the round")
+	_push_key(KEY_SPACE)
+	var controller_back := InputEventJoypadButton.new()
+	controller_back.button_index = JOY_BUTTON_B
+	controller_back.pressed = true
+	root.push_input(controller_back, true)
+	check.expect_equal(pause_hint.text, "A  Select    B  Resume", "pause identifies controller B as Resume")
+	check.expect_equal(main.game_session.state, GameSession.State.PLAYING, "the controller prompt resumes the round")
+	_push_key(KEY_SPACE)
 	_push_key(KEY_DOWN)
 	check.expect_equal(root.gui_get_focus_owner(), main.pause_menu.menu_button, "Down focuses End Run")
 	var end_run_presses: Array[bool] = []

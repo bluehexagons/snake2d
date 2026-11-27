@@ -79,5 +79,5 @@ alignment = 1
 [node name="Label" type="Label" parent="Content/PanelContainer/MarginContainer/MenuLayout/Actions/ButtonHints" unique_id=1416937241]
 layout_mode = 2
 theme_type_variation = &"HintLabel"
-text = "[A] Select   [B] Back"
+text = "A  Select    B  Resume"
 horizontal_alignment = 1
